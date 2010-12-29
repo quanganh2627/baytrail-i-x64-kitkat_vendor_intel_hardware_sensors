@@ -25,11 +25,11 @@
 #include "sensors_gaid.h"
 
 #define GAID_ACCELEROMETER_SYSFS_PREF \
-    "/sys/class/i2c-adapter/i2c-0/0-001c/lis331dl/"
+    "/sys/devices/platform/lis3lv02d/"
 
-#define ACCELEROMETER_DEV "curr_pos"
+#define ACCELEROMETER_DEV "position"
 
-#define CONVERT                     (float)(GRAVITY_EARTH * 18.0 / 1000.0)
+#define CONVERT                    (1.0/100.0) 
 
 static int fd_accel = -1;
 
@@ -82,8 +82,8 @@ static int gaid_accelerometer_data_read(sensors_data_t *data)
     clock_gettime(CLOCK_REALTIME, &t);
 
     /* convert axis X & Y to fit with Android platform */
-    data->acceleration.y = -(x * CONVERT);
-    data->acceleration.x = y * CONVERT;
+    data->acceleration.y = (x * CONVERT);
+    data->acceleration.x = -(y * CONVERT);
     data->acceleration.z = z * CONVERT;
 
     data->time = timespec_to_ns(&t);
