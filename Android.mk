@@ -1,6 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
 ifneq ($(TARGET_PRODUCT),sim)
+ifneq (,$(findstring $(CUSTOM_BOARD), mfld_cdk))
 # HAL module implemenation, not prelinked and stored in
 # hw/<SENSORS_HARDWARE_MODULE_ID>.<ro.hardware>.so
 include $(CLEAR_VARS)
@@ -15,4 +16,5 @@ LOCAL_SRC_FILES := sensors_gaid.c \
 LOCAL_MODULE := sensors.$(TARGET_DEVICE)
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
+endif
 endif
