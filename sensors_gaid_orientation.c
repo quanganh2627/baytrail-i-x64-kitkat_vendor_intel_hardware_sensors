@@ -16,24 +16,25 @@
 
 /* Contains changes by Wind River Systems, 2009-2010 */
 
-#define LOG_TAG "GAID_compass"
+#define LOG_TAG "icdk_orientation"
 
 #include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
 #include <errno.h>
+#include <math.h>
 #include <hardware/sensors.h>
 
 #include "sensors_gaid.h"
 
-#define COMPASS_SYSFS_DIR       "/sys/class/i2c-adapter/i2c-5/5-000f/ak8974/"
-#define COMPASS_DATA            "curr_pos"
+#define COMPASS_SYSFS_DIR	"/sys/class/i2c-adapter/i2c-5/5-000f/ak8974/"
+#define COMPASS_DATA		"curr_pos"
 
-#define RESOLUTION 0.3f /* 0.3 uT per LSB */
+#define PI 3.1415926f
 
 static int fd_pos = -1;
 
-static int gaid_compass_data_open(void)
+static int gaid_orientation_data_open(void)
 {
     if (fd_pos < 0) {
         fd_pos = open(COMPASS_SYSFS_DIR COMPASS_DATA, O_RDONLY);
@@ -44,7 +45,7 @@ static int gaid_compass_data_open(void)
     return fd_pos;
 }
 
-static void gaid_compass_data_close(void)
+static void gaid_orientation_data_close(void)
 {
     if (fd_pos >= 0) {
         close(fd_pos);
@@ -52,24 +53,47 @@ static void gaid_compass_data_close(void)
     }
 }
 
-static void gaid_compass_set_fd(fd_set *fds)
+static void gaid_orientation_set_fd(fd_set *fds)
 {
     FD_SET(fd_pos, fds);
 }
 
-static int gaid_compass_is_fd(fd_set *fds)
+static int gaid_orientation_is_fd(fd_set *fds)
 {
     return FD_ISSET(fd_pos, fds);
 }
 
+static float calc_azimuth(int x, int y)
+{
+    float ret = 0.0;
+
+    if (x == 0) {
+        if (y < 0)
+            ret = 90.0;
+        else if (y > 0)
+            ret = 270.0;
+    } else {
+        if (x < 0)
+            ret = 180 - atan((float)y / x) * 180 / PI;
+        else {
+            if (y < 0)
+                ret = -atan((float)y / x) * 180 / PI;
+            else if (y > 0)
+                ret = 360 - atan((float)y / x) * 180 / PI;
+        }
+    }
+
+    return ret;
+}
+
 #define BUFSIZE    100
-static int gaid_compass_data_read(sensors_event_t *data)
+static int gaid_orientation_data_read(sensors_event_t *data)
 {
     struct timespec t;
     char buf[BUFSIZE];
     int x,y,z;
     int ret;
-    float heading;
+    float azimuth;
 
     ret = pread(fd_pos, buf, sizeof(buf), 0);
     if (ret < 0) {
@@ -77,36 +101,37 @@ static int gaid_compass_data_read(sensors_event_t *data)
         return ret;
     }
     sscanf(buf,"(%d,%d,%d)", &x, &y, &z);
-    D("compass raw data: x = %d, y = %d, z = %d", x, y, z);
+    D("orientation raw data: x = %d, y = %d, z = %d", x, y, z);
 
+    azimuth = calc_azimuth(x, -y);
     clock_gettime(CLOCK_REALTIME, &t);
 
     data->timestamp = (timespec_to_ns(&t));
-    data->sensor = S_HANDLE_MAGNETIC_FIELD;
-    data->type = SENSOR_TYPE_MAGNETIC_FIELD;
+    data->sensor = S_HANDLE_ORIENTATION,
+    data->type = SENSOR_TYPE_ORIENTATION,
     data->version = sizeof(sensors_event_t);
-    data->magnetic.x = y * RESOLUTION * -1.0;
-    data->magnetic.y = x * RESOLUTION;
-    data->magnetic.z = z * RESOLUTION;
-    data->magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
+    data->orientation.azimuth = azimuth;
+    data->orientation.pitch = 0;
+    data->orientation.roll = 0;
+    data->orientation.status = SENSOR_STATUS_ACCURACY_HIGH;
 
     return 0;
 }
 
-sensors_ops_t gaid_sensors_compass = {
-    .sensor_data_open   = gaid_compass_data_open,
-    .sensor_set_fd      = gaid_compass_set_fd,
-    .sensor_is_fd       = gaid_compass_is_fd,
-    .sensor_read        = gaid_compass_data_read,
-    .sensor_data_close  = gaid_compass_data_close,
+sensors_ops_t gaid_sensors_orientation = {
+    .sensor_data_open   = gaid_orientation_data_open,
+    .sensor_set_fd      = gaid_orientation_set_fd,
+    .sensor_is_fd       = gaid_orientation_is_fd,
+    .sensor_read        = gaid_orientation_data_read,
+    .sensor_data_close  = gaid_orientation_data_close,
     .sensor_list        = {
         .name       = "AK8974 Compass",
         .vendor     = "Intel",
         .version    = 1,
-        .handle     = S_HANDLE_MAGNETIC_FIELD,
-        .type       = SENSOR_TYPE_MAGNETIC_FIELD,
-        .maxRange   = 614.0f,
-        .resolution = 0.3f,
+        .handle     = S_HANDLE_ORIENTATION,
+        .type       = SENSOR_TYPE_ORIENTATION,
+        .maxRange   = 360.0f,
+        .resolution = 0.1f,
         .minDelay   = 50,
         .power      = 0.0f,
         .reserved   = {}

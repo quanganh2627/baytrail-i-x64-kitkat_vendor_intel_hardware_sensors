@@ -19,6 +19,9 @@
 #include<sys/select.h>
 
 #include <cutils/log.h>
+
+//#define SENSOR_DBG
+
 #ifdef SENSOR_DBG
 #define  D(...)  LOGD(__VA_ARGS__)
 #else
@@ -29,16 +32,18 @@
 
 #define  ID_BASE           SENSORS_HANDLE_BASE
 #define  ID_ACCELEROMETER  (ID_BASE+0)
-#define  ID_GYROSCOPE      (ID_BASE+1)
-#define  ID_ORIENTATION    (ID_BASE+2) /* compass */
-#define  ID_TEMPERATURE    (ID_BASE+3)
-#define  ID_LIGHT          (ID_BASE+4)
+#define  ID_MAGNETIC_FIELD (ID_BASE+1)
+#define  ID_TEMPERATURE    (ID_BASE+2)
+#define  ID_LIGHT          (ID_BASE+3)
+#define  ID_PROXIMITY      (ID_BASE+4)
+#define  ID_ORIENTATION    (ID_BASE+5)
 
-#define S_HANDLE_ACCELEROMETER (1<<ID_ACCELEROMETER)
-#define S_HANDLE_GYROSCOPE     (1<<ID_GYROSCOPE   )
-#define S_HANDLE_ORIENTATION   (1<<ID_ORIENTATION )
-#define S_HANDLE_TEMPERATURE   (1<<ID_TEMPERATURE )
-#define S_HANDLE_LIGHT         (1<<ID_LIGHT       )
+#define S_HANDLE_ACCELEROMETER  (1<<ID_ACCELEROMETER)
+#define S_HANDLE_MAGNETIC_FIELD (1<<ID_MAGNETIC_FIELD)
+#define S_HANDLE_TEMPERATURE    (1<<ID_TEMPERATURE)
+#define S_HANDLE_LIGHT          (1<<ID_LIGHT)
+#define S_HANDLE_PROXIMITY      (1<<ID_PROXIMITY)
+#define S_HANDLE_ORIENTATION    (1<<ID_ORIENTATION)
 
 #define GAID_SENSORS_(x,y)  { S_HANDLE_##x , -1, &gaid_sensors_##y},
 
@@ -47,7 +52,7 @@ typedef struct {
     int (*sensor_data_open)(void);
     void (*sensor_set_fd)(fd_set *fds);
     int (*sensor_is_fd)(fd_set *fds);
-    int (*sensor_read)(sensors_data_t *data);
+    int (*sensor_read)(sensors_event_t *data);
     void (*sensor_data_close)(void);
     struct sensor_t sensor_list;
 } sensors_ops_t;
@@ -56,12 +61,16 @@ extern sensors_ops_t gaid_sensors_accelerometer;
 extern sensors_ops_t gaid_sensors_thermal;
 extern sensors_ops_t gaid_sensors_compass;
 extern sensors_ops_t gaid_sensors_als;
+extern sensors_ops_t gaid_sensors_proximity;
+extern sensors_ops_t gaid_sensors_orientation;
 
 #define  GAID_SENSORS_DATA  \
     GAID_SENSORS_(ACCELEROMETER,accelerometer) \
+    GAID_SENSORS_(MAGNETIC_FIELD,compass) \
     GAID_SENSORS_(TEMPERATURE,thermal) \
-    GAID_SENSORS_(ORIENTATION,compass) \
-    GAID_SENSORS_(LIGHT,als)
+    GAID_SENSORS_(LIGHT,als) \
+    GAID_SENSORS_(PROXIMITY,proximity) \
+    GAID_SENSORS_(ORIENTATION,orientation)
 
 
 #define NSEC_PER_SEC    1000000000L

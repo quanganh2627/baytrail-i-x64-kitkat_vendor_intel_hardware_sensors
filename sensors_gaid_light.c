@@ -16,6 +16,8 @@
 
 /* Contains changes by Wind River Systems, 2009-2010 */
 
+#define LOG_TAG "GAID_light"
+
 #include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
@@ -24,82 +26,83 @@
 
 #include "sensors_gaid.h"
 
-#undef D
-//#define ALS_DEBUG
-#ifdef ALS_DEBUG
-#define  D(...)  LOGD(__VA_ARGS__)
-#else
-#define  D(...)
-#endif
-
-#define GAID_ALS_SYSFS_PREF \
-    "/sys/class/i2c-adapter/i2c-0/0-0044/isl29020/"
-#define ALS_LUX_OUTPUT "lux_output"
+#define ALS_SYSFS_DIR   "/sys/class/i2c-adapter/i2c-5/5-0029/apds9802als/"
+#define ALS_DATA        "lux_output"
+#define DATASIZE        5
 
 static int fd_als = -1;
+static int old_lux;
 
 static int gaid_als_data_open(void)
 {
-    int max_fd = 0;
+    /* make sure we report the data each time ALS is enabled */
+    old_lux = -100;
 
-    D("%s\n", __func__);
-    fd_als = open(GAID_ALS_SYSFS_PREF ALS_LUX_OUTPUT,
-            O_RDONLY);
     if (fd_als < 0) {
-        E("%s dev file open failed\n", __func__);
-        return fd_als;
+        fd_als = open(ALS_SYSFS_DIR ALS_DATA, O_RDONLY);
+        if (fd_als < 0) {
+            E("%s dev file open failed\n", __func__);
+        }
     }
-    max_fd = fd_als;
 
-    return max_fd;
+    return fd_als;
 }
 
 static void gaid_als_data_close(void)
 {
-    D("%s\n", __func__);
-    if (fd_als > 0) {
+    if (fd_als >= 0) {
         close(fd_als);
-        fd_als = 0;
+        fd_als = -1;
     }
 }
 
 static void gaid_als_set_fd(fd_set *fds)
 {
-    D("%s\n", __func__);
     FD_SET(fd_als, fds);
 }
 
 static int gaid_als_is_fd(fd_set *fds)
 {
-    D("%s\n", __func__);
     return FD_ISSET(fd_als, fds);
 }
 
+static int valid_data(int new, int old)
+{
+#define NOISE_RANGE 5
+
+    if (new >= old + NOISE_RANGE || new <= old - NOISE_RANGE)
+        return 1;
+    return 0;
+}
+
 #define BUFSIZE    32
-static int gaid_als_data_read(sensors_data_t *data)
+static int gaid_als_data_read(sensors_event_t *data)
 {
     struct timespec t;
     char buf[BUFSIZE];
     int ret;
-    float lux;
+    int lux;
 
     ret = pread(fd_als, buf, sizeof(buf), 0);
-    if (ret<0) {
+    if (ret < 0) {
         E("%s read error\n", __func__);
         return ret;
     }
-    usleep(1000);
-    lux = atof(buf);
+    lux = atoi(buf);
+    if (!valid_data(lux, old_lux))
+        return -1;
+
+    old_lux = lux;
 
     clock_gettime(CLOCK_REALTIME, &t);
 
-    data->time = timespec_to_ns(&t);
-    data->sensor = SENSOR_TYPE_LIGHT;
-    data->vector.v[0] = lux;
-    data->vector.v[1] = lux;
-    data->vector.v[2] = lux;
-    data->vector.status = SENSOR_STATUS_ACCURACY_MEDIUM;
-    D("[%s] time = %lld, lux = %f\n", __func__, data->time, lux);
+    data->timestamp = timespec_to_ns(&t);
+    data->sensor = S_HANDLE_LIGHT;
+    data->type = SENSOR_TYPE_LIGHT;
+    data->version = sizeof(sensors_event_t);
+    data->light = lux;
+
+    D("lux = %d", lux);
 
     return 0;
 }
@@ -111,14 +114,15 @@ sensors_ops_t gaid_sensors_als = {
     .sensor_read        = gaid_als_data_read,
     .sensor_data_close  = gaid_als_data_close,
     .sensor_list        = {
-        .name       = "GAID Ambient Light Sensor",
-        .vendor     = "The Android Open Source Project",
+        .name       = "APDS9802 Ambient Light Sensor",
+        .vendor     = "Intel",
         .version    = 1,
         .handle     = S_HANDLE_LIGHT,
         .type       = SENSOR_TYPE_LIGHT,
-        .maxRange   = 1000.0f,
+        .maxRange   = 65535.0f,
         .resolution = 1.0f,
         .power      = 0.0f,
+        .minDelay   = 0,
         .reserved   = {}
     },
 };

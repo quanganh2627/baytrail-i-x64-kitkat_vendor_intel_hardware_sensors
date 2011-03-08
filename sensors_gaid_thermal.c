@@ -16,6 +16,8 @@
 
 /* Contains changes by Wind River Systems, 2009-2010 */
 
+#define LOG_TAG "GAID_thermal"
+
 #include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
@@ -24,23 +26,23 @@
 
 #include "sensors_gaid.h"
 
-#define GAID_THERMAL_SYSFS_PREF \
-    "/sys/class/i2c-adapter/i2c-0/0-004c/emc1403/"
-#define THERMAL_DEV "temp1_curr" /* temp1_curr/temp2_curr/temp3_curr... which one ? */
+#define THERMAL_SYSFS_DIR "/sys/devices/virtual/thermal/thermal_zone3"
+#define THERMAL_DEV "temp"
 
 static int fd_temp = -1;
 
 /* return max value of fd for select() in poll method */
 static int gaid_thermal_data_open(void)
 {
-    int _fd = open(GAID_THERMAL_SYSFS_PREF THERMAL_DEV, O_RDONLY);
+    if (fd_temp < 0) {
+        fd_temp = open(THERMAL_SYSFS_DIR THERMAL_DEV, O_RDONLY);
 
-    if(_fd < 0) {
-        E("%s dev file open failed %d", __FUNCTION__, _fd);
-        return _fd;
+        if(fd_temp < 0) {
+            E("%s dev file open failed %d", __FUNCTION__, fd_temp);
+        }
     }
-    fd_temp = _fd;
-    return _fd;
+
+    return fd_temp;
 }
 
 static void gaid_thermal_data_close(void)
@@ -63,24 +65,28 @@ static int gaid_thermal_is_fd(fd_set *fds)
 
 #define BUFSIZE 100
 
-static int gaid_thermal_data_read(sensors_data_t *data)
+static int gaid_thermal_data_read(sensors_event_t *data)
 {
     struct timespec t;
     char buf[BUFSIZE+1];
     int n;
+    float temperature;
 
     n = pread(fd_temp,buf,sizeof(buf),0);
     if(n < 0) {
         E("%s read error %d", __FUNCTION__,n);
         return n;
     }
-    usleep(1000);
 
-    data->temperature = atof(buf);
+    temperature = atof(buf);
 
     clock_gettime(CLOCK_REALTIME, &t);
-    data->time = timespec_to_ns(&t);
-    data->sensor = SENSOR_TYPE_TEMPERATURE;
+
+    data->temperature = temperature / 1000;
+    data->timestamp = timespec_to_ns(&t);
+    data->sensor = S_HANDLE_TEMPERATURE;
+    data->type = SENSOR_TYPE_TEMPERATURE;
+    data->version = sizeof(sensors_event_t);
     data->acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
 
     return 0;
@@ -93,13 +99,14 @@ sensors_ops_t gaid_sensors_thermal = {
     .sensor_read       = gaid_thermal_data_read,
     .sensor_data_close = gaid_thermal_data_close,
     .sensor_list       = {
-        .name       = "GAID Thermal",
-        .vendor     = "The Android Open Source Project",
+        .name       = "MSIC Thermal",
+        .vendor     = "Intel",
         .version    = 1,
         .handle     = S_HANDLE_TEMPERATURE,
         .type       = SENSOR_TYPE_TEMPERATURE,
         .maxRange   = 85.0f,
         .resolution = 1.0f,
+        .minDelay   = 500,
         .power      = 0.0f,
         .reserved   = {}
     },

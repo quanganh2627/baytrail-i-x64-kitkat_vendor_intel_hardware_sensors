@@ -12,7 +12,9 @@ LOCAL_SRC_FILES := sensors_gaid.c \
                    sensors_gaid_accel.c \
                    sensors_gaid_thermal.c \
 		   sensors_gaid_compass.c \
-		   sensors_gaid_light.c
+		   sensors_gaid_light.c \
+		   sensors_gaid_proximity.c \
+		   sensors_gaid_orientation.c
 LOCAL_MODULE := sensors.$(TARGET_DEVICE)
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
