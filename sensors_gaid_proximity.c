@@ -158,7 +158,7 @@ sensors_ops_t gaid_sensors_proximity = {
         .maxRange   = 20.0f,
         .resolution = 0.01f,
         .minDelay   = 0,
-        .power      = 0.0f,
+        .power      = 0.10f,
         .reserved   = {}
     },
 };

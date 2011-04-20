@@ -108,7 +108,7 @@ sensors_ops_t gaid_sensors_compass = {
         .maxRange   = 614.0f,
         .resolution = 0.3f,
         .minDelay   = 50,
-        .power      = 0.0f,
+        .power      = 1.0f,
         .reserved   = {}
     },
 };

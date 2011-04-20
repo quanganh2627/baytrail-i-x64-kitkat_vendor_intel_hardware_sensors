@@ -116,7 +116,7 @@ sensors_ops_t gaid_sensors_accelerometer = {
         .type       = SENSOR_TYPE_ACCELEROMETER,
         .maxRange   = 2.0 * GRAVITY_EARTH,
         .resolution = GRAVITY_EARTH / 1000,
-        .power      = 0.0f,
+        .power      = 0.011f,
         .minDelay   = 20,
         .reserved   = {}
     },

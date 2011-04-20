@@ -121,7 +121,7 @@ sensors_ops_t gaid_sensors_als = {
         .type       = SENSOR_TYPE_LIGHT,
         .maxRange   = 65535.0f,
         .resolution = 1.0f,
-        .power      = 0.0f,
+        .power      = 0.08f,
         .minDelay   = 0,
         .reserved   = {}
     },
