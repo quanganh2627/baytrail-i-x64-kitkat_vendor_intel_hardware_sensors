@@ -26,7 +26,7 @@
 
 #include "sensors_gaid.h"
 
-#define THERMAL_SYSFS_DIR "/sys/devices/virtual/thermal/thermal_zone3"
+#define THERMAL_SYSFS_DIR "/sys/devices/virtual/thermal/thermal_zone3/"
 #define THERMAL_DEV "temp"
 
 static int fd_temp = -1;

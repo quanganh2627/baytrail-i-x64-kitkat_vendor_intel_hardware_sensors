@@ -25,33 +25,17 @@
 #include "sensors_gaid.h"
 
 #define PROXIMITY_SYSFS_DIR "/sys/class/i2c-adapter/i2c-5/5-0055/apds9802ps/"
-#define PROXIMITY_OUTPUT "proximity_output"
-
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define PROXIMITY_POWERON "poweron"
+#define PROXIMITY_DEV "/dev/apds9802ps"
 
 static int fd_proximity = -1;
-static int old_proximity;
-
-struct range {
-    int cstart, clen;   /* count range */
-    float dstart, dlen; /* distance range mapped */
-};
-
-/* mannually measured coarse mapping table, need to tune */
-static struct range mapping_tbl[] = {
-    { 500, 500, 15.75, 10.5 },
-    { 1000, 1000, 5.25, 2.625 },
-    { 2000, 2000, 2.625, 2.0 }
-};
 
 static int gaid_proximity_data_open(void)
 {
-    old_proximity = -100;
-
     if (fd_proximity < 0) {
-        fd_proximity = open(PROXIMITY_SYSFS_DIR PROXIMITY_OUTPUT, O_RDONLY);
+        fd_proximity = open(PROXIMITY_DEV, O_RDONLY);
         if (fd_proximity < 0) {
-            E("%s dev file open failed\n", __func__);
+            E("%s dev file open failed: %s\n", __func__, strerror(errno));
         }
     }
 
@@ -76,58 +60,30 @@ static int gaid_proximity_is_fd(fd_set *fds)
     return FD_ISSET(fd_proximity, fds);
 }
 
-static int valid_data(int new, int old)
-{
-    if (new >= old + 100 || new <= old - 100)
-        return 1;
+#define OBJ_STATE_AWAY 1
+#define OBJ_STATE_NEAR 2
 
-    return 0;
-}
-
-static float count_to_distance(int proximity)
-{
-    int i;
-    float distance;
-
-    if (proximity < 500) {
-        /* no object detected, return maxRange */
-        return 20.0;
-    }
-    if (proximity >= 4000) {
-        /* object is very close, from 2mm to 10 mm */
-        return 0.5;
-    }
-
-    for (i = 0; i < (int)ARRAY_SIZE(mapping_tbl); i++) {
-        if (proximity >= mapping_tbl[i].cstart &&
-            proximity < mapping_tbl[i].cstart + mapping_tbl[i].clen) {
-            float prop = proximity - mapping_tbl[i].cstart;
-
-            distance = mapping_tbl[i].dstart + prop / mapping_tbl[i].clen;
-        }
-    }
-
-    return distance;
-}
-
-#define BUFSIZE    32
 static int gaid_proximity_data_read(sensors_event_t *data)
 {
     struct timespec t;
-    char buf[BUFSIZE];
+    unsigned char state;
     int ret;
-    int proximity;
+    float distance;
 
-    ret = pread(fd_proximity, buf, sizeof(buf), 0);
+    ret = pread(fd_proximity, &state, sizeof(state), 0);
     if (ret < 0) {
         E("%s read error\n", __func__);
         return ret;
     }
 
-    proximity = atoi(buf);
-
-    if (!valid_data(proximity, old_proximity))
-        return -1;
+    if (state == OBJ_STATE_AWAY)
+        distance = 20.0;
+    else if (state == OBJ_STATE_NEAR)
+        distance = 2.0;
+    else {
+        E("%s read invalide data %d\n", __func__, state);
+        return -EINVAL;
+    }
 
     clock_gettime(CLOCK_REALTIME, &t);
 
@@ -135,10 +91,31 @@ static int gaid_proximity_data_read(sensors_event_t *data)
     data->sensor = S_HANDLE_PROXIMITY;
     data->type = SENSOR_TYPE_PROXIMITY;
     data->version = sizeof(sensors_event_t);
-    data->distance = count_to_distance(proximity);
-    D("proximity = %d, distance = %f", proximity, data->distance);
+    data->distance = distance;
+    D("distance = %f", data->distance);
 
-    old_proximity = proximity;
+    return 0;
+}
+
+static int gaid_proximity_activate(int enabled)
+{
+    int fd;
+    int ret;
+    char str[4];
+
+    fd = open(PROXIMITY_SYSFS_DIR PROXIMITY_POWERON, O_WRONLY);
+    if (fd < 0) {
+        E("%s error open poweron: %s\n", __func__, strerror(errno));
+        return -EINVAL;
+    }
+
+    str[0] = enabled ? '1' : '0';
+    str[1] = '\0';
+    ret = pwrite(fd, str, sizeof(str), 0);
+    if (ret < 0) {
+        E("%s error poweron PROXIMITY dev: %s\n", __func__, strerror(errno));
+        return -EINVAL;
+    }
 
     return 0;
 }
@@ -149,6 +126,7 @@ sensors_ops_t gaid_sensors_proximity = {
     .sensor_is_fd       = gaid_proximity_is_fd,
     .sensor_read        = gaid_proximity_data_read,
     .sensor_data_close  = gaid_proximity_data_close,
+    .sensor_activate    = gaid_proximity_activate,
     .sensor_list        = {
         .name       = "APDS9802 Proximity Sensor",
         .vendor     = "Intel",

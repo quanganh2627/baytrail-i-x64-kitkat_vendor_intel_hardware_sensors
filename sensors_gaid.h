@@ -54,6 +54,7 @@ typedef struct {
     int (*sensor_is_fd)(fd_set *fds);
     int (*sensor_read)(sensors_event_t *data);
     void (*sensor_data_close)(void);
+    int (*sensor_activate)(int enabled);
     struct sensor_t sensor_list;
 } sensors_ops_t;
 

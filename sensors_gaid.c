@@ -250,6 +250,8 @@ icdk_sensor_activate(struct sensors_poll_device_t *dev, int handle, int enabled)
         if (_sensorIds[i].ops->sensor_list.handle != handle)
             continue;
 
+        if (_sensorIds[i].ops->sensor_activate)
+            _sensorIds[i].ops->sensor_activate(enabled);
         polldev->active[i] = enabled;
     }
 
