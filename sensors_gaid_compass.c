@@ -28,17 +28,39 @@
 
 #define COMPASS_SYSFS_DIR       "/sys/class/i2c-adapter/i2c-5/5-000f/ak8974/"
 #define COMPASS_DATA            "curr_pos"
+#define COMPASS_CONFIG_DIR      "/data/compass/"
+#define COMPASS_CONFIG_FILE     "ak8974.conf"
 
 #define RESOLUTION 0.3f /* 0.3 uT per LSB */
+#define CALIBRATION_MIN_RANGE 100
 
 static int fd_pos = -1;
+static int fd_config = -1;
+static int minX, maxX;
+static int minY, maxY;
+static int minZ, maxZ;
 
 static int gaid_compass_data_open(void)
 {
+    char buf[32];
+    int ret = 0;
+
     if (fd_pos < 0) {
         fd_pos = open(COMPASS_SYSFS_DIR COMPASS_DATA, O_RDONLY);
         if (fd_pos < 0)
             E("%s dev file open failed", __func__);
+
+        fd_config = open(COMPASS_CONFIG_DIR COMPASS_CONFIG_FILE,
+                         O_RDWR|O_CREAT);
+        if (fd_config >= 0) {
+            ret = pread(fd_config, buf, sizeof(buf), 0);
+
+            if (ret > 0)
+                sscanf(buf, "%d,%d,%d,%d,%d,%d\n",
+                       &minX, &maxX, &minY, &maxY, &minZ, &maxZ);
+            else
+                minX = maxX = minY = maxY = minZ = maxZ = 0;
+        }
     }
 
     return fd_pos;
@@ -50,6 +72,11 @@ static void gaid_compass_data_close(void)
         close(fd_pos);
         fd_pos = -1;
     }
+
+    if (fd_config >= 0) {
+        close(fd_config);
+        fd_config = -1;
+    }
 }
 
 static void gaid_compass_set_fd(fd_set *fds)
@@ -60,6 +87,65 @@ static void gaid_compass_set_fd(fd_set *fds)
 static int gaid_compass_is_fd(fd_set *fds)
 {
     return FD_ISSET(fd_pos, fds);
+}
+
+static void gaid_compass_calibration(int* x, int* y, int* z)
+{
+    int offsetX, offsetY, offsetZ;
+
+    if (maxX == minX && maxX == 0)
+        maxX = minX = *x;
+    if (maxY == minY && maxY == 0)
+        maxY = minY = *y;
+    if (maxZ == minZ && maxZ == 0)
+        maxZ = minZ = *z;
+
+    if (*x < minX)
+        minX = *x;
+    if (*x > maxX)
+        maxX = *x;
+    offsetX = (minX + maxX) / 2;
+    *x = *x - offsetX;
+
+    if (*y < minY)
+        minY = *y;
+    if (*y > maxY)
+        maxY = *y;
+    offsetY = (minY + maxY) / 2;
+    *y = *y - offsetY;
+
+    if (*z < minZ)
+        minZ = *z;
+    if (*z > maxZ)
+        maxZ = *z;
+    offsetZ = (minZ + maxZ) / 2;
+    *z = *z - offsetZ;
+
+    if ((maxX - minX < CALIBRATION_MIN_RANGE) ||
+        (maxY - minY < CALIBRATION_MIN_RANGE) ||
+        (maxZ - minZ < CALIBRATION_MIN_RANGE))
+        *x = *y = *z = 0;
+}
+
+static void gaid_compass_save_calibration()
+{
+    static int oldminX = 0, oldmaxX = 0;
+    static int oldminY = 0, oldmaxY = 0;
+    static int oldminZ = 0, oldmaxZ = 0;
+    char buf[32];
+
+    if (fd_config >= 0) {
+        if ((oldminX != minX) || (oldmaxX != maxX) ||
+            (oldminY != minX) || (oldmaxY != maxY) ||
+            (oldminZ != minZ) || (oldmaxZ != maxZ)) {
+            sprintf(buf, "%d,%d,%d,%d,%d,%d\n",
+                    minX, maxX, minY, maxY, minZ, maxZ);
+            sscanf(buf, "%d,%d,%d,%d,%d,%d\n",
+                   &oldminX, &oldmaxX, &oldminY, &oldmaxY, &oldminZ, &oldmaxZ);
+
+            pwrite(fd_config, buf, sizeof(buf), 0);
+        }
+    }
 }
 
 #define BUFSIZE    100
@@ -78,6 +164,9 @@ static int gaid_compass_data_read(sensors_event_t *data)
     }
     sscanf(buf,"(%d,%d,%d)", &x, &y, &z);
     D("compass raw data: x = %d, y = %d, z = %d", x, y, z);
+
+    gaid_compass_calibration(&x, &y, &z);
+    gaid_compass_save_calibration();
 
     clock_gettime(CLOCK_REALTIME, &t);
 
