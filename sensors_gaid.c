@@ -120,12 +120,6 @@ static int icdk_sensor_poll(struct sensors_poll_device_t *dev,
     if (polldev->pending_mask)
          return fill_data(polldev, data, count);
 
-    FD_ZERO(&fds);
-    for (i = 0; i < MAX_NUM_SENSORS; i++) {
-        if (_sensorIds[i].fd < 0)
-            continue;
-        _sensorIds[i].ops->sensor_set_fd(&fds);
-    }
 
     timeout = polldev->mindelay;
 
@@ -134,6 +128,13 @@ static int icdk_sensor_poll(struct sensors_poll_device_t *dev,
 
     while (1) {
         wait_for_sensor_activated(polldev);
+
+	FD_ZERO(&fds);
+	for (i = 0; i < MAX_NUM_SENSORS; i++) {
+		if (_sensorIds[i].fd < 0)
+			continue;
+		_sensorIds[i].ops->sensor_set_fd(&fds);
+	}
 
         ret = select(polldev->max_fd + 1, &fds, NULL, NULL, &t);
         if (ret < 0) {
