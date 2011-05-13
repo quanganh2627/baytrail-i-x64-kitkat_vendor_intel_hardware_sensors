@@ -160,8 +160,10 @@ static int icdk_sensor_poll(struct sensors_poll_device_t *dev,
             }
         }
 
-        if (!polldev->pending_mask)
+        if (!polldev->pending_mask) {
+            usleep(timeout);
             continue;
+	}
 
         usleep(timeout);
         ret = fill_data(polldev, data, count);
