@@ -23,6 +23,7 @@
 #include <time.h>
 #include <errno.h>
 #include <hardware/sensors.h>
+#include <sys/stat.h>
 
 #include "sensors_gaid.h"
 
@@ -51,7 +52,7 @@ static int gaid_compass_data_open(void)
             E("%s dev file open failed", __func__);
 
         fd_config = open(COMPASS_CONFIG_DIR COMPASS_CONFIG_FILE,
-                         O_RDWR|O_CREAT);
+                         O_RDWR|O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO);
         if (fd_config >= 0) {
             ret = pread(fd_config, buf, sizeof(buf), 0);
 
