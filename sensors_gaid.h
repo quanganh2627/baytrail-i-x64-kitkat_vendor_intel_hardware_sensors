@@ -33,14 +33,12 @@
 #define  ID_BASE           SENSORS_HANDLE_BASE
 #define  ID_ACCELEROMETER  (ID_BASE+0)
 #define  ID_MAGNETIC_FIELD (ID_BASE+1)
-#define  ID_TEMPERATURE    (ID_BASE+2)
 #define  ID_LIGHT          (ID_BASE+3)
 #define  ID_PROXIMITY      (ID_BASE+4)
 #define  ID_ORIENTATION    (ID_BASE+5)
 
 #define S_HANDLE_ACCELEROMETER  (1<<ID_ACCELEROMETER)
 #define S_HANDLE_MAGNETIC_FIELD (1<<ID_MAGNETIC_FIELD)
-#define S_HANDLE_TEMPERATURE    (1<<ID_TEMPERATURE)
 #define S_HANDLE_LIGHT          (1<<ID_LIGHT)
 #define S_HANDLE_PROXIMITY      (1<<ID_PROXIMITY)
 #define S_HANDLE_ORIENTATION    (1<<ID_ORIENTATION)
@@ -68,7 +66,6 @@ extern sensors_ops_t gaid_sensors_orientation;
 #define  GAID_SENSORS_DATA  \
     GAID_SENSORS_(ACCELEROMETER,accelerometer) \
     GAID_SENSORS_(MAGNETIC_FIELD,compass) \
-    GAID_SENSORS_(TEMPERATURE,thermal) \
     GAID_SENSORS_(LIGHT,als) \
     GAID_SENSORS_(PROXIMITY,proximity) \
     GAID_SENSORS_(ORIENTATION,orientation)
