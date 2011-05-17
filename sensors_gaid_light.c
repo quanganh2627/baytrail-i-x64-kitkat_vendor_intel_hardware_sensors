@@ -27,21 +27,18 @@
 #include "sensors_gaid.h"
 
 #define ALS_SYSFS_DIR   "/sys/class/i2c-adapter/i2c-5/5-0029/apds9802als/"
-#define ALS_DATA        "lux_output"
-#define DATASIZE        5
+#define ALS_POWERON     "poweron"
+#define ALS_DEV         "/dev/apds9802als"
 
 static int fd_als = -1;
 static int old_lux;
 
 static int gaid_als_data_open(void)
 {
-    /* make sure we report the data each time ALS is enabled */
-    old_lux = -100;
-
     if (fd_als < 0) {
-        fd_als = open(ALS_SYSFS_DIR ALS_DATA, O_RDONLY);
+        fd_als = open(ALS_DEV, O_RDONLY);
         if (fd_als < 0) {
-            E("%s dev file open failed\n", __func__);
+            E("%s dev file open failed: %s\n", __func__, strerror(errno));
         }
     }
 
@@ -66,33 +63,17 @@ static int gaid_als_is_fd(fd_set *fds)
     return FD_ISSET(fd_als, fds);
 }
 
-static int valid_data(int new, int old)
-{
-#define NOISE_RANGE 5
-
-    if (new >= old + NOISE_RANGE || new <= old - NOISE_RANGE)
-        return 1;
-    return 0;
-}
-
-#define BUFSIZE    32
 static int gaid_als_data_read(sensors_event_t *data)
 {
     struct timespec t;
-    char buf[BUFSIZE];
     int ret;
     int lux;
 
-    ret = pread(fd_als, buf, sizeof(buf), 0);
+    ret = pread(fd_als, &lux, sizeof(lux), 0);
     if (ret < 0) {
         E("%s read error\n", __func__);
         return ret;
     }
-    lux = atoi(buf);
-    if (!valid_data(lux, old_lux))
-        return -1;
-
-    old_lux = lux;
 
     clock_gettime(CLOCK_REALTIME, &t);
 
@@ -107,12 +88,36 @@ static int gaid_als_data_read(sensors_event_t *data)
     return 0;
 }
 
+static int gaid_als_activate(int enabled)
+{
+    int fd;
+    int ret;
+    char str[4];
+
+    fd = open(ALS_SYSFS_DIR ALS_POWERON, O_WRONLY);
+    if (fd < 0) {
+        E("%s error open poweron: %s\n", __func__, strerror(errno));
+        return -EINVAL;
+    }
+
+    str[0] = enabled ? '1' : '0';
+    str[1] = '\0';
+    ret = pwrite(fd, str, sizeof(str), 0);
+    if (ret < 0) {
+        E("%s error power on ALS dev: %s\n", __func__, strerror(errno));
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
 sensors_ops_t gaid_sensors_als = {
     .sensor_data_open   = gaid_als_data_open,
     .sensor_set_fd      = gaid_als_set_fd,
     .sensor_is_fd       = gaid_als_is_fd,
     .sensor_read        = gaid_als_data_read,
     .sensor_data_close  = gaid_als_data_close,
+    .sensor_activate    = gaid_als_activate,
     .sensor_list        = {
         .name       = "APDS9802 Ambient Light Sensor",
         .vendor     = "Intel",

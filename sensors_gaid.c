@@ -286,6 +286,9 @@ icdk_sensor_set_delay(struct sensors_poll_device_t *dev, int handle, int64_t ns)
             continue;
 
         hwdelay = _sensorIds[i].ops->sensor_list.minDelay;
+	if (hwdelay == 0)
+            break;
+
         polldev->delay[i] = ns / 1000;
 
         if (polldev->delay[i] < hwdelay * 1000)
