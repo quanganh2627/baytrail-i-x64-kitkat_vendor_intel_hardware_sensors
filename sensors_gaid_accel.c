@@ -23,23 +23,81 @@
 #include <time.h>
 #include <errno.h>
 #include <hardware/sensors.h>
+#include <linux/input.h>
+#include <dirent.h>
 
 #include "sensors_gaid.h"
 
 #define ACCEL_SYSFS_DIR    "/sys/devices/platform/lis3lv02d/"
-#define ACCEL_DATA         "position"
+#define ACCEL_POWERON      "poweron"
+#define ACCEL_INPUT_POLL   "input/input2/poll"
+
+#define INPUT_DIR       "/dev/input/"
+#define ACCEL_NAME      "ST LIS3LV02DL Accelerometer"
 
 static int fd_accel = -1;
+int event_idx = -1;
 
-/* return max value of fd for select() in poll method */
+#define INPUT_BUFFER_SIZE 64
+struct input_event input_buf[INPUT_BUFFER_SIZE];
+int input_buf_idx;
+int input_buf_cnt;
+
+static int open_device(const char *devname)
+{
+    int fd;
+    char name[80];
+
+    fd = open(devname, O_RDWR);
+    if (fd < 0) {
+        E("could not open %s, error %s", devname, strerror(errno));
+        return fd;
+    }
+
+    name[sizeof(name) - 1] = '\0';
+    if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), name) < 1)
+        return -1;
+
+    if (strncmp(name, ACCEL_NAME, sizeof(ACCEL_NAME)))
+        return -1;
+
+    return fd;
+}
+
 static int gaid_accelerometer_data_open(void)
 {
-    if (fd_accel < 0) {
-        fd_accel = open(ACCEL_SYSFS_DIR ACCEL_DATA, O_RDONLY);
-        if (fd_accel < 0) {
-            E("%s dev file open failed %d", __FUNCTION__, fd_accel);
+    DIR *dir;
+    struct dirent *de;
+    int i = 0;
+    char devname[PATH_MAX];
+    char *filename;
+
+    if (fd_accel >= 0)
+        return fd_accel;
+
+    dir = opendir(INPUT_DIR);
+    if (dir == NULL)
+        return -1;
+
+    strcpy(devname, INPUT_DIR);
+    filename = devname + strlen(devname);
+    while ((de = readdir(dir))) {
+        if (de->d_type != DT_CHR)
+            continue;
+
+        strcpy(filename, de->d_name);
+        fd_accel = open_device(devname);
+        if (fd_accel >= 0) {
+            D("%s open file %s for accel data", __func__, devname);
+            sscanf(de->d_name, "event%d", &event_idx);
+            break;
         }
     }
+
+    if (fd_accel < 0)
+        E("%s dev file open failed", __FUNCTION__);
+
+    closedir(dir);
 
     return fd_accel;
 }
@@ -62,42 +120,127 @@ static int gaid_accelerometer_is_fd(fd_set *fds)
     return FD_ISSET(fd_accel, fds) ? 1 : 0;
 }
 
-#define BUFSIZE 100
+static int process_event(sensors_event_t *data, struct input_event *ev)
+{
+    int ret;
+    struct timespec t;
+
+    switch (ev->type) {
+    case EV_ABS:
+        switch (ev->code) {
+        /*
+         * data is in mG unit, need to convert it into m/s^2 required
+         * by android flip axis X & Y to fit with Android platform
+         */
+        case ABS_X:
+            data->acceleration.y = ((float)ev->value / 1000) * GRAVITY_EARTH;
+            break;
+        case ABS_Y:
+            data->acceleration.x =
+                        ((float)ev->value / 1000) * GRAVITY_EARTH * -1.0;
+            break;
+        case ABS_Z:
+            data->acceleration.z = ((float)ev->value / 1000) * GRAVITY_EARTH;
+            break;
+        }
+        ret = 0;
+        break;
+    case EV_SYN:
+        clock_gettime(CLOCK_REALTIME, &t);
+
+        data->timestamp = timespec_to_ns(&t);
+        data->sensor = S_HANDLE_ACCELEROMETER;
+        data->type = SENSOR_TYPE_ACCELEROMETER;
+        data->version = sizeof(sensors_event_t);
+        data->acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
+
+        D("scaled data: x = %f, y = %f, z = %f\n",
+          data->acceleration.x, data->acceleration.y, data->acceleration.z);
+        ret = 1;
+        break;
+    }
+
+    return ret;
+}
 
 static int gaid_accelerometer_data_read(sensors_event_t *data)
 {
-    struct timespec t;
-    char buf[BUFSIZE + 1];
     int x,y,z;
-    int n;
+    int size;
+    struct input_event *iev;
 
-    n = pread(fd_accel, buf, sizeof(buf), 0);
-    if (n < 0) {
-        E("%s read error %d", __FUNCTION__,n);
-        return n;
+    while (1) {
+        while (input_buf_idx < input_buf_cnt) {
+            iev = &input_buf[input_buf_idx++];
+            if (process_event(data, iev))
+                return 0;
+        }
+
+        size = read(fd_accel, input_buf, sizeof(input_buf));
+        if (size < 0 || (size % sizeof(struct input_event)) != 0) {
+            E("%s read error %s", __FUNCTION__, strerror(errno));
+            return size;
+        }
+
+        input_buf_cnt = size / sizeof(input_buf[0]);
+        input_buf_idx = 0;
     }
 
-    sscanf(buf,"(%d,%d,%d)", &x, &y, &z);
-    D("accelerometer raw data: x = %d, y = %d, z = %d", x, y, z);
+    return 0;
+}
 
-    clock_gettime(CLOCK_REALTIME, &t);
+static int gaid_accelerometer_activate(int enabled)
+{
+    int fd;
+    int ret;
+    char str[4];
 
-    /*
-     * data is in mG unit, need to convert it into m/s^2 required by android
-     * flip axis X & Y to fit with Android platform
-     */
-    data->acceleration.x = ((float)y / 1000) * GRAVITY_EARTH * -1.0;
-    data->acceleration.y = ((float)x / 1000) * GRAVITY_EARTH;
-    data->acceleration.z = ((float)z / 1000) * GRAVITY_EARTH;
+    fd = open(ACCEL_SYSFS_DIR ACCEL_POWERON, O_WRONLY);
+    if (fd < 0) {
+        E("%s error open poweron: %s", __func__, strerror(errno));
+        return -1;
+    }
 
-    data->timestamp = timespec_to_ns(&t);
-    data->sensor = S_HANDLE_ACCELEROMETER;
-    data->type = SENSOR_TYPE_ACCELEROMETER;
-    data->version = sizeof(sensors_event_t);
-    data->acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
+    str[0] = enabled ? '1' : '0';
+    str[1] = '\0';
+    ret = pwrite(fd, str, sizeof(str), 0);
+    if (ret < 0) {
+        E("%s error write poweron: %s", __func__, strerror(errno));
+        return -1;
+    }
 
-    D("scaled data: x = %f, y = %f, z = %f\n",
-      data->acceleration.x, data->acceleration.y, data->acceleration.z);
+    return 0;
+}
+
+#define SENSOR_NO_POLL 0x7fffffff
+
+static int gaid_accelerometer_set_delay(int us)
+{
+    int fd;
+    int ret;
+    char rate[16];
+
+    fd = open(ACCEL_SYSFS_DIR ACCEL_INPUT_POLL, O_RDWR);
+    if (fd < 0) {
+        E("%s error open pollrate: %s", __func__, strerror(errno));
+        return -1;
+    }
+
+    if (us == SENSOR_NO_POLL)
+        us = 0;
+
+    ret = snprintf(rate, sizeof(rate), "%d", us / 1000);
+    if (ret < 0) {
+        E("%s error convert rate to string: %s", __func__, strerror(errno));
+        return -1;
+    }
+
+    D("%s set delay to %s ms", __func__, rate);
+    ret = pwrite(fd, rate, sizeof(rate), 0);
+    if (ret < 0) {
+        E("%s error write poll: %s ms %s", __func__, rate, strerror(errno));
+        return -1;
+    }
 
     return 0;
 }
@@ -108,6 +251,8 @@ sensors_ops_t gaid_sensors_accelerometer = {
     .sensor_is_fd      = gaid_accelerometer_is_fd,
     .sensor_read       = gaid_accelerometer_data_read,
     .sensor_data_close = gaid_accelerometer_data_close,
+    .sensor_activate   = gaid_accelerometer_activate,
+    .sensor_set_delay  = gaid_accelerometer_set_delay,
     .sensor_list       = {
         .name       = "ST LIS3DH 3-axis Accelerometer",
         .vendor     = "Intel",
@@ -121,4 +266,3 @@ sensors_ops_t gaid_sensors_accelerometer = {
         .reserved   = {}
     },
 };
-
