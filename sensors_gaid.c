@@ -165,6 +165,7 @@ static int icdk_sensor_poll(struct sensors_poll_device_t *dev,
             continue;
 	}
 
+        usleep(timeout);
         ret = fill_data(polldev, data, count);
         break;
     }
@@ -292,9 +293,6 @@ icdk_sensor_set_delay(struct sensors_poll_device_t *dev, int handle, int64_t ns)
 
         if (polldev->delay[i] < hwdelay * 1000)
             polldev->delay[i] = hwdelay * 1000;
-
-        if (_sensorIds[i].ops->sensor_set_delay)
-            _sensorIds[i].ops->sensor_set_delay(polldev->delay[i]);
     }
 
     polldev->mindelay = get_min_delay(polldev);
