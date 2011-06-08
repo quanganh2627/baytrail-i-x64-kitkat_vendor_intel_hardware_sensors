@@ -105,9 +105,11 @@ static int gaid_als_activate(int enabled)
     ret = pwrite(fd, str, sizeof(str), 0);
     if (ret < 0) {
         E("%s error power on ALS dev: %s\n", __func__, strerror(errno));
+        close(fd);
         return -EINVAL;
     }
 
+    close(fd);
     return 0;
 }
 
