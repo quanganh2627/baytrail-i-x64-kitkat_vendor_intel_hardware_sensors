@@ -133,13 +133,13 @@ static void gaid_compass_save_calibration()
     static int oldminX = 0, oldmaxX = 0;
     static int oldminY = 0, oldmaxY = 0;
     static int oldminZ = 0, oldmaxZ = 0;
-    char buf[32];
+    char buf[128];
 
     if (fd_config >= 0) {
         if ((oldminX != minX) || (oldmaxX != maxX) ||
             (oldminY != minX) || (oldmaxY != maxY) ||
             (oldminZ != minZ) || (oldmaxZ != maxZ)) {
-            sprintf(buf, "%d,%d,%d,%d,%d,%d\n",
+            snprintf(buf, sizeof(buf), "%d,%d,%d,%d,%d,%d\n",
                     minX, maxX, minY, maxY, minZ, maxZ);
             sscanf(buf, "%d,%d,%d,%d,%d,%d\n",
                    &oldminX, &oldmaxX, &oldminY, &oldmaxY, &oldminZ, &oldmaxZ);
