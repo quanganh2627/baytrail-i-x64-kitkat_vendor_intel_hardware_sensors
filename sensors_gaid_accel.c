@@ -38,9 +38,10 @@
 static int fd_accel = -1;
 
 #define INPUT_BUFFER_SIZE 64
-struct input_event input_buf[INPUT_BUFFER_SIZE];
-int input_buf_idx;
-int input_buf_cnt;
+static struct input_event input_buf[INPUT_BUFFER_SIZE];
+static int input_buf_idx;
+static int input_buf_cnt;
+static float prev_x, prev_y, prev_z;
 
 static int open_device(const char *devname)
 {
@@ -132,13 +133,16 @@ static int process_event(sensors_event_t *data, struct input_event *ev)
          */
         case ABS_X:
             data->acceleration.y = ((float)ev->value / 1000) * GRAVITY_EARTH;
+            prev_y = data->acceleration.y;
             break;
         case ABS_Y:
             data->acceleration.x =
                         ((float)ev->value / 1000) * GRAVITY_EARTH * -1.0;
+            prev_x = data->acceleration.x;
             break;
         case ABS_Z:
             data->acceleration.z = ((float)ev->value / 1000) * GRAVITY_EARTH;
+            prev_z = data->acceleration.z;
             break;
         }
         ret = 0;
@@ -166,6 +170,15 @@ static int gaid_accelerometer_data_read(sensors_event_t *data)
     int x,y,z;
     int size;
     struct input_event *iev;
+
+    /*
+     * the Linux input subsystem doesn't pass duplicate data to reduce
+     * user-kernel memory copy. Here we remember the data from the
+     * previous sample, and pass the previous value if it is not changed.
+     */
+    data->acceleration.x = prev_x;
+    data->acceleration.y = prev_y;
+    data->acceleration.z = prev_z;
 
     while (1) {
         while (input_buf_idx < input_buf_cnt) {
