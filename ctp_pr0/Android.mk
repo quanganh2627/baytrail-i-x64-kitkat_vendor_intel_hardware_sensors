@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Only for clovertrail devices
-ifeq ($(TARGET_PRODUCT),ctp_pr0)
+#For clovertrail and mfld_gi devices
+ifneq (,$(findstring $(TARGET_PRODUCT),ctp_pr0 mfld_gi))
 
 LOCAL_PATH := $(call my-dir)
 
