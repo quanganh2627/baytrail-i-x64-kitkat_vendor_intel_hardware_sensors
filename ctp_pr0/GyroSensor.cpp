@@ -47,8 +47,6 @@ GyroSensor::GyroSensor()
     mPendingEvent.sensor = ID_GY;
     mPendingEvent.type = SENSOR_TYPE_GYROSCOPE;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
-
-    conf_fd = open("/data/gyro.conf", O_RDWR | O_CREAT, S_IRWXU);
 }
 
 GyroSensor::~GyroSensor()
@@ -81,14 +79,20 @@ int GyroSensor::enable(int32_t handle, int en)
         return -1;
     }
 
-    memset(mCalEvent.data, 0, sizeof(mCalEvent.data));
-    if (conf_fd > -1) {
-        ret = pread(conf_fd, buf, sizeof(buf), 0);
-        if (ret > 0) {
-            ret = sscanf(buf, "%f %f %f\n",
-                  &mCalEvent.data[0], &mCalEvent.data[1], &mCalEvent.data[2]);
-            if (ret != 3)
-                mCalEvent.data[0] = mCalEvent.data[1] = mCalEvent.data[2] = 0;
+    if (flags == 1 && mEnabled == 0) {
+        conf_fd = open("/data/gyro.conf", O_RDONLY);
+        memset(mCalEvent.data, 0, sizeof(mCalEvent.data));
+        if (conf_fd > -1) {
+            ret = pread(conf_fd, buf, sizeof(buf), 0);
+            if (ret > 0) {
+                ret = sscanf(buf, "%f %f %f\n",
+                      &mCalEvent.data[0], &mCalEvent.data[1], &mCalEvent.data[2]);
+                if (ret != 3)
+                    mCalEvent.data[0] = mCalEvent.data[1] = mCalEvent.data[2] = 0;
+                D("GyroSensor cal value = [%f, %f, %f]\n", mCalEvent.data[0],
+                    mCalEvent.data[1], mCalEvent.data[2]);
+            }
+            close(conf_fd);
         }
     }
 
@@ -158,10 +162,10 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
             float value = event->value;
             if (event->code == REL_X) {
                 mPendingEvent.data[1] =
-                    processRawData(value) * -1 - mCalEvent.data[0];
+                    processRawData(value) - mCalEvent.data[1];
             } else if (event->code == REL_Y) {
                 mPendingEvent.data[0] =
-                    processRawData(value) - mCalEvent.data[1];
+                    processRawData(value) - mCalEvent.data[0];
             } else if (event->code == REL_Z) {
                 mPendingEvent.data[2] =
                     processRawData(value) * -1 - mCalEvent.data[2];

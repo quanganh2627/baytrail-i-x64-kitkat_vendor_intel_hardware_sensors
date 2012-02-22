@@ -131,10 +131,7 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 
 // conversion of gyro data to SI units (radian/sec)
 #define RANGE_GYRO                  (2000.0f*(float)M_PI/180.0f)
-#define CONVERT_GYRO                ((2000.0f / 32767.0f) * ((float)M_PI / 180.0f))
-#define CONVERT_GYRO_X              (CONVERT_GYRO)
-#define CONVERT_GYRO_Y              (-CONVERT_GYRO)
-#define CONVERT_GYRO_Z              (CONVERT_GYRO)
+#define CONVERT_GYRO                ((70.0f / 1000.0f) * ((float)M_PI / 180.0f))
 
 #define SENSOR_STATE_MASK           (0x7FFF)
 

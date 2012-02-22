@@ -81,7 +81,7 @@ static const struct sensor_t sSensorList[] = {
     { "L3G4200D Gyroscope sensor",
       "STMicroelectronics",
       1, SENSORS_GYROSCOPE_HANDLE,
-      SENSOR_TYPE_GYROSCOPE, RANGE_GYRO, CONVERT_GYRO, 6.1f, 60000, { } },
+      SENSOR_TYPE_GYROSCOPE, RANGE_GYRO, CONVERT_GYRO, 6.1f, 10000, { } },
     { "ST LPS331AP Pressure Sensor",
       "STMicroelectronics",
       1, SENSORS_PRESSURE_HANDLE,

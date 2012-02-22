@@ -129,6 +129,9 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
             case EVENT_TYPE_PRESSURE:
                 pressure = event->value;
                 break;
+            case EVENT_TYPE_TEMPERATURE:
+                /* ignore temperature data from sensor */
+                break;
             default:
                 LOGE("PressureSensor: unknown event (type=%d, code=%d)",
                      type, event->code);
