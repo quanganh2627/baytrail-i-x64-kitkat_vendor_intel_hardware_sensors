@@ -131,11 +131,11 @@ int AccelSensor::readEvents(sensors_event_t* data, int count)
         if (type == EV_REL) {
             float value = event->value;
             if (event->code == EVENT_TYPE_ACCEL_X)
-                mPendingEvent.data[1] = ((float)value / 1000) * GRAVITY * -1.0;
+                mPendingEvent.data[1] = CONVERT_A_X(value);
             else if (event->code == EVENT_TYPE_ACCEL_Y)
-                mPendingEvent.data[0] = ((float)value / 1000) * GRAVITY;
+                mPendingEvent.data[0] = CONVERT_A_Y(value);
             else if (event->code == EVENT_TYPE_ACCEL_Z)
-                mPendingEvent.data[2] = ((float)value / 1000) * GRAVITY * -1.0;
+                mPendingEvent.data[2] = CONVERT_A_Z(value);
         } else if (type == EV_SYN) {
             mPendingEvent.timestamp = timevalToNano(event->time);
             if (mEnabled) {

@@ -113,9 +113,16 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 // conversion of acceleration data to SI units (m/s^2)
 #define RANGE_A                     (2*GRAVITY_EARTH)
 #define CONVERT_A                   (2*GRAVITY_EARTH / 4096)
-#define CONVERT_A_X                 (CONVERT_A)
-#define CONVERT_A_Y                 (CONVERT_A)
-#define CONVERT_A_Z                 (CONVERT_A)
+
+#ifdef TARGET_MFLD_GI
+#define CONVERT_A_X(x)              (((float)x/1000) * GRAVITY * -1.0)
+#define CONVERT_A_Y(x)              (((float)x/1000) * GRAVITY * -1.0)
+#define CONVERT_A_Z(x)              (((float)x/1000) * GRAVITY)
+#else
+#define CONVERT_A_X(x)              (((float)x/1000) * GRAVITY * -1.0)
+#define CONVERT_A_Y(x)              (((float)x/1000) * GRAVITY)
+#define CONVERT_A_Z(x)              (((float)x/1000) * GRAVITY * -1.0)
+#endif
 
 // conversion of magnetic data to uT units
 #define CONVERT_M                   (0.5f)

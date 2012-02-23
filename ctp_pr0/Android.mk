@@ -30,6 +30,11 @@ LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
+
+ifeq ($(TARGET_PRODUCT),mfld_gi)
+LOCAL_CFLAGS += -DTARGET_MFLD_GI=1
+endif
+
 LOCAL_SRC_FILES := 					\
 			sensors.cpp 			\
 			GyroSensor.cpp			\
