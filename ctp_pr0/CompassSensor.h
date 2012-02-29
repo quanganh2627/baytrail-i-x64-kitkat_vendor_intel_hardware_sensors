@@ -45,8 +45,8 @@ public:
 private:
     void readCalibrationData();
     void storeCalibrationData();
-    void calcEvent(int64_t time);
-    bool ignoreCal(int64_t time);
+    void calcEvent();
+    bool ignoreCal();
     void convertEventUnit();
 
 private:
@@ -60,6 +60,7 @@ private:
 
     // for calibration
     int mCalDataFile;
+    int calibrated;
     float Xmax;
     float Xmin;
     float Ymax;
