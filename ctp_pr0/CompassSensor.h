@@ -46,6 +46,7 @@ private:
     void readCalibrationData();
     void storeCalibrationData();
     void calcEvent(int64_t time);
+    bool ignoreCal(int64_t time);
     void convertEventUnit();
 
 private:

@@ -34,6 +34,9 @@
 #define COMPASS_CONVERT_XY(xy) ((xy) * 100 / COMPASS_XY_GAIN)
 #define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN)
 
+/* calibration */
+#define MAGNETIC_MAX 80.0f /* 80 ut */
+
 #define COMPASS_ENABLE  "/sys/bus/i2c/devices/5-001e/lsm303cmp/enable"
 #define COMPASS_POLL    "/sys/bus/i2c/devices/5-001e/lsm303cmp/poll"
 
@@ -77,6 +80,9 @@ void CompassSensor::readCalibrationData()
         if (ret != 6)
             Xmin = Xmax = Ymin = Ymax = Zmin = Zmax = 0;
     }
+    magOffsetX = (Xmin + Xmax) / 2;
+    magOffsetY = (Ymin + Ymax) / 2;
+    magOffsetZ = (Zmin + Zmax) / 2;
     LOGD("readCalibrationData --x-- min = %f, max = %f", Xmin, Xmax);
     LOGD("readCalibrationData --y-- min = %f, max = %f", Ymin, Ymax);
     LOGD("readCalibrationData --z-- min = %f, max = %f", Zmin, Zmax);
@@ -206,7 +212,8 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
         } else if (type == EV_SYN) {
             int64_t time = timevalToNano(event->time);
             if (mEnabled) {
-                calcEvent(time);
+                if (!ignoreCal(time))
+                    calcEvent(time);
                 convertEventUnit();
                 *data++ = mMagneticEvent;
                 count--;
@@ -226,6 +233,26 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
     }
 
     return numEventReceived;
+}
+
+bool CompassSensor::ignoreCal(int64_t time)
+{
+    mMagneticEvent.magnetic.x = mRawX - magOffsetX;
+    mMagneticEvent.magnetic.y = mRawY - magOffsetY;
+    mMagneticEvent.magnetic.z = mRawZ - magOffsetZ;
+    if (pow(COMPASS_CONVERT_XY(mMagneticEvent.magnetic.x), 2) +
+            pow(COMPASS_CONVERT_XY(mMagneticEvent.magnetic.y), 2) +
+            pow(COMPASS_CONVERT_Z(mMagneticEvent.magnetic.z), 2) >=
+            pow(MAGNETIC_MAX, 2)) {
+        D("CompassCal, data[%f, %f, %f] is not used for calibration",
+            mMagneticEvent.magnetic.x,
+            mMagneticEvent.magnetic.y,
+            mMagneticEvent.magnetic.z);
+        mMagneticEvent.timestamp = time;
+        mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
+        return true;
+    }
+    return false;
 }
 
 void  CompassSensor::calcEvent(int64_t time)
