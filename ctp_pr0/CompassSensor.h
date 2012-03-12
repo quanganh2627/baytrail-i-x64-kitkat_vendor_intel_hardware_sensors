@@ -35,8 +35,6 @@ class CompassSensor : public SensorBase {
 public:
     CompassSensor();
     virtual ~CompassSensor();
-
-
     virtual int setDelay(int32_t handle, int64_t ns);
     virtual int enable(int32_t handle, int enabled);
     virtual int readEvents(sensors_event_t* data, int count);
@@ -45,9 +43,8 @@ public:
 private:
     void readCalibrationData();
     void storeCalibrationData();
-    void calcEvent();
-    bool ignoreCal();
     void convertEventUnit();
+    void calibration(int64_t time);
 
 private:
     uint32_t mEnabled;
@@ -56,21 +53,12 @@ private:
     uint64_t mDelay;
     char input_sysfs_path[PATH_MAX];
     int input_sysfs_path_len;
-    int mRawX, mRawY, mRawZ;
 
     // for calibration
     int mCalDataFile;
-    int calibrated;
-    float Xmax;
-    float Xmin;
-    float Ymax;
-    float Ymin;
-    float Zmax;
-    float Zmin;
-
-    float magOffsetX;
-    float magOffsetY;
-    float magOffsetZ;
+    int mCaled;
+    float mMinX, mMinY, mMinZ, mMaxX, mMaxY, mMaxZ;
+    float mKxx, mKyy, mKzz;
 };
 
 /*****************************************************************************/

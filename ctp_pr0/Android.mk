@@ -44,7 +44,8 @@ LOCAL_SRC_FILES := 					\
 			AccelSensor.cpp			\
 			CompassSensor.cpp		\
 			PressureSensor.cpp		\
-                        InputEventReader.cpp
+			InputEventReader.cpp		\
+			CompassCalibration.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
 LOCAL_PRELINK_MODULE := false

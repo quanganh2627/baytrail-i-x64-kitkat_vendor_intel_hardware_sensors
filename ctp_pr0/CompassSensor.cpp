@@ -26,6 +26,7 @@
 #include <cutils/log.h>
 
 #include "CompassSensor.h"
+#include "CompassCalibration.h"
 
 #define COMPASS_SENSOR_DATA_NAME "compass"
 #define COMPASS_CALIB_DATA "/data/compass.conf"
@@ -33,16 +34,6 @@
 #define COMPASS_Z_GAIN  600
 #define COMPASS_CONVERT_XY(xy) ((xy) * 100 / COMPASS_XY_GAIN)
 #define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN)
-
-/* calibration indicators
- * MAGNETIC_MAX and MAGNETIC_MIN are
- * defined for max and min magnetic
- * values on earth, which is 30ut to
- * 60 ut. Value lager then MAGNETIC_MAX
- * means device is in high mag field
- */
-#define MAGNETIC_MAX 80.0f /* 80 ut */
-#define MAGNETIC_MIN 25.0f /* 25 ut */
 
 #define COMPASS_ENABLE  "/sys/bus/i2c/devices/5-001e/lsm303cmp/enable"
 #define COMPASS_POLL    "/sys/bus/i2c/devices/5-001e/lsm303cmp/poll"
@@ -64,7 +55,6 @@ CompassSensor::CompassSensor()
 
     mDelay  = 200000000; // 200 ms by default
     mCalDataFile = -1;
-    calibrated = 0;
 }
 
 CompassSensor::~CompassSensor()
@@ -78,39 +68,49 @@ CompassSensor::~CompassSensor()
 
 void CompassSensor::readCalibrationData()
 {
-    char buf[128];
-    memset(buf, 0, 128);
+    char buf[512];
+    memset(buf, 0, 512);
 
     int ret = pread(mCalDataFile, buf, sizeof(buf), 0);
     if (ret > 0) {
-        ret = sscanf(buf, "%d %f %f %f %f %f %f\n", &calibrated,
-                     &Xmin, &Xmax, &Ymin, &Ymax, &Zmin, &Zmax);
-        if (ret != 7)
-            calibrated = Xmin = Xmax = Ymin = Ymax = Zmin = Zmax = 0;
+        ret = sscanf(buf, "%d %f %f %f %f %f %f %f %f %f\n", &mCaled,
+                     &mMinX, &mMaxX, &mMinY, &mMaxY, &mMinZ, &mMaxZ,
+                     &mKxx, &mKyy, &mKzz);
+        if (ret != 10) {
+            mMinX = mMaxX = mMinY = mMaxY = mMinZ = mMaxZ = 0;
+            mCaled = mKxx = mKyy = mKzz = 0;
+        }
+    } else {
+        mMinX = mMaxX = mMinY = mMaxY = mMinZ = mMaxZ = 0;
+        mCaled = mKxx = mKyy = mKzz = 0;
     }
-    magOffsetX = (Xmin + Xmax) / 2;
-    magOffsetY = (Ymin + Ymax) / 2;
-    magOffsetZ = (Zmin + Zmax) / 2;
-    LOGD("readCalibrationData --calibrated-- = %d", calibrated);
-    LOGD("readCalibrationData --x-- min = %f, max = %f", Xmin, Xmax);
-    LOGD("readCalibrationData --y-- min = %f, max = %f", Ymin, Ymax);
-    LOGD("readCalibrationData --z-- min = %f, max = %f", Zmin, Zmax);
+
+    if (mCaled == 1) {
+        CompassCalData data;
+        data.minx = mMinX;
+        data.maxx = mMaxX;
+        data.miny = mMinY;
+        data.maxy = mMaxY;
+        data.minz = mMinZ;
+        data.maxz = mMaxZ;
+        data.matrix[0][0] = mKxx;
+        data.matrix[1][1] = mKyy;
+        data.matrix[2][2] = mKzz;
+        CompassCal_init(1, &data);
+    } else {
+        CompassCal_init(0, NULL);
+    }
 }
 
 void CompassSensor::storeCalibrationData()
 {
-    char buf[128];
-    memset(buf, 0, 128);
-    sprintf(buf, "%d %f %f %f %f %f %f\n", calibrated, Xmin,
-        Xmax, Ymin, Ymax, Zmin, Zmax);
+    char buf[512];
+    memset(buf, 0, 512);
+    sprintf(buf, "%d %f %f %f %f %f %f %f %f %f\n", mCaled,
+            mMinX, mMaxX, mMinY, mMaxY, mMinZ, mMaxZ,
+            mKxx, mKyy, mKzz);
     pwrite(mCalDataFile, buf, sizeof(buf), 0);
-
-    LOGD("storeCalibrationData --calibrated-- = %d", calibrated);
-    LOGD("storeCalibrationData --x-- min = %f, max = %f", Xmin, Xmax);
-    LOGD("storeCalibrationData --y-- min = %f, max = %f", Ymin, Ymax);
-    LOGD("storeCalibrationData --z-- min = %f, max = %f", Zmin, Zmax);
 }
-
 
 int CompassSensor::enable(int32_t handle, int en)
 {
@@ -173,7 +173,6 @@ int CompassSensor::enable(int32_t handle, int en)
     return 0;
 }
 
-
 int CompassSensor::setDelay(int32_t handle, int64_t ns)
 {
     LOGD("%s setDelay ns = %lld\n", __func__, ns);
@@ -192,6 +191,41 @@ int CompassSensor::setDelay(int32_t handle, int64_t ns)
 
     D("%s, errno = %d", __func__, errno);
     return -1;
+}
+
+void CompassSensor::calibration(int64_t time)
+{
+    long current_time_ms = time / 1000000;
+    CompassCalData data;
+    CompassCal_collectData(mMagneticEvent.magnetic.x,
+        mMagneticEvent.magnetic.y, mMagneticEvent.magnetic.z,
+        current_time_ms);
+
+    if (CompassCal_readyCheck() == 1) {
+        CompassCal_computeCal(&data);
+        mCaled = 1;
+        mMinX = data.minx;
+        mMaxX = data.maxx;
+        mMinY = data.miny;
+        mMaxY = data.maxy;
+        mMinZ = data.minz;
+        mMaxZ = data.maxz;
+        mKxx = data.matrix[0][0];
+        mKyy = data.matrix[1][1];
+        mKzz = data.matrix[2][2];
+    }
+
+    if (mCaled == 1) {
+        float offsetx = (mMaxX + mMinX) / 2;
+        float offsety = (mMaxY + mMinY) / 2;
+        float offsetz = (mMaxZ + mMinZ) / 2;
+        mMagneticEvent.magnetic.x = (mMagneticEvent.magnetic.x - offsetx) * mKxx;
+        mMagneticEvent.magnetic.y = (mMagneticEvent.magnetic.y - offsety) * mKyy;
+        mMagneticEvent.magnetic.z = (mMagneticEvent.magnetic.z - offsetz) * mKzz;
+        mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
+    } else {
+        mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;
+    }
 }
 
 int CompassSensor::readEvents(sensors_event_t* data, int count)
@@ -215,22 +249,17 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
         int type = event->type;
         if (type == EV_REL) {
             if (event->code == EVENT_TYPE_M_O_X)
-                mRawX = event->value;
+                mMagneticEvent.magnetic.x = event->value;
             else if (event->code == EVENT_TYPE_M_O_Y)
-                mRawY = event->value;
+                mMagneticEvent.magnetic.y = event->value;
             else if (event->code == EVENT_TYPE_M_O_Z)
-                mRawZ = event->value;
+                mMagneticEvent.magnetic.z = event->value;
         } else if (type == EV_SYN) {
             int64_t time = timevalToNano(event->time);
             if (mEnabled) {
-                if (!ignoreCal())
-                    calcEvent();
-                convertEventUnit();
                 mMagneticEvent.timestamp = time;
-                if (calibrated)
-                    mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
-                else
-                    mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;
+                convertEventUnit();
+                calibration(time);
                 *data++ = mMagneticEvent;
                 count--;
                 numEventReceived++;
@@ -251,71 +280,8 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
     return numEventReceived;
 }
 
-bool CompassSensor::ignoreCal()
-{
-    mMagneticEvent.magnetic.x = mRawX - magOffsetX;
-    mMagneticEvent.magnetic.y = mRawY - magOffsetY;
-    mMagneticEvent.magnetic.z = mRawZ - magOffsetZ;
-    if (pow(COMPASS_CONVERT_XY(mMagneticEvent.magnetic.x), 2) +
-            pow(COMPASS_CONVERT_XY(mMagneticEvent.magnetic.y), 2) +
-            pow(COMPASS_CONVERT_Z(mMagneticEvent.magnetic.z), 2) >=
-            pow(MAGNETIC_MAX, 2)) {
-        D("CompassCal, data[%f, %f, %f] is not used for calibration",
-            mMagneticEvent.magnetic.x,
-            mMagneticEvent.magnetic.y,
-            mMagneticEvent.magnetic.z);
-        return true;
-    }
-    return false;
-}
-
-void  CompassSensor::calcEvent()
-{
-    if (Xmin == 0 && Xmax == 0) {
-        Xmin = Xmax = mRawX;
-    } else {
-        if (mRawX > Xmax)
-            Xmax = mRawX;
-        if (mRawX < Xmin)
-            Xmin = mRawX;
-    }
-    magOffsetX = (Xmax + Xmin) / 2;
-    mMagneticEvent.magnetic.x = mRawX - magOffsetX;
-
-    if (Ymin == 0 && Ymax == 0) {
-        Ymin = Ymax = mRawY;
-    } else {
-        if (mRawY > Ymax)
-            Ymax = mRawY;
-        if (mRawY < Ymin)
-            Ymin = mRawY;
-    }
-    magOffsetY = (Ymax + Ymin) / 2;
-    mMagneticEvent.magnetic.y = mRawY - magOffsetY;
-
-    if (Zmin == 0 && Zmax == 0) {
-        Zmin = Zmax = mRawZ;
-    } else {
-        if (mRawZ > Zmax)
-            Zmax = mRawZ;
-        if (mRawZ < Zmin)
-            Zmin = mRawZ;
-    }
-    magOffsetZ = (Zmax + Zmin) / 2;
-    mMagneticEvent.magnetic.z = mRawZ - magOffsetZ;
-
-    /* adjust if calibration is done */
-    if (!calibrated) {
-        if (COMPASS_CONVERT_XY(Xmax - Xmin) >= 2 * MAGNETIC_MIN &&
-            COMPASS_CONVERT_XY(Ymax - Ymin) >= 2 * MAGNETIC_MIN &&
-            COMPASS_CONVERT_Z(Zmax - Zmin) >= 2 * MAGNETIC_MIN)
-            calibrated = 1;
-    }
-}
-
 void CompassSensor::convertEventUnit()
 {
-
     // convert from LSB/Gauss to micro-Tesla
     mMagneticEvent.magnetic.x = COMPASS_CONVERT_XY(mMagneticEvent.magnetic.x);
     mMagneticEvent.magnetic.y = COMPASS_CONVERT_XY(mMagneticEvent.magnetic.y);
