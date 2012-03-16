@@ -43,7 +43,6 @@ public:
 private:
     void readCalibrationData();
     void storeCalibrationData();
-    void convertEventUnit();
     void calibration(int64_t time);
 
 private:

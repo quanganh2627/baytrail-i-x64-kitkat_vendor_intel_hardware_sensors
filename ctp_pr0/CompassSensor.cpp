@@ -32,8 +32,16 @@
 #define COMPASS_CALIB_DATA "/data/compass.conf"
 #define COMPASS_XY_GAIN 670
 #define COMPASS_Z_GAIN  600
-#define COMPASS_CONVERT_XY(xy) ((xy) * 100 / COMPASS_XY_GAIN)
-#define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN)
+
+#ifdef TARGET_MFLD_GI
+#define COMPASS_CONVERT_X(x) ((x) * 100 / COMPASS_XY_GAIN)
+#define COMPASS_CONVERT_Y(y) ((y) * 100 / COMPASS_XY_GAIN * -1)
+#define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN * -1)
+#else
+#define COMPASS_CONVERT_X(x) ((x) * 100 / COMPASS_XY_GAIN)
+#define COMPASS_CONVERT_Y(y) ((y) * 100 / COMPASS_XY_GAIN)
+#define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN * -1)
+#endif
 
 #define COMPASS_ENABLE  "/sys/bus/i2c/devices/5-001e/lsm303cmp/enable"
 #define COMPASS_POLL    "/sys/bus/i2c/devices/5-001e/lsm303cmp/poll"
@@ -249,16 +257,15 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
         int type = event->type;
         if (type == EV_REL) {
             if (event->code == EVENT_TYPE_M_O_X)
-                mMagneticEvent.magnetic.x = event->value;
+                mMagneticEvent.magnetic.y = COMPASS_CONVERT_X(event->value);
             else if (event->code == EVENT_TYPE_M_O_Y)
-                mMagneticEvent.magnetic.y = event->value;
+                mMagneticEvent.magnetic.x = COMPASS_CONVERT_Y(event->value);
             else if (event->code == EVENT_TYPE_M_O_Z)
-                mMagneticEvent.magnetic.z = event->value;
+                mMagneticEvent.magnetic.z = COMPASS_CONVERT_Z(event->value);
         } else if (type == EV_SYN) {
             int64_t time = timevalToNano(event->time);
             if (mEnabled) {
                 mMagneticEvent.timestamp = time;
-                convertEventUnit();
                 calibration(time);
                 *data++ = mMagneticEvent;
                 count--;
@@ -278,18 +285,4 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
     }
 
     return numEventReceived;
-}
-
-void CompassSensor::convertEventUnit()
-{
-    // convert from LSB/Gauss to micro-Tesla
-    mMagneticEvent.magnetic.x = COMPASS_CONVERT_XY(mMagneticEvent.magnetic.x);
-    mMagneticEvent.magnetic.y = COMPASS_CONVERT_XY(mMagneticEvent.magnetic.y);
-    mMagneticEvent.magnetic.z = COMPASS_CONVERT_Z(mMagneticEvent.magnetic.z);
-
-    //switch axis
-    float temp = mMagneticEvent.magnetic.x;
-    mMagneticEvent.magnetic.x = mMagneticEvent.magnetic.y;
-    mMagneticEvent.magnetic.y = temp;
-    mMagneticEvent.magnetic.z *= -1;
 }
