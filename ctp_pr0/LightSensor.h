@@ -26,6 +26,8 @@
 #include "SensorBase.h"
 #include "InputEventReader.h"
 
+#define APDS9900_LUX_OUTPUT_SCALE 10.0
+
 /*****************************************************************************/
 
 struct input_event;

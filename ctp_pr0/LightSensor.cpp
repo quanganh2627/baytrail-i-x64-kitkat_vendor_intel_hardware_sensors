@@ -92,7 +92,7 @@ int LightSensor::readEvents(sensors_event_t* data, int count)
     data->version = sizeof(sensors_event_t);
 
     read(data_fd, &val, sizeof(unsigned int));
-    data->light = (float)val;
+    data->light = (float)val / APDS9900_LUX_OUTPUT_SCALE;
     D("LightSensor - read data val = %f ",data->light);
 
     return 1;
