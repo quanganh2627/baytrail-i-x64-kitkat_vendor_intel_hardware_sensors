@@ -224,10 +224,11 @@ sensors_poll_context_t::~sensors_poll_context_t()
 
 int sensors_poll_context_t::activate(int handle, int enabled)
 {
+    int index = handleToDriver(handle);
+
     D("sensors_poll_context_t::activate, handle = %d, enabled = %d, index = %d",
       handle, enabled, index);
 
-    int index = handleToDriver(handle);
     if (index < 0)
         return index;
 

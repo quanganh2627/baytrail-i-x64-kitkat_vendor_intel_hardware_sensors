@@ -58,9 +58,10 @@ AccelSensor::~AccelSensor()
 
 int AccelSensor::enable(int32_t handle, int en)
 {
+    unsigned int flags = en ? 1 : 0;
+
     D("AccelSensor-%s, flags = %d, mEnabled = %d", __func__, flags, mEnabled);
 
-    unsigned int flags = en ? 1 : 0;
     if (flags != mEnabled) {
         int fd;
         fd = open(ACCEL_ENABLE, O_RDWR);
