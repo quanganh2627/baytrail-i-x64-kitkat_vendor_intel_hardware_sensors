@@ -13,7 +13,7 @@
 # limitations under the License.
 
 #For clovertrail and mfld_gi devices
-ifneq (,$(findstring $(TARGET_PRODUCT),ctp_pr0 mfld_gi))
+ifneq (,$(findstring $(TARGET_PRODUCT),ctp_pr0 mfld_gi ctp_pr1))
 
 LOCAL_PATH := $(call my-dir)
 
