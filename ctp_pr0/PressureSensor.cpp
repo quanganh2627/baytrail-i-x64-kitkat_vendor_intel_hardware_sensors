@@ -40,7 +40,7 @@ PressureSensor::PressureSensor()
     LOGE_IF(data_fd < 0, "can't open lps331ap pressure input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = ID_PR;
+    mPendingEvent.sensor = SENSORS_HANDLE_PRESSURE;
     mPendingEvent.type = SENSOR_TYPE_PRESSURE;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }

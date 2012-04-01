@@ -38,7 +38,7 @@ ProximitySensor::ProximitySensor()
     LOGE_IF(data_fd < 0, "can't open %s", PROXIMITY_DATA);
 
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = ID_P;
+    mPendingEvent.sensor = SENSORS_HANDLE_PROXIMITY;
     mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }
@@ -70,31 +70,11 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
     struct timespec t;
 
     D("ProximitySensor - %s", __func__);
-    if (count < 1)
+    if (count < 1 || data == NULL || data_fd < 0)
         return -EINVAL;
 
-    if (mHasPendingEvent) {
-        D("ProximitySensor - %s has pending event", __func__);
-        mHasPendingEvent = false;
-        mPendingEvent.timestamp = getTimestamp();
-        *data = mPendingEvent;
-        return mEnabled ? 1 : 0;
-    }
-
-    if (data == NULL) {
-        E("ProximitySensor - %s data is NULL", __func__);
-        return -1;
-    }
-    if (data_fd < 0) {
-        E("ProximitySensor - %s data_fd is not valid", __func__);
-        return -1;
-    }
-
+    *data = mPendingEvent;
     data->timestamp = getTimestamp();
-    data->type = SENSOR_TYPE_PROXIMITY;
-    data->sensor = ID_P;
-    data->version = sizeof(sensors_event_t);
-
     read(data_fd, &val, sizeof(int));
     data->distance = (float)(val == 1 ? 0 : 6);
     D("ProximitySensor - %s read data %f", __func__, data->distance);

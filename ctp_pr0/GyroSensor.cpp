@@ -44,7 +44,7 @@ GyroSensor::GyroSensor()
     LOGE_IF(data_fd < 0, "can't open l3g4200d gyro input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = ID_GY;
+    mPendingEvent.sensor = SENSORS_HANDLE_GYROSCOPE;
     mPendingEvent.type = SENSOR_TYPE_GYROSCOPE;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }

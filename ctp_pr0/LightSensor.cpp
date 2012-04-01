@@ -37,7 +37,7 @@ LightSensor::LightSensor()
     LOGE_IF(data_fd < 0, "can't open %s", LIGHT_DATA);
 
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = ID_L;
+    mPendingEvent.sensor = SENSORS_HANDLE_LIGHT;
     mPendingEvent.type = SENSOR_TYPE_LIGHT;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }
@@ -71,26 +71,11 @@ int LightSensor::readEvents(sensors_event_t* data, int count)
 
     D("LightSensor - %s", __func__);
 
-    if (count < 1 || data == NULL)
+    if (count < 1 || data == NULL || data_fd < 0)
         return -EINVAL;
 
-    if (mHasPendingEvent) {
-        mHasPendingEvent = false;
-        mPendingEvent.timestamp = getTimestamp();
-        *data = mPendingEvent;
-        return mEnabled ? 1 : 0;
-    }
-
-    if (data_fd < 0) {
-        E("LightSensor - %s data_fd is not valid", __func__);
-        return -1;
-    }
-
+    *data = mPendingEvent;
     data->timestamp = getTimestamp();
-    data->type = SENSOR_TYPE_LIGHT;
-    data->sensor = ID_L;
-    data->version = sizeof(sensors_event_t);
-
     read(data_fd, &val, sizeof(unsigned int));
     data->light = (float)val / APDS9900_LUX_OUTPUT_SCALE;
     D("LightSensor - read data val = %f ",data->light);

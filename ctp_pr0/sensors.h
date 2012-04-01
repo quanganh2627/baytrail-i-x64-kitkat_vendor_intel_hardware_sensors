@@ -43,18 +43,18 @@ __BEGIN_DECLS
 #define  E(...)  LOGE(__VA_ARGS__)
 
 /*****************************************************************************/
+/*
+ * SENSORS_HANDLE_xxx should greater than SENSORS_HANDLE_BASE and must be unique.
+ */
+#define SENSORS_HANDLE_LIGHT            1
+#define SENSORS_HANDLE_PROXIMITY        2
+#define SENSORS_HANDLE_ACCELERATION     3
+#define SENSORS_HANDLE_MAGNETIC_FIELD   4
+#define SENSORS_HANDLE_GYROSCOPE        5
+#define SENSORS_HANDLE_PRESSURE         6
+#define SENSORS_HANDLE_MAX              6
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-
-#define ID_A  (0)
-#define ID_M  (1)
-#define ID_O  (2)
-#define ID_L  (3)
-#define ID_P  (4)
-#define ID_GY (5)
-#define ID_PR (6)
-#define ID_T  (7)
-
 /*****************************************************************************/
 /*
  * The SENSORS PATH

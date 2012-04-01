@@ -38,53 +38,32 @@
 #include "GyroSensor.h"
 #include "CompassSensor.h"
 #include "PressureSensor.h"
-/*****************************************************************************/
-
-#define SENSORS_ACCELERATION    (1 << ID_A)
-#define SENSORS_MAGNETIC_FIELD  (1 << ID_M)
-#define SENSORS_ORIENTATION     (1 << ID_O)
-#define SENSORS_LIGHT           (1 << ID_L)
-#define SENSORS_PROXIMITY       (1 << ID_P)
-#define SENSORS_GYROSCOPE       (1 << ID_GY)
-#define SENSORS_PRESSURE        (1 << ID_PR)
-#define SENSORS_TEMPERATURE     (1 << ID_T)
-
-#define SENSORS_ACCELERATION_HANDLE     0
-#define SENSORS_MAGNETIC_FIELD_HANDLE   1
-#define SENSORS_ORIENTATION_HANDLE      2
-#define SENSORS_LIGHT_HANDLE            3
-#define SENSORS_PROXIMITY_HANDLE        4
-#define SENSORS_GYROSCOPE_HANDLE        5
-#define SENSORS_PRESSURE_HANDLE         6
-#define SENSORS_TEMPERATURE_HANDLE      7
-
-/*****************************************************************************/
 
 /* The SENSORS Module */
 static const struct sensor_t sSensorList[] = {
     { "MODEL_LSM303DLHC 3-axis Accelerometer",
       "STMicroelectronics",
-      1, SENSORS_ACCELERATION_HANDLE,
+      1, SENSORS_HANDLE_ACCELERATION,
       SENSOR_TYPE_ACCELEROMETER, RANGE_A, CONVERT_A, 0.006f, 10000, { } },
     { "MODEL_LSM303DLHC 3-axis Magnetic field sensor",
       "STMicroelectronics",
-      1, SENSORS_MAGNETIC_FIELD_HANDLE,
+      1, SENSORS_HANDLE_MAGNETIC_FIELD,
       SENSOR_TYPE_MAGNETIC_FIELD, 800.0f, CONVERT_M, 0.1f, 13300, { } },
     { "Avago APDS-9900 Digital Ambient Light Sensor",
       "Avago",
-      1, SENSORS_LIGHT_HANDLE,
+      1, SENSORS_HANDLE_LIGHT,
       SENSOR_TYPE_LIGHT, 65535.0f, 0.1f, 0.25f, 0, { } },
     { "Avago APDS-9900 Digital Proximity Sensor",
       "Avago",
-      1, SENSORS_PROXIMITY_HANDLE,
+      1, SENSORS_HANDLE_PROXIMITY,
       SENSOR_TYPE_PROXIMITY, 6.0f, 6.0f, 0.25f, 0, { } },
     { "L3G4200D Gyroscope sensor",
       "STMicroelectronics",
-      1, SENSORS_GYROSCOPE_HANDLE,
+      1, SENSORS_HANDLE_GYROSCOPE,
       SENSOR_TYPE_GYROSCOPE, RANGE_GYRO, CONVERT_GYRO, 6.1f, 10000, { } },
     { "ST LPS331AP Pressure Sensor",
       "STMicroelectronics",
-      1, SENSORS_PRESSURE_HANDLE,
+      1, SENSORS_HANDLE_PRESSURE,
       SENSOR_TYPE_PRESSURE, 120000, 1.0f, 0.001f, 50000, { } },
 };
 
@@ -128,78 +107,48 @@ struct sensors_poll_context_t {
     int pollEvents(sensors_event_t* data, int count);
 
 private:
-    enum {
-        light           = 0,
-        proximity       = 1,
-        accel           = 2,
-        compass         = 3,
-        gyro            = 4,
-        pressure        = 5,
-        numSensorDrivers,
-        numFds,
-    };
-
-    static const size_t wake = numFds - 1;
+    size_t wake;
     static const char WAKE_MESSAGE = 'W';
-    struct pollfd mPollFds[numFds];
+    struct pollfd mPollFds[SENSORS_HANDLE_MAX + 1]; // plus 1 for wakefd
     int mWritePipeFd;
-    SensorBase* mSensors[numSensorDrivers];
-
-    int handleToDriver(int handle) const
-    {
-        switch (handle) {
-            case ID_A:
-                return accel;
-            case ID_M:
-            case ID_O:
-				return compass;
-            case ID_P:
-                return proximity;
-            case ID_L:
-                return light;
-            case ID_GY:
-                return gyro;
-            case ID_PR:
-            case ID_T:
-                return pressure;
-        }
-        return -EINVAL;
-    }
+    int mNumSensors;
+    SensorBase* mSensors[SENSORS_HANDLE_MAX + 1]; // reserved 0 for SENSORS_HANDLE_BASE
 };
 
 /*****************************************************************************/
 
 sensors_poll_context_t::sensors_poll_context_t()
 {
-    mSensors[light] = new LightSensor();
-    mPollFds[light].fd = mSensors[light]->getFd();
-    mPollFds[light].events = POLLIN;
-    mPollFds[light].revents = 0;
-
-    mSensors[proximity] = new ProximitySensor();
-    mPollFds[proximity].fd = mSensors[proximity]->getFd();
-    mPollFds[proximity].events = POLLIN;
-    mPollFds[proximity].revents = 0;
-
-    mSensors[accel] = new AccelSensor();
-    mPollFds[accel].fd = mSensors[accel]->getFd();
-    mPollFds[accel].events = POLLIN;
-    mPollFds[accel].revents = 0;
-
-    mSensors[compass] = new CompassSensor();
-    mPollFds[compass].fd = mSensors[compass]->getFd();
-    mPollFds[compass].events = POLLIN;
-    mPollFds[compass].revents = 0;
-
-    mSensors[gyro] = new GyroSensor();
-    mPollFds[gyro].fd = mSensors[gyro]->getFd();
-    mPollFds[gyro].events = POLLIN;
-    mPollFds[gyro].revents = 0;
-
-    mSensors[pressure] = new PressureSensor();
-    mPollFds[pressure].fd = mSensors[pressure]->getFd();
-    mPollFds[pressure].events = POLLIN;
-    mPollFds[pressure].revents = 0;
+    wake = mNumSensors = ARRAY_SIZE(sSensorList);
+    for (int i = 0; i < mNumSensors; i++) {
+        int handle = sSensorList[i].handle;
+        switch (handle) {
+        case SENSORS_HANDLE_LIGHT:
+            mSensors[handle] = new LightSensor();
+            break;
+        case SENSORS_HANDLE_PROXIMITY:
+            mSensors[handle] = new ProximitySensor();
+            break;
+        case SENSORS_HANDLE_ACCELERATION:
+            mSensors[handle] = new AccelSensor();
+            break;
+        case SENSORS_HANDLE_MAGNETIC_FIELD:
+            mSensors[handle] = new CompassSensor();
+            break;
+        case SENSORS_HANDLE_GYROSCOPE:
+            mSensors[handle] = new GyroSensor();
+            break;
+        case SENSORS_HANDLE_PRESSURE:
+            mSensors[handle] = new PressureSensor();
+            break;
+        default:
+            LOGE("No Sensor id handle %d found\n", handle);
+            continue;
+        }
+        mPollFds[i].fd = mSensors[handle]->getFd();
+        mPollFds[i].events = POLLIN;
+        mPollFds[i].revents = 0;
+    }
 
     int wakeFds[2];
     int result = pipe(wakeFds);
@@ -215,8 +164,8 @@ sensors_poll_context_t::sensors_poll_context_t()
 
 sensors_poll_context_t::~sensors_poll_context_t()
 {
-    for (int i = 0 ; i < numSensorDrivers; i++)
-        delete mSensors[i];
+    for (int i = 0 ; i < mNumSensors; i++)
+        delete mSensors[sSensorList[i].handle];
 
     close(mPollFds[wake].fd);
     close(mWritePipeFd);
@@ -224,15 +173,13 @@ sensors_poll_context_t::~sensors_poll_context_t()
 
 int sensors_poll_context_t::activate(int handle, int enabled)
 {
-    int index = handleToDriver(handle);
+    D("sensors_poll_context_t::activate, handle = %d, enabled = %d",
+      handle, enabled);
 
-    D("sensors_poll_context_t::activate, handle = %d, enabled = %d, index = %d",
-      handle, enabled, index);
+    if (handle <= SENSORS_HANDLE_BASE || handle > SENSORS_HANDLE_MAX)
+        return (handle > 0 ? -handle : handle);
 
-    if (index < 0)
-        return index;
-
-    int err =  mSensors[index]->enable(handle, enabled);
+    int err =  mSensors[handle]->enable(handle, enabled);
     if (enabled && !err) {
         const char wakeMessage(WAKE_MESSAGE);
         int result = write(mWritePipeFd, &wakeMessage, 1);
@@ -243,11 +190,10 @@ int sensors_poll_context_t::activate(int handle, int enabled)
 
 int sensors_poll_context_t::setDelay(int handle, int64_t ns)
 {
-    int index = handleToDriver(handle);
+    if (handle <= SENSORS_HANDLE_BASE || handle > SENSORS_HANDLE_MAX)
+        return (handle > 0 ? -handle : handle);
 
-    if (index < 0)
-        return index;
-    return mSensors[index]->setDelay(handle, ns);
+    return mSensors[handle]->setDelay(handle, ns);
 }
 
 int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
@@ -257,8 +203,8 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
 
     do {
         // see if we have some leftover from the last poll()
-        for (int i = 0; count && i < numSensorDrivers; i++) {
-            SensorBase* const sensor(mSensors[i]);
+        for (int i = 0; count && i < mNumSensors; i++) {
+            SensorBase* const sensor(mSensors[sSensorList[i].handle]);
             if ((mPollFds[i].revents & POLLIN) || sensor->hasPendingEvents()) {
                 int nb = sensor->readEvents(data, count);
                 if (nb < count) {
@@ -274,7 +220,7 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
             // we still have some room, so try to see if we can get
             // some events immediately or just wait if we don't have
             // anything to return
-            n = poll(mPollFds, numFds, nbEvents ? 0 : -1);
+            n = poll(mPollFds, mNumSensors + 1, nbEvents ? 0 : -1);
             if (n < 0) {
                 LOGE("poll() failed (%s)", strerror(errno));
                 return -errno;

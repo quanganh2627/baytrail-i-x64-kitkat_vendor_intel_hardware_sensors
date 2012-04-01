@@ -57,7 +57,7 @@ CompassSensor::CompassSensor()
     LOGE_IF(data_fd < 0, "can't open lsm303cmp compass input dev");
 
     mMagneticEvent.version = sizeof(sensors_event_t);
-    mMagneticEvent.sensor = ID_M;
+    mMagneticEvent.sensor = SENSORS_HANDLE_MAGNETIC_FIELD;
     mMagneticEvent.type = SENSOR_TYPE_MAGNETIC_FIELD;
     mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;
 
