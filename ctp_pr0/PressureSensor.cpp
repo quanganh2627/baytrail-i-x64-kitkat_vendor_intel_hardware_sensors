@@ -137,7 +137,7 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
                      type, event->code);
             }
         } else if (type == EV_SYN) {
-            mPendingEvent.pressure = (float)pressure * 100 / 4096;
+            mPendingEvent.pressure = (float)pressure / 4096;
             mPendingEvent.timestamp = timevalToNano(event->time);
             if (mEnabled) {
                 *data++ = mPendingEvent;
