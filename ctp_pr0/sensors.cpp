@@ -57,6 +57,7 @@ static const struct sensor_t sSensorList[] = {
       "Avago",
       1, SENSORS_HANDLE_PROXIMITY,
       SENSOR_TYPE_PROXIMITY, 6.0f, 6.0f, 0.25f, 0, { } },
+#ifndef TARGET_MFLD_GI
     { "L3G4200D Gyroscope sensor",
       "STMicroelectronics",
       1, SENSORS_HANDLE_GYROSCOPE,
@@ -65,6 +66,7 @@ static const struct sensor_t sSensorList[] = {
       "STMicroelectronics",
       1, SENSORS_HANDLE_PRESSURE,
       SENSOR_TYPE_PRESSURE, 120000, 1.0f, 0.001f, 50000, { } },
+#endif
 };
 
 
