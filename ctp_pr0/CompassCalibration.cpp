@@ -6,7 +6,7 @@
 /* Earth magnetic parameters */
 #define MAG_MAX 80.0f /* 80 mt*/
 #define MAG_MIN 25.0f /* 25 mt*/
-#define MAG_MAX_INC 30.0f /* 30 mt */
+#define MAG_MAX_INC 10.0f /* 10 mt */
 
 /* Geometry parameters */
 #define LINE_SEGS 8

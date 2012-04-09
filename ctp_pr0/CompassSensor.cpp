@@ -36,7 +36,7 @@
 #ifdef TARGET_MFLD_GI
 #define COMPASS_CONVERT_X(x) ((x) * 100 / COMPASS_XY_GAIN)
 #define COMPASS_CONVERT_Y(y) ((y) * 100 / COMPASS_XY_GAIN * -1)
-#define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN * -1)
+#define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN)
 #else
 #define COMPASS_CONVERT_X(x) ((x) * 100 / COMPASS_XY_GAIN)
 #define COMPASS_CONVERT_Y(y) ((y) * 100 / COMPASS_XY_GAIN)
