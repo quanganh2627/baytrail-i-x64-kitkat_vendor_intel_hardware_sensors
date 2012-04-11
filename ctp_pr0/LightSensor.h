@@ -27,6 +27,11 @@
 #include "InputEventReader.h"
 
 #define APDS9900_LUX_OUTPUT_SCALE 10.0
+#ifdef TARGET_MFLD_GI
+#define APDS9900_LIGHT_TRANS 0.3
+#else
+#define APDS9900_LIGHT_TRANS 1
+#endif
 
 /*****************************************************************************/
 
