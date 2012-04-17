@@ -48,7 +48,7 @@ static const struct sensor_t sSensorList[] = {
     { "MODEL_LSM303DLHC 3-axis Magnetic field sensor",
       "STMicroelectronics",
       1, SENSORS_HANDLE_MAGNETIC_FIELD,
-      SENSOR_TYPE_MAGNETIC_FIELD, 800.0f, CONVERT_M, 0.1f, 13300, { } },
+      SENSOR_TYPE_MAGNETIC_FIELD, 800.0f, CONVERT_M, 0.1f, 20000, { } },
     { "Avago APDS-9900 Digital Ambient Light Sensor",
       "Avago",
       1, SENSORS_HANDLE_LIGHT,
