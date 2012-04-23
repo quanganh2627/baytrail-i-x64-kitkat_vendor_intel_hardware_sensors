@@ -65,7 +65,7 @@ static const struct sensor_t sSensorList[] = {
     { "ST LPS331AP Pressure Sensor",
       "STMicroelectronics",
       1, SENSORS_HANDLE_PRESSURE,
-      SENSOR_TYPE_PRESSURE, 120000, 1.0f, 0.001f, 50000, { } },
+      SENSOR_TYPE_PRESSURE, 1200, 0.024f, 0.001f, 50000, { } },
 #endif
 };
 
