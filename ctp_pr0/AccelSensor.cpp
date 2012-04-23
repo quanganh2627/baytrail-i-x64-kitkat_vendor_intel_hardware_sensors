@@ -105,7 +105,7 @@ int AccelSensor::setDelay(int32_t handle, int64_t ns)
     else
         ms = ns / 1000000;
 
-    sprintf(buf, "%d", ms);
+    snprintf(buf, sizeof(buf), "%d", ms);
     write(fd, buf, sizeof(buf));
     close(fd);
 
