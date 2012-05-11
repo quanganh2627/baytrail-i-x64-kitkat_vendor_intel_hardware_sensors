@@ -110,9 +110,10 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define EVENT_TYPE_PRESSURE         REL_X
 #define EVENT_TYPE_TEMPERATURE      REL_Y
 
-// conversion of acceleration data to SI units (m/s^2)
+/* conversion of acceleration data to SI units (m/s^2) */
 #define RANGE_A                     (2*GRAVITY_EARTH)
 #define CONVERT_A                   (2*GRAVITY_EARTH / 4096)
+#define RESOLUTION_A                (GRAVITY_EARTH / 1000)
 
 #ifdef TARGET_MFLD_GI
 #define CONVERT_A_X(x)              (((float)x/1000) * GRAVITY * -1.0)
@@ -124,11 +125,13 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define CONVERT_A_Z(x)              (((float)x/1000) * GRAVITY * -1.0)
 #endif
 
-// conversion of magnetic data to uT units
+/* conversion of magnetic data to uT units */
 #define CONVERT_M                   (0.5f)
 #define CONVERT_M_X                 (-CONVERT_M)
 #define CONVERT_M_Y                 (-CONVERT_M)
 #define CONVERT_M_Z                 (-CONVERT_M)
+#define RESOLUTION_M                (0.15f)
+#define RANGE_M                     (250.0f)
 
 /* conversion of orientation data to degree units */
 #define CONVERT_O                   (1.0f/64.0f)
@@ -136,11 +139,24 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define CONVERT_O_P                 (CONVERT_O)
 #define CONVERT_O_R                 (-CONVERT_O)
 
-// conversion of gyro data to SI units (radian/sec)
-#define RANGE_GYRO                  (2000.0f*(float)M_PI/180.0f)
+/* conversion of gyro data to SI units (radian/sec) */
+#define RANGE_G                     (2000.0f*(float)M_PI/180.0f)
 #define CONVERT_GYRO                ((70.0f / 1000.0f) * ((float)M_PI / 180.0f))
+#define RESOLUTION_G                ((70.0f / 1000.0f) * ((float)M_PI / 180.0f))
 
 #define SENSOR_STATE_MASK           (0x7FFF)
+
+/* conversion of light data to SI units (lux) */
+#define RANGE_L                     (65535.0f)
+#define RESOLUTION_L                (0.1f)
+
+/* conversion of proximity data to cm units */
+#define RANGE_PROXIMITY             (6.0f)
+#define RESOLUTION_PROXIMITY        (6.0f)
+
+/* conversion of pressure data to mbar units */
+#define RANGE_PRESSURE              (1260.0f)
+#define RESOLUTION_PRESSURE         (0.24f)
 
 /*****************************************************************************/
 
