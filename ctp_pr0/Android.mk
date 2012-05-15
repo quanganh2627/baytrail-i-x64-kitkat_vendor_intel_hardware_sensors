@@ -34,6 +34,9 @@ LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
 ifeq ($(TARGET_PRODUCT),mfld_gi)
 LOCAL_CFLAGS += -DTARGET_MFLD_GI=1
 endif
+ifeq ($(TARGET_PRODUCT),ctp_pr0)
+LOCAL_CFLAGS += -DTARGET_MFLD_CTP_PR0=1
+endif
 
 LOCAL_SRC_FILES := 					\
 			sensors.cpp 			\

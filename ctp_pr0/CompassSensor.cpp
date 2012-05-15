@@ -139,6 +139,7 @@ int CompassSensor::enable(int32_t handle, int en)
                 LOGD("compass calibration file lock fail");
 
             readCalibrationData();
+            filter_index = -1;
         }
     } else if (flags == 0 && mEnabled == 1) {
         if (mCalDataFile > -1) {
@@ -200,6 +201,71 @@ int CompassSensor::setDelay(int32_t handle, int64_t ns)
     D("%s, errno = %d", __func__, errno);
     return -1;
 }
+
+#ifdef TARGET_MFLD_CTP_PR0
+void CompassSensor::filter()
+{
+    int pre_index;
+    int i;
+
+    /* reset filter if data is not following
+     * the previous one.
+     */
+    if (filter_index != -1) {
+        pre_index = (filter_index + FILTER_LENGTH - 1) % FILTER_LENGTH;
+        if (mMagneticEvent.timestamp - filter_buffer[pre_index].timestamp >= FILTER_VALID_TIME) {
+            filter_index = -1;
+            LOGD("compass sensor filter, reset filter because long time delay, pre = %lld, now = %lld",
+                filter_buffer[pre_index].timestamp, mMagneticEvent.timestamp);
+        }
+    }
+
+    if (filter_index == -1) {
+        /* init filter data using current data */
+        for (i = 0; i < FILTER_LENGTH; i ++) {
+            filter_buffer[i].magnetic.x = mMagneticEvent.magnetic.x;
+            filter_buffer[i].magnetic.y = mMagneticEvent.magnetic.y;
+            filter_buffer[i].magnetic.z = mMagneticEvent.magnetic.z;
+            filter_buffer[i].timestamp = mMagneticEvent.timestamp;
+        }
+        /* init filter sum value */
+        filter_sum[0] = mMagneticEvent.magnetic.x * FILTER_LENGTH;
+        filter_sum[1] = mMagneticEvent.magnetic.y * FILTER_LENGTH;
+        filter_sum[2] = mMagneticEvent.magnetic.z * FILTER_LENGTH;
+
+        filter_index = 0;
+        LOGD("compass sensor filter, first data read");
+        return;
+    }
+
+    /* remove data from sum value */
+    filter_sum[0] -= filter_buffer[filter_index].magnetic.x;
+    filter_sum[1] -= filter_buffer[filter_index].magnetic.y;
+    filter_sum[2] -= filter_buffer[filter_index].magnetic.z;
+
+    /* replace a buffer slot with new data */
+    filter_buffer[filter_index].magnetic.x = mMagneticEvent.magnetic.x;
+    filter_buffer[filter_index].magnetic.y = mMagneticEvent.magnetic.y;
+    filter_buffer[filter_index].magnetic.z = mMagneticEvent.magnetic.z;
+    filter_buffer[filter_index].timestamp = mMagneticEvent.timestamp;
+
+    /* update sum value using new data */
+    filter_sum[0] += filter_buffer[filter_index].magnetic.x;
+    filter_sum[1] += filter_buffer[filter_index].magnetic.y;
+    filter_sum[2] += filter_buffer[filter_index].magnetic.z;
+
+    filter_index = (filter_index + 1) % FILTER_LENGTH;
+
+    /* use avg value of filter buffer to report data */
+    mMagneticEvent.magnetic.x = filter_sum[0] / FILTER_LENGTH;
+    mMagneticEvent.magnetic.y = filter_sum[1] / FILTER_LENGTH;
+    mMagneticEvent.magnetic.z = filter_sum[2] / FILTER_LENGTH;
+
+    return;
+}
+#else
+void CompassSensor::filter() {}
+#endif
 
 void CompassSensor::calibration(int64_t time)
 {
@@ -266,7 +332,20 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
             int64_t time = timevalToNano(event->time);
             if (mEnabled) {
                 mMagneticEvent.timestamp = time;
+
+                /* compass calibration */
                 calibration(time);
+
+                D("CompassSensor magnetic befor filter=[%f, %f, %f] accuracy=%d, time=%lld",
+                  mMagneticEvent.magnetic.x,
+                  mMagneticEvent.magnetic.y,
+                  mMagneticEvent.magnetic.z,
+                  (int)mMagneticEvent.magnetic.status,
+                  mMagneticEvent.timestamp);
+
+                /* data filter: used to mitigate data floating */
+                filter();
+
                 *data++ = mMagneticEvent;
                 count--;
                 numEventReceived++;
