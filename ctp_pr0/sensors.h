@@ -147,7 +147,7 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define SENSOR_STATE_MASK           (0x7FFF)
 
 /* conversion of light data to SI units (lux) */
-#define RANGE_L                     (65535.0f)
+#define RANGE_L                     (10000.0f)
 #define RESOLUTION_L                (0.1f)
 
 /* conversion of proximity data to cm units */
