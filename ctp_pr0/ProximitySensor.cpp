@@ -29,9 +29,8 @@
 /*****************************************************************************/
 
 ProximitySensor::ProximitySensor()
-    : SensorBase(NULL, "proximity"),
+    : SensorBase("proximity"),
       mEnabled(0),
-      mInputReader(4),
       mHasPendingEvent(false)
 {
     data_fd = open(PROXIMITY_DATA, O_RDONLY);
@@ -77,7 +76,7 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
     data->timestamp = getTimestamp();
     read(data_fd, &val, sizeof(int));
     data->distance = (float)(val == 1 ? 0 : 6);
-    D("ProximitySensor - %s read data %f", __func__, data->distance);
+    LOGI("ProximitySensor - %s read data %f", __func__, data->distance);
 
     return 1;
 }

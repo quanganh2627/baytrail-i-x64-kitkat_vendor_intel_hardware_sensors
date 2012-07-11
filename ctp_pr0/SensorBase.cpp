@@ -32,43 +32,18 @@
 
 /*****************************************************************************/
 
-SensorBase::SensorBase(const char* dev_name, const char* data_name)
-    : dev_name(dev_name), data_name(data_name),
-      dev_fd(-1), data_fd(-1)
+SensorBase::SensorBase(const char* data_name)
+    : data_name(data_name), data_fd(-1)
 { }
 
 SensorBase::~SensorBase()
 {
     if (data_fd >= 0)
         close(data_fd);
-
-    if (dev_fd >= 0)
-        close(dev_fd);
-}
-
-int SensorBase::open_device()
-{
-    if (dev_fd < 0 && dev_name) {
-        dev_fd = open(dev_name, O_RDONLY);
-        LOGE_IF(dev_fd < 0, "Couldn't open %s (%s)", dev_name, strerror(errno));
-    }
-    return 0;
-}
-
-int SensorBase::close_device()
-{
-    if (dev_fd >= 0) {
-        close(dev_fd);
-        dev_fd = -1;
-    }
-    return 0;
 }
 
 int SensorBase::getFd() const
 {
-    if (!data_name) {
-        return dev_fd;
-    }
     return data_fd;
 }
 

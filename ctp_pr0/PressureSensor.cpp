@@ -31,7 +31,7 @@
 /*****************************************************************************/
 
 PressureSensor::PressureSensor()
-    : SensorBase(NULL, "pressure"),
+    : SensorBase("pressure"),
       mEnabled(0),
       mInputReader(32),
       mHasPendingEvent(false)
@@ -49,11 +49,6 @@ PressureSensor::~PressureSensor()
 {
     if (mEnabled)
         enable(0, 0);
-}
-
-int PressureSensor::setInitialState()
-{
-    return 0;
 }
 
 int PressureSensor::enable(int32_t handle, int en)

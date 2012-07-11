@@ -35,7 +35,7 @@
 /*****************************************************************************/
 
 GyroSensor::GyroSensor()
-    : SensorBase(NULL, "gyro"),
+    : SensorBase("gyro"),
       mEnabled(0),
       mInputReader(4),
       mHasPendingEvent(false)
@@ -56,11 +56,6 @@ GyroSensor::~GyroSensor()
 
     if (conf_fd > -1)
         close(conf_fd);
-}
-
-int GyroSensor::setInitialState()
-{
-    return 0;
 }
 
 int GyroSensor::enable(int32_t handle, int en)

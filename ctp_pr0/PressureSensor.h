@@ -35,11 +35,7 @@ class PressureSensor : public SensorBase {
     InputEventCircularReader mInputReader;
     sensors_event_t mPendingEvent;
     bool mHasPendingEvent;
-    char input_sysfs_path[PATH_MAX];
-    int input_sysfs_path_len;
     unsigned int mCoef[8];
-
-    int setInitialState();
 
 public:
     PressureSensor();

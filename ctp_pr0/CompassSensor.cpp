@@ -47,7 +47,7 @@
 #define COMPASS_POLL    "/sys/bus/i2c/devices/5-001e/lsm303cmp/poll"
 
 CompassSensor::CompassSensor()
-        : SensorBase(NULL, COMPASS_SENSOR_DATA_NAME),
+        : SensorBase(COMPASS_SENSOR_DATA_NAME),
           mEnabled(0),
           mInputReader(32)
 {

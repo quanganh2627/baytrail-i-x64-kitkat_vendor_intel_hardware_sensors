@@ -35,9 +35,8 @@
 /*****************************************************************************/
 
 AccelSensor::AccelSensor()
-    : SensorBase(NULL, "accel"),
+    : SensorBase("accel"),
       mEnabled(0),
-      mPendingMask(0),
       mInputReader(32)
 {
     data_fd = SensorBase::openInputDev("accel");
@@ -90,8 +89,7 @@ int AccelSensor::enable(int32_t handle, int en)
 
 int AccelSensor::setDelay(int32_t handle, int64_t ns)
 {
-    int fd = open(input_setDelay, O_RDWR);
-    int ms;
+    int fd, ms;
     char buf[10] = { 0 };
 
     fd = open(ACCEL_DELAY, O_RDWR);

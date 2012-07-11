@@ -46,13 +46,7 @@ private:
     sensors_event_t mPendingEvent;
     sensors_event_t mCalEvent;
     bool mHasPendingEvent;
-    char input_sysfs_path[PATH_MAX];
-    int input_sysfs_path_len;
     int conf_fd;
-
-    int setInitialState();
-
-
 };
 
 /*****************************************************************************/

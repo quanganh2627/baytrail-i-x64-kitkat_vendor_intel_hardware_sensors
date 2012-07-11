@@ -29,14 +29,8 @@ struct sensors_event_t;
 
 class SensorBase {
 protected:
-    const char* dev_name;
     const char* data_name;
-    int         dev_fd;
     int         data_fd;
-
-    char        input_enable[PATH_MAX];
-    char        input_setDelay[PATH_MAX];
-    char        input_name[PATH_MAX];
 
     int openInputDev(const char* inputName);
     static int64_t getTimestamp();
@@ -47,11 +41,8 @@ protected:
         return t.tv_sec*1000000000LL + t.tv_usec*1000;
     }
 
-    int open_device();
-    int close_device();
-
 public:
-    SensorBase(const char* dev_name, const char* data_name);
+    SensorBase(const char* data_name);
     virtual ~SensorBase();
 
     virtual int readEvents(sensors_event_t* data, int count) = 0;

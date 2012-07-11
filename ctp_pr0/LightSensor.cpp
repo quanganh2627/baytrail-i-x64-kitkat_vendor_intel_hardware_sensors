@@ -28,9 +28,8 @@
 /*****************************************************************************/
 
 LightSensor::LightSensor()
-    : SensorBase(NULL, "light"),
+    : SensorBase("light"),
       mEnabled(0),
-      mInputReader(4),
       mHasPendingEvent(false)
 {
     data_fd = open(LIGHT_DATA, O_RDONLY);
