@@ -41,6 +41,7 @@ GyroSensor::GyroSensor()
       mHasPendingEvent(false)
 {
     data_fd = SensorBase::openInputDev("l3g4200d");
+    inputDataOverrun = 0;
     LOGE_IF(data_fd < 0, "can't open l3g4200d gyro input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
@@ -153,9 +154,9 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
 
     while (count && mInputReader.readEvent(&event)) {
         int type = event->type;
-        if (type == EV_REL) {
+        if (type == EV_REL && !inputDataOverrun) {
             float value = event->value;
-            if (event->code == REL_X) {
+           if (event->code == REL_X) {
                 mPendingEvent.data[1] =
                     processRawData(value) - mCalEvent.data[1];
             } else if (event->code == REL_Y) {
@@ -166,13 +167,22 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
                     processRawData(value) * -1 - mCalEvent.data[2];
             }
         } else if (type == EV_SYN) {
-            mPendingEvent.timestamp = timevalToNano(event->time);
-            if (mEnabled) {
-                *data++ = mPendingEvent;
-                count--;
-                numEventReceived++;
-                D("gyro = [%f, %f, %f]\n", mPendingEvent.data[0],
-                                mPendingEvent.data[1], mPendingEvent.data[2]);
+            /* drop input event overrun data */
+            if (event->code == SYN_DROPPED) {
+                LOGE("GyroSensor: input event overrun, dropped event:drop");
+                inputDataOverrun = 1;
+            } else if (inputDataOverrun) {
+                LOGE("GyroSensor: input event overrun, dropped event:sync");
+                inputDataOverrun = 0;
+            } else {
+                mPendingEvent.timestamp = timevalToNano(event->time);
+                if (mEnabled) {
+                    *data++ = mPendingEvent;
+                    count--;
+                    numEventReceived++;
+                    D("gyro = [%f, %f, %f]\n", mPendingEvent.data[0],
+                        mPendingEvent.data[1], mPendingEvent.data[2]);
+                }
             }
         } else {
             LOGE("GyroSensor: unknown event (type=%d, code=%d)",

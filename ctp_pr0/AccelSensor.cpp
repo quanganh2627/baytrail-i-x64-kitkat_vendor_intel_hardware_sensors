@@ -40,6 +40,7 @@ AccelSensor::AccelSensor()
       mInputReader(32)
 {
     data_fd = SensorBase::openInputDev("accel");
+    inputDataOverrun = 0;
     LOGE_IF(data_fd < 0, "can't open accel input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
@@ -127,7 +128,7 @@ int AccelSensor::readEvents(sensors_event_t* data, int count)
     while (count && mInputReader.readEvent(&event)) {
         int type = event->type;
         D("AccelSensor::%s, type = %d, code = %d", __func__, type, event->code);
-        if (type == EV_REL) {
+        if (type == EV_REL && !inputDataOverrun) {
             float value = event->value;
             if (event->code == EVENT_TYPE_ACCEL_X)
                 mPendingEvent.data[1] = CONVERT_A_X(value);
@@ -136,15 +137,24 @@ int AccelSensor::readEvents(sensors_event_t* data, int count)
             else if (event->code == EVENT_TYPE_ACCEL_Z)
                 mPendingEvent.data[2] = CONVERT_A_Z(value);
         } else if (type == EV_SYN) {
-            mPendingEvent.timestamp = timevalToNano(event->time);
-            if (mEnabled) {
-                *data++ = mPendingEvent;
-                count--;
-                numEventReceived++;
+            /* drop input event overrun data */
+            if (event->code == SYN_DROPPED) {
+                LOGE("AccelSensor: input event overrun, dropped event:drop");
+                inputDataOverrun = 1;
+            } else if (inputDataOverrun) {
+                LOGE("AccelSensor: input event overrun, dropped event:sync");
+                inputDataOverrun = 0;
+            } else {
+                mPendingEvent.timestamp = timevalToNano(event->time);
+                if (mEnabled) {
+                    *data++ = mPendingEvent;
+                    count--;
+                    numEventReceived++;
+                }
+                D("Accel-{%f, %f, %f}", mPendingEvent.data[0],
+                                        mPendingEvent.data[1],
+                                        mPendingEvent.data[2]);
             }
-            D("Accel-{%f, %f, %f}", mPendingEvent.data[0],
-                                    mPendingEvent.data[1],
-                                    mPendingEvent.data[2]);
         } else {
             LOGE("AccelSensor: unknown event (type=%d, code=%d)",
                  type, event->code);

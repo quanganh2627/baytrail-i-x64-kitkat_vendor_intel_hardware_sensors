@@ -60,7 +60,11 @@ CompassSensor::CompassSensor()
     mMagneticEvent.sensor = SENSORS_HANDLE_MAGNETIC_FIELD;
     mMagneticEvent.type = SENSOR_TYPE_MAGNETIC_FIELD;
     mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;
+    mMagneticEvent.magnetic.x = 0;
+    mMagneticEvent.magnetic.y = 0;
+    mMagneticEvent.magnetic.x = 0;
 
+    inputDataOverrun = 0;
     mDelay  = 200000000; // 200 ms by default
     mCalDataFile = -1;
 }
@@ -321,7 +325,7 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
           event->type, event->code, event->value);
 
         int type = event->type;
-        if (type == EV_REL) {
+        if (type == EV_REL && !inputDataOverrun) {
             if (event->code == EVENT_TYPE_M_O_X)
                 mMagneticEvent.magnetic.y = COMPASS_CONVERT_X(event->value);
             else if (event->code == EVENT_TYPE_M_O_Y)
@@ -330,31 +334,41 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
                 mMagneticEvent.magnetic.z = COMPASS_CONVERT_Z(event->value);
         } else if (type == EV_SYN) {
             int64_t time = timevalToNano(event->time);
-            if (mEnabled) {
-                mMagneticEvent.timestamp = time;
 
-                /* compass calibration */
-                calibration(time);
+            /* drop input event overrun data */
+            if (event->code == SYN_DROPPED) {
+                LOGE("CompassSensor: input event overrun, dropped event:drop");
+                inputDataOverrun = 1;
+            } else if (inputDataOverrun) {
+                LOGE("CompassSensor: input event overrun, dropped event:sync");
+                inputDataOverrun = 0;
+            } else {
+                if (mEnabled) {
+                    mMagneticEvent.timestamp = time;
 
-                D("CompassSensor magnetic befor filter=[%f, %f, %f] accuracy=%d, time=%lld",
-                  mMagneticEvent.magnetic.x,
-                  mMagneticEvent.magnetic.y,
-                  mMagneticEvent.magnetic.z,
-                  (int)mMagneticEvent.magnetic.status,
-                  mMagneticEvent.timestamp);
+                    /* compass calibration */
+                    calibration(time);
 
-                /* data filter: used to mitigate data floating */
-                filter();
+                    D("CompassSensor magnetic befor filter=[%f, %f, %f] accuracy=%d, time=%lld",
+                        mMagneticEvent.magnetic.x,
+                        mMagneticEvent.magnetic.y,
+                        mMagneticEvent.magnetic.z,
+                        (int)mMagneticEvent.magnetic.status,
+                        mMagneticEvent.timestamp);
 
-                *data++ = mMagneticEvent;
-                count--;
-                numEventReceived++;
-                D("CompassSensor magnetic=[%f, %f, %f] accuracy=%d, time=%lld",
-                  mMagneticEvent.magnetic.x,
-                  mMagneticEvent.magnetic.y,
-                  mMagneticEvent.magnetic.z,
-                  (int)mMagneticEvent.magnetic.status,
-                  mMagneticEvent.timestamp);
+                    /* data filter: used to mitigate data floating */
+                    filter();
+
+                    *data++ = mMagneticEvent;
+                    count--;
+                    numEventReceived++;
+                    D("CompassSensor magnetic=[%f, %f, %f] accuracy=%d, time=%lld",
+                      mMagneticEvent.magnetic.x,
+                      mMagneticEvent.magnetic.y,
+                      mMagneticEvent.magnetic.z,
+                      (int)mMagneticEvent.magnetic.status,
+                      mMagneticEvent.timestamp);
+                }
             }
         } else {
             E("CompassSensor: unknown event (type=%d, code=%d)",

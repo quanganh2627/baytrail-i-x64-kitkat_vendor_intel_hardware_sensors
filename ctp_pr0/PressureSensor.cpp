@@ -37,6 +37,7 @@ PressureSensor::PressureSensor()
       mHasPendingEvent(false)
 {
     data_fd = SensorBase::openInputDev("lps331ap_pressure");
+    inputDataOverrun = 0;
     LOGE_IF(data_fd < 0, "can't open lps331ap pressure input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
@@ -119,8 +120,8 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
 
     while (count && mInputReader.readEvent(&event)) {
         int type = event->type;
-        if (type == EV_ABS || type == EV_REL) {
-            switch (event->code) {
+        if ((type == EV_ABS || type == EV_REL) && !inputDataOverrun) {
+           switch (event->code) {
             case EVENT_TYPE_PRESSURE:
                 pressure = event->value;
                 break;
@@ -132,12 +133,21 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
                      type, event->code);
             }
         } else if (type == EV_SYN) {
-            mPendingEvent.pressure = (float)pressure / 4096;
-            mPendingEvent.timestamp = timevalToNano(event->time);
-            if (mEnabled) {
-                *data++ = mPendingEvent;
-                count -= 1;
-                numEventReceived += 1;
+            /* drop input event overrun data */
+            if (event->code == SYN_DROPPED) {
+                LOGE("PressureSensor: input event overrun, dropped event:drop");
+                inputDataOverrun = 1;
+            } else if (inputDataOverrun) {
+                LOGE("PressureSensor: input event overrun, dropped event:sync");
+                inputDataOverrun = 0;
+            } else {
+                mPendingEvent.pressure = (float)pressure / 4096;
+                mPendingEvent.timestamp = timevalToNano(event->time);
+                if (mEnabled) {
+                    *data++ = mPendingEvent;
+                    count -= 1;
+                    numEventReceived += 1;
+                }
             }
         } else {
             LOGE("PressureSensor: unknown event (type=%d, code=%d)",

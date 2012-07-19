@@ -31,6 +31,7 @@ class SensorBase {
 protected:
     const char* data_name;
     int         data_fd;
+    int inputDataOverrun;
 
     int openInputDev(const char* inputName);
     static int64_t getTimestamp();
