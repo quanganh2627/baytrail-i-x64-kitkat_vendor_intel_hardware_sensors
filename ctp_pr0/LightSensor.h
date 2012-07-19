@@ -26,16 +26,6 @@
 #include "SensorBase.h"
 #include "InputEventReader.h"
 
-#define APDS9900_LUX_OUTPUT_SCALE 10.0
-
-#ifdef TARGET_MFLD_GI
-#define APDS9900_LIGHT_TRANS 0.3
-#elif defined(TARGET_CTP_PR1)
-#define APDS9900_LIGHT_TRANS 0.025
-#else
-#define APDS9900_LIGHT_TRANS 0.1
-#endif
-
 /*****************************************************************************/
 
 struct input_event;

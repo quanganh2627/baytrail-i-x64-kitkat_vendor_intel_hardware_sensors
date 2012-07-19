@@ -77,8 +77,7 @@ int LightSensor::readEvents(sensors_event_t* data, int count)
     *data = mPendingEvent;
     data->timestamp = getTimestamp();
     read(data_fd, &val, sizeof(unsigned int));
-    data->light = (float)val /
-                    (APDS9900_LUX_OUTPUT_SCALE * APDS9900_LIGHT_TRANS);
+    data->light = (float)val;
     data->light = data->light < RANGE_L ? data->light : RANGE_L;
     D("LightSensor - read data val = %f ",data->light);
 
