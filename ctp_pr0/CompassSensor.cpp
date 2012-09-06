@@ -206,7 +206,7 @@ int CompassSensor::setDelay(int32_t handle, int64_t ns)
     return -1;
 }
 
-#if defined(TARGET_MFLD_CTP_PR0) || defined(TARGET_CTP_PR1)
+#if defined(TARGET_MFLD_CTP_PR0) || defined(TARGET_CTP_PR1) || defined(TARGET_CTP_NOMODEM)
 void CompassSensor::filter()
 {
     int pre_index;

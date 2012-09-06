@@ -13,7 +13,7 @@
 # limitations under the License.
 
 #For clovertrail and mfld_gi devices
-ifneq (,$(findstring $(TARGET_PRODUCT),ctp_pr0 mfld_gi ctp_pr1))
+ifneq (,$(findstring $(TARGET_PRODUCT),ctp_pr0 mfld_gi ctp_pr1 ctp_nomodem))
 
 LOCAL_PATH := $(call my-dir)
 
@@ -39,6 +39,9 @@ LOCAL_CFLAGS += -DTARGET_MFLD_CTP_PR0=1
 endif
 ifeq ($(TARGET_PRODUCT),ctp_pr1)
 LOCAL_CFLAGS += -DTARGET_CTP_PR1=1
+endif
+ifeq ($(TARGET_PRODUCT),ctp_nomodem)
+LOCAL_CFLAGS += -DTARGET_CTP_NOMODEM=1
 endif
 
 LOCAL_SRC_FILES := 					\
