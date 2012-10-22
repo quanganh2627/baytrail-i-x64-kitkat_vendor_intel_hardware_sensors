@@ -13,7 +13,7 @@
 # limitations under the License.
 
 #For clovertrail and mfld_gi devices
-ifneq (,$(findstring $(TARGET_PRODUCT),ctp_pr0 mfld_gi ctp_pr1 ctp_nomodem))
+ifneq (,$(findstring $(TARGET_PRODUCT),victoriabay mfld_gi ctp_pr1 ctp_nomodem))
 
 LOCAL_PATH := $(call my-dir)
 
@@ -34,15 +34,10 @@ LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
 ifeq ($(TARGET_PRODUCT),mfld_gi)
 LOCAL_CFLAGS += -DTARGET_MFLD_GI=1
 endif
-ifeq ($(TARGET_PRODUCT),ctp_pr0)
-LOCAL_CFLAGS += -DTARGET_MFLD_CTP_PR0=1
+ifneq (,$(findstring $(TARGET_PRODUCT),victoriabay ctp_pr1 ctp_nomodem))
+LOCAL_CFLAGS += -DTARGET_CLVT=1
 endif
-ifeq ($(TARGET_PRODUCT),ctp_pr1)
-LOCAL_CFLAGS += -DTARGET_CTP_PR1=1
-endif
-ifeq ($(TARGET_PRODUCT),ctp_nomodem)
-LOCAL_CFLAGS += -DTARGET_CTP_NOMODEM=1
-endif
+
 
 LOCAL_SRC_FILES := 					\
 			sensors.cpp 			\
