@@ -15,25 +15,10 @@
  */
 #define LOG_TAG "Sensors"
 
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/select.h>
-
-#include <cutils/log.h>
-
-#include <linux/input.h>
-
 #include "SensorBase.h"
-#include "sensors.h"
 
-/*****************************************************************************/
-
-SensorBase::SensorBase(const char* data_name)
-    : data_name(data_name), data_fd(-1)
+SensorBase::SensorBase(const sensor_platform_config_t *config)
+    : mConfig(config), data_fd(-1)
 { }
 
 SensorBase::~SensorBase()
@@ -65,10 +50,6 @@ int64_t SensorBase::getTimestamp()
 
     return int64_t(t.tv_sec)*1000000000LL + t.tv_nsec;
 }
-
-
-#define INPUT_DEV_MAX 10
-#define DEV_NAME_MAX 10
 
 int SensorBase::openInputDev(const char* inputName)
 {
@@ -108,4 +89,3 @@ int SensorBase::openInputDev(const char* inputName)
     closedir(dir);
     return fd;
 }
-

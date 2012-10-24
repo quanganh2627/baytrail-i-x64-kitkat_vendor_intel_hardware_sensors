@@ -14,47 +14,23 @@
  * limitations under the License.
  */
 
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/select.h>
-#include <dlfcn.h>
-#include <cutils/log.h>
-
 #include "CompassSensor.h"
 #include "CompassCalibration.h"
 
-#define COMPASS_SENSOR_DATA_NAME "compass"
-#define COMPASS_CALIB_DATA "/data/compass.conf"
-#define COMPASS_XY_GAIN 670
-#define COMPASS_Z_GAIN  600
+#define COMPASS_CONVERT(x, gain) ((x) * 100 / gain)
+#define NEED_FILTER 1
 
-#ifdef TARGET_MFLD_GI
-#define COMPASS_CONVERT_X(x) ((x) * 100 / COMPASS_XY_GAIN)
-#define COMPASS_CONVERT_Y(y) ((y) * 100 / COMPASS_XY_GAIN * -1)
-#define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN)
-#else
-#define COMPASS_CONVERT_X(x) ((x) * 100 / COMPASS_XY_GAIN)
-#define COMPASS_CONVERT_Y(y) ((y) * 100 / COMPASS_XY_GAIN)
-#define COMPASS_CONVERT_Z(z) ((z) * 100 / COMPASS_Z_GAIN * -1)
-#endif
-
-#define COMPASS_ENABLE  "/sys/bus/i2c/devices/5-001e/lsm303cmp/enable"
-#define COMPASS_POLL    "/sys/bus/i2c/devices/5-001e/lsm303cmp/poll"
-
-CompassSensor::CompassSensor()
-        : SensorBase(COMPASS_SENSOR_DATA_NAME),
+CompassSensor::CompassSensor(const sensor_platform_config_t *config)
+        : SensorBase(config),
           mEnabled(0),
-          mInputReader(32)
+          mInputReader(32),
+          inputDataOverrun(0)
 {
-    D("add: CompassSensor Sensor");
+    if (mConfig->handle != SENSORS_HANDLE_MAGNETIC_FIELD)
+        E("CompassSensor: Incorrect sensor config");
 
-    data_fd = SensorBase::openInputDev("lsm303cmp");
-    LOGE_IF(data_fd < 0, "can't open lsm303cmp compass input dev");
+    data_fd = SensorBase::openInputDev(mConfig->name);
+    LOGE_IF(data_fd < 0, "can't open compass input dev");
 
     mMagneticEvent.version = sizeof(sensors_event_t);
     mMagneticEvent.sensor = SENSORS_HANDLE_MAGNETIC_FIELD;
@@ -64,8 +40,6 @@ CompassSensor::CompassSensor()
     mMagneticEvent.magnetic.y = 0;
     mMagneticEvent.magnetic.x = 0;
 
-    inputDataOverrun = 0;
-    mDelay  = 200000000; // 200 ms by default
     mCalDataFile = -1;
 }
 
@@ -128,11 +102,11 @@ int CompassSensor::enable(int32_t handle, int en)
 {
     unsigned int flags = en ? 1 : 0;
 
-    LOGD("CompassSensor - %s, flags = %d, mEnabled = %d",
+    D("CompassSensor - %s, flags = %d, mEnabled = %d",
          __func__, flags, mEnabled);
 
     if (flags == 1 && mEnabled == 0) {
-        mCalDataFile = open(COMPASS_CALIB_DATA, O_RDWR | O_CREAT, S_IRWXU);
+        mCalDataFile = open(mConfig->config_path, O_RDWR | O_CREAT, S_IRWXU);
         if (mCalDataFile > -1) {
             struct flock lock;
             lock.l_type = F_WRLCK;
@@ -140,7 +114,7 @@ int CompassSensor::enable(int32_t handle, int en)
             lock.l_whence = SEEK_SET;
             lock.l_len = 0;
             if (fcntl(mCalDataFile, F_SETLK, &lock) < 0)
-                LOGD("compass calibration file lock fail");
+                D("compass calibration file lock fail");
 
             readCalibrationData();
             filter_index = -1;
@@ -153,7 +127,7 @@ int CompassSensor::enable(int32_t handle, int en)
             lock.l_whence = SEEK_SET;
             lock.l_len = 0;
             if (fcntl(mCalDataFile, F_SETLK, &lock) < 0)
-                LOGD("compass calibration file unlock fail");
+                D("compass calibration file unlock fail");
 
             storeCalibrationData();
             close(mCalDataFile);
@@ -162,7 +136,7 @@ int CompassSensor::enable(int32_t handle, int en)
 
     if (flags != mEnabled) {
         int fd;
-        fd = open(COMPASS_ENABLE, O_RDWR);
+        fd = open(mConfig->activate_path, O_RDWR);
         if (fd >= 0) {
             char buf[2];
 
@@ -188,10 +162,10 @@ int CompassSensor::enable(int32_t handle, int en)
 
 int CompassSensor::setDelay(int32_t handle, int64_t ns)
 {
-    LOGD("%s setDelay ns = %lld\n", __func__, ns);
+    D("%s setDelay ns = %lld\n", __func__, ns);
 
     int fd;
-    fd = open(COMPASS_POLL, O_RDWR);
+    fd = open(mConfig->poll_path, O_RDWR);
     if (fd >= 0) {
         char buf[80];
         int ms = ns / 1000 / 1000;
@@ -202,11 +176,10 @@ int CompassSensor::setDelay(int32_t handle, int64_t ns)
         return 0;
     }
 
-    D("%s, errno = %d", __func__, errno);
+    E("%s, errno = %d", __func__, errno);
     return -1;
 }
 
-#if defined(TARGET_CLVT)
 void CompassSensor::filter()
 {
     int pre_index;
@@ -219,7 +192,7 @@ void CompassSensor::filter()
         pre_index = (filter_index + FILTER_LENGTH - 1) % FILTER_LENGTH;
         if (mMagneticEvent.timestamp - filter_buffer[pre_index].timestamp >= FILTER_VALID_TIME) {
             filter_index = -1;
-            LOGD("compass sensor filter, reset filter because long time delay, pre = %lld, now = %lld",
+            D("compass sensor filter, reset filter because long time delay, pre = %lld, now = %lld",
                 filter_buffer[pre_index].timestamp, mMagneticEvent.timestamp);
         }
     }
@@ -238,7 +211,7 @@ void CompassSensor::filter()
         filter_sum[2] = mMagneticEvent.magnetic.z * FILTER_LENGTH;
 
         filter_index = 0;
-        LOGD("compass sensor filter, first data read");
+        D("compass sensor filter, first data read");
         return;
     }
 
@@ -267,9 +240,6 @@ void CompassSensor::filter()
 
     return;
 }
-#else
-void CompassSensor::filter() {}
-#endif
 
 void CompassSensor::calibration(int64_t time)
 {
@@ -327,20 +297,23 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
         int type = event->type;
         if (type == EV_REL && !inputDataOverrun) {
             if (event->code == EVENT_TYPE_M_O_X)
-                mMagneticEvent.magnetic.y = COMPASS_CONVERT_X(event->value);
+                mMagneticEvent.magnetic.y =
+                        COMPASS_CONVERT(event->value, mConfig->scale[AXIS_X]);
             else if (event->code == EVENT_TYPE_M_O_Y)
-                mMagneticEvent.magnetic.x = COMPASS_CONVERT_Y(event->value);
+                mMagneticEvent.magnetic.x =
+                        COMPASS_CONVERT(event->value, mConfig->scale[AXIS_Y]);
             else if (event->code == EVENT_TYPE_M_O_Z)
-                mMagneticEvent.magnetic.z = COMPASS_CONVERT_Z(event->value);
+                mMagneticEvent.magnetic.z =
+                        COMPASS_CONVERT(event->value, mConfig->scale[AXIS_Z]);
         } else if (type == EV_SYN) {
             int64_t time = timevalToNano(event->time);
 
             /* drop input event overrun data */
             if (event->code == SYN_DROPPED) {
-                LOGE("CompassSensor: input event overrun, dropped event:drop");
+                E("CompassSensor: input event overrun, dropped event:drop");
                 inputDataOverrun = 1;
             } else if (inputDataOverrun) {
-                LOGE("CompassSensor: input event overrun, dropped event:sync");
+                E("CompassSensor: input event overrun, dropped event:sync");
                 inputDataOverrun = 0;
             } else {
                 if (mEnabled) {
@@ -357,7 +330,8 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
                         mMagneticEvent.timestamp);
 
                     /* data filter: used to mitigate data floating */
-                    filter();
+                    if (mConfig->priv_data == NEED_FILTER)
+                        filter();
 
                     *data++ = mMagneticEvent;
                     count--;

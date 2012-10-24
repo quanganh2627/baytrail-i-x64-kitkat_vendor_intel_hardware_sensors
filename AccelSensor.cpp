@@ -14,37 +14,25 @@
  * limitations under the License.
  */
 
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/select.h>
-#include <dlfcn.h>
-
-#include <cutils/log.h>
-
 #include "AccelSensor.h"
-#include "sensors.h"
 
 #define SENSOR_NOPOLL   0x7fffffff
-#define ACCEL_ENABLE    "/sys/bus/i2c/devices/5-0019/lis3dh/enable"
-#define ACCEL_DELAY     "/sys/bus/i2c/devices/5-0019/lis3dh/poll"
+#define CONVERT_AXIS(a, b)   (((float)a/1000) * GRAVITY * b)
 
-/*****************************************************************************/
-
-AccelSensor::AccelSensor()
-    : SensorBase("accel"),
+AccelSensor::AccelSensor(const sensor_platform_config_t *config)
+    : SensorBase(config),
       mEnabled(0),
-      mInputReader(32)
+      mInputReader(32),
+      inputDataOverrun(0)
 {
-    data_fd = SensorBase::openInputDev("accel");
-    inputDataOverrun = 0;
+    if (mConfig->handle != SENSORS_HANDLE_ACCELERAMETER)
+        E("AccelSensor: Incorrect sensor config");
+
+    data_fd = SensorBase::openInputDev(mConfig->name);
     LOGE_IF(data_fd < 0, "can't open accel input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = SENSORS_HANDLE_ACCELERATION;
+    mPendingEvent.sensor = SENSORS_HANDLE_ACCELERAMETER;
     mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
     mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
@@ -61,14 +49,11 @@ int AccelSensor::enable(int32_t handle, int en)
     unsigned int flags = en ? 1 : 0;
 
     D("AccelSensor-%s, flags = %d, mEnabled = %d", __func__, flags, mEnabled);
-
     if (flags != mEnabled) {
         int fd;
-        fd = open(ACCEL_ENABLE, O_RDWR);
-        D("AccelSensor-%s, fd = %d", __func__, fd);
+        fd = open(mConfig->activate_path, O_RDWR);
         if (fd >= 0) {
-            char buf[2];
-            buf[1] = 0;
+            char buf[2] = { 0 };
             if (flags) {
                 buf[0] = '1';
             } else {
@@ -81,7 +66,7 @@ int AccelSensor::enable(int32_t handle, int en)
                 return 0;
             }
         }
-        D("AccelSensor-%s, errno = %d", __func__, errno);
+        E("AccelSensor-%s, errno = %d", __func__, errno);
         return -1;
     }
 
@@ -93,9 +78,9 @@ int AccelSensor::setDelay(int32_t handle, int64_t ns)
     int fd, ms;
     char buf[10] = { 0 };
 
-    fd = open(ACCEL_DELAY, O_RDWR);
+    fd = open(mConfig->poll_path, O_RDWR);
     if (fd < 0) {
-	    E("%s: %s", ACCEL_DELAY, strerror(errno));
+        E("AccelSensor-%s:%s", __func__, strerror(errno));
 	    return -1;
     }
 
@@ -123,26 +108,27 @@ int AccelSensor::readEvents(sensors_event_t* data, int count)
     int numEventReceived = 0;
     input_event const* event;
 
-    D("AccelSensor::%s", __func__);
-
     while (count && mInputReader.readEvent(&event)) {
         int type = event->type;
         D("AccelSensor::%s, type = %d, code = %d", __func__, type, event->code);
         if (type == EV_REL && !inputDataOverrun) {
             float value = event->value;
             if (event->code == EVENT_TYPE_ACCEL_X)
-                mPendingEvent.data[1] = CONVERT_A_X(value);
+                mPendingEvent.data[mConfig->mapper[AXIS_X]] =
+                                        CONVERT_AXIS(value, mConfig->scale[AXIS_X]);
             else if (event->code == EVENT_TYPE_ACCEL_Y)
-                mPendingEvent.data[0] = CONVERT_A_Y(value);
+                mPendingEvent.data[mConfig->mapper[AXIS_Y]] =
+                                        CONVERT_AXIS(value, mConfig->scale[AXIS_Y]);
             else if (event->code == EVENT_TYPE_ACCEL_Z)
-                mPendingEvent.data[2] = CONVERT_A_Z(value);
+                mPendingEvent.data[mConfig->mapper[AXIS_Z]] =
+                                        CONVERT_AXIS(value, mConfig->scale[AXIS_Z]);
         } else if (type == EV_SYN) {
             /* drop input event overrun data */
             if (event->code == SYN_DROPPED) {
-                LOGE("AccelSensor: input event overrun, dropped event:drop");
+                E("AccelSensor: input event overrun, dropped event:drop");
                 inputDataOverrun = 1;
             } else if (inputDataOverrun) {
-                LOGE("AccelSensor: input event overrun, dropped event:sync");
+                E("AccelSensor: input event overrun, dropped event:sync");
                 inputDataOverrun = 0;
             } else {
                 mPendingEvent.timestamp = timevalToNano(event->time);
@@ -156,7 +142,7 @@ int AccelSensor::readEvents(sensors_event_t* data, int count)
                                         mPendingEvent.data[2]);
             }
         } else {
-            LOGE("AccelSensor: unknown event (type=%d, code=%d)",
+            E("AccelSensor: unknown event (type=%d, code=%d)",
                  type, event->code);
         }
         mInputReader.next();

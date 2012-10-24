@@ -1,6 +1,4 @@
-#include <cutils/log.h>
-#include <math.h>
-
+#include "CompassSensor.h"
 #include "CompassCalibration.h"
 
 /* Earth magnetic parameters */
@@ -91,7 +89,7 @@ static int fit_line_segs(float x, float y, float z)
     if (per != 1 && per != 0) {
         if (line_segs[0][seg] == 0) {
             line_segs[0][seg] = 1;
-            LOGD("CompassCalibration:fit_line,x[%d]=[%f,%f,%f]", seg, x, y, z);
+            D("CompassCalibration:fit_line,x[%d]=[%f,%f,%f]", seg, x, y, z);
             return 1;
         }
     }
@@ -103,7 +101,7 @@ static int fit_line_segs(float x, float y, float z)
     if (per != 1 && per != 0) {
         if (line_segs[1][seg] == 0) {
             line_segs[1][seg] = 1;
-            LOGD("CompassCalibration:fit_line,y[%d]=[%f,%f,%f]", seg, x, y, z);
+            D("CompassCalibration:fit_line,y[%d]=[%f,%f,%f]", seg, x, y, z);
             return 1;
         }
     }
@@ -115,7 +113,7 @@ static int fit_line_segs(float x, float y, float z)
     if (per != 1 && per != 0) {
         if (line_segs[2][seg] == 0) {
             line_segs[2][seg] = 1;
-            LOGD("CompassCalibration:fit_line,z[%d]=[%f,%f,%f]", seg, x, y, z);
+            D("CompassCalibration:fit_line,z[%d]=[%f,%f,%f]", seg, x, y, z);
             return 1;
         }
     }

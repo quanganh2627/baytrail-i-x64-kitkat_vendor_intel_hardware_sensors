@@ -14,71 +14,61 @@
  * limitations under the License.
  */
 
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/select.h>
-#include <cutils/log.h>
+#include "ProximitySensor.h"
 
-#include "LightSensor.h"
-
-/*****************************************************************************/
-
-LightSensor::LightSensor()
-    : SensorBase("light"),
+ProximitySensor::ProximitySensor(const sensor_platform_config_t *config)
+    : SensorBase(config),
       mEnabled(0),
       mHasPendingEvent(false)
 {
-    data_fd = open(LIGHT_DATA, O_RDONLY);
-    LOGE_IF(data_fd < 0, "can't open %s", LIGHT_DATA);
+    if (mConfig->handle != SENSORS_HANDLE_PROXIMITY)
+        E("ProximitySensor: Incorrect sensor config");
+
+    data_fd = open(mConfig->data_path, O_RDONLY);
+    LOGE_IF(data_fd < 0, "can't open %s", mConfig->data_path);
 
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = SENSORS_HANDLE_LIGHT;
-    mPendingEvent.type = SENSOR_TYPE_LIGHT;
+    mPendingEvent.sensor = SENSORS_HANDLE_PROXIMITY;
+    mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }
 
-LightSensor::~LightSensor()
+ProximitySensor::~ProximitySensor()
 {
     if (mEnabled)
         enable(0, 0);
 }
 
-int LightSensor::enable(int32_t handle, int en)
+int ProximitySensor::enable(int32_t, int en)
 {
-    D("LightSensor - %s - enable=%d", __func__, en);
+    D("ProximitySensor - %s - enable=%d", __func__, en);
 
     if (ioctl(data_fd, 0, en)) {
-        E("LightSensor: ioctl set %s failed!", LIGHT_DATA);
+        E("ProximitySensor: ioctl set failed!");
         return -1;
     }
     return 0;
 }
 
-bool LightSensor::hasPendingEvents() const
-{
+bool ProximitySensor::hasPendingEvents() const {
     return mHasPendingEvent;
 }
 
-int LightSensor::readEvents(sensors_event_t* data, int count)
+int ProximitySensor::readEvents(sensors_event_t* data, int count)
 {
-    unsigned int val = -1;
+    int val = -1;
     struct timespec t;
 
-    D("LightSensor - %s", __func__);
-
+    D("ProximitySensor - %s", __func__);
     if (count < 1 || data == NULL || data_fd < 0)
         return -EINVAL;
 
     *data = mPendingEvent;
     data->timestamp = getTimestamp();
-    read(data_fd, &val, sizeof(unsigned int));
-    data->light = (float)val;
-    data->light = data->light < RANGE_L ? data->light : RANGE_L;
-    D("LightSensor - read data val = %f ",data->light);
+    read(data_fd, &val, sizeof(int));
+    data->distance = (float)(val == 1 ? 0 : 6);
+    LOGI("ProximitySensor - read data %f, %s",
+            data->distance, data->distance > 0 ? "far" : "near");
 
     return 1;
 }

@@ -17,14 +17,7 @@
 #ifndef ANDROID_INPUT_EVENT_READER_H
 #define ANDROID_INPUT_EVENT_READER_H
 
-#include <stdint.h>
-#include <errno.h>
-#include <sys/cdefs.h>
-#include <sys/types.h>
-
-/*****************************************************************************/
-
-struct input_event;
+#include "sensors.h"
 
 class InputEventCircularReader
 {
@@ -41,7 +34,5 @@ public:
     ssize_t readEvent(input_event const** events);
     void next();
 };
-
-/*****************************************************************************/
 
 #endif  // ANDROID_INPUT_EVENT_READER_H

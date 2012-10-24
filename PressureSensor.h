@@ -14,35 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_LIGHT_SENSOR_H
-#define ANDROID_LIGHT_SENSOR_H
+#ifndef ANDROID_PRESSURE_SENSOR_H
+#define ANDROID_PRESSURE_SENSOR_H
 
-#include <stdint.h>
-#include <errno.h>
-#include <sys/cdefs.h>
-#include <sys/types.h>
-
-#include "sensors.h"
 #include "SensorBase.h"
-#include "InputEventReader.h"
 
-/*****************************************************************************/
-
-struct input_event;
-
-class LightSensor : public SensorBase {
+class PressureSensor : public SensorBase {
     int mEnabled;
+    InputEventCircularReader mInputReader;
     sensors_event_t mPendingEvent;
     bool mHasPendingEvent;
+    int inputDataOverrun;
 
 public:
-    LightSensor();
-    virtual ~LightSensor();
+    PressureSensor(const sensor_platform_config_t *config);
+    virtual ~PressureSensor();
     virtual int readEvents(sensors_event_t* data, int count);
     virtual bool hasPendingEvents() const;
     virtual int enable(int32_t handle, int enabled);
+    virtual int setDelay(int32_t handle, int64_t ns);
 };
 
-/*****************************************************************************/
-
-#endif  // ANDROID_LIGHT_SENSOR_H
+#endif  // ANDROID_PRESSURE_SENSOR_H

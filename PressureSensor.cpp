@@ -14,31 +14,20 @@
  * limitations under the License.
  */
 
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/select.h>
-#include <cutils/log.h>
-
 #include "PressureSensor.h"
 
-#define PRESSURE_ENABLE     "/sys/bus/i2c/devices/5-005c/enable"
-#define PRESSURE_POLL_DELAY "/sys/bus/i2c/devices/5-005c/poll"
-
-/*****************************************************************************/
-
-PressureSensor::PressureSensor()
-    : SensorBase("pressure"),
+PressureSensor::PressureSensor(const sensor_platform_config_t *config)
+    : SensorBase(config),
       mEnabled(0),
       mInputReader(32),
-      mHasPendingEvent(false)
+      mHasPendingEvent(false),
+      inputDataOverrun(0)
 {
-    data_fd = SensorBase::openInputDev("lps331ap_pressure");
-    inputDataOverrun = 0;
-    LOGE_IF(data_fd < 0, "can't open lps331ap pressure input dev");
+    if (mConfig->handle != SENSORS_HANDLE_PRESSURE)
+        E("PressureSensor: Incorrect sensor config");
+
+    data_fd = SensorBase::openInputDev(mConfig->name);
+    LOGE_IF(data_fd < 0, "can't open pressure input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
     mPendingEvent.sensor = SENSORS_HANDLE_PRESSURE;
@@ -58,7 +47,7 @@ int PressureSensor::enable(int32_t handle, int en)
 
     if (flags != mEnabled) {
         int fd;
-        fd = open(PRESSURE_ENABLE, O_RDWR);
+        fd = open(mConfig->activate_path, O_RDWR);
         if (fd >= 0) {
             char buf[2];
             buf[1] = 0;
@@ -81,13 +70,13 @@ int PressureSensor::enable(int32_t handle, int en)
 
 int PressureSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
-    LOGD("PressureSensor: %s delay_ns=%lld", __FUNCTION__, delay_ns);
 
     int fd, ms;
     char buf[10] = { 0 };
 
-    if ((fd = open(PRESSURE_POLL_DELAY, O_RDWR)) < 0) {
-        LOGE("PressureSensor: Open %s failed!", PRESSURE_POLL_DELAY);
+    D("PressureSensor: %s delay_ns=%lld", __FUNCTION__, delay_ns);
+    if ((fd = open(mConfig->poll_path, O_RDWR)) < 0) {
+        E("PressureSensor: Open %s failed!", mConfig->poll_path);
         return -1;
     }
 
@@ -129,16 +118,16 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
                 /* ignore temperature data from sensor */
                 break;
             default:
-                LOGE("PressureSensor: unknown event (type=%d, code=%d)",
+                E("PressureSensor: unknown event (type=%d, code=%d)",
                      type, event->code);
             }
         } else if (type == EV_SYN) {
             /* drop input event overrun data */
             if (event->code == SYN_DROPPED) {
-                LOGE("PressureSensor: input event overrun, dropped event:drop");
+                E("PressureSensor: input event overrun, dropped event:drop");
                 inputDataOverrun = 1;
             } else if (inputDataOverrun) {
-                LOGE("PressureSensor: input event overrun, dropped event:sync");
+                E("PressureSensor: input event overrun, dropped event:sync");
                 inputDataOverrun = 0;
             } else {
                 mPendingEvent.pressure = (float)pressure / 4096;
@@ -150,7 +139,7 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
                 }
             }
         } else {
-            LOGE("PressureSensor: unknown event (type=%d, code=%d)",
+            E("PressureSensor: unknown event (type=%d, code=%d)",
                  type, event->code);
         }
         mInputReader.next();

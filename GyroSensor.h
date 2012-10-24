@@ -14,35 +14,27 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_PROXIMITY_SENSOR_H
-#define ANDROID_PROXIMITY_SENSOR_H
+#ifndef ANDROID_GYRO_SENSOR_H
+#define ANDROID_GYRO_SENSOR_H
 
-#include <stdint.h>
-#include <errno.h>
-#include <sys/cdefs.h>
-#include <sys/types.h>
-
-#include "sensors.h"
 #include "SensorBase.h"
-#include "InputEventReader.h"
 
-/*****************************************************************************/
-
-struct input_event;
-
-class ProximitySensor : public SensorBase {
-    int mEnabled;
-    sensors_event_t mPendingEvent;
-    bool mHasPendingEvent;
-
+class GyroSensor : public SensorBase {
 public:
-            ProximitySensor();
-    virtual ~ProximitySensor();
+    GyroSensor(const sensor_platform_config_t *config);
+    virtual ~GyroSensor();
     virtual int readEvents(sensors_event_t* data, int count);
     virtual bool hasPendingEvents() const;
+    virtual int setDelay(int32_t handle, int64_t ns);
     virtual int enable(int32_t handle, int enabled);
+
+private:
+    int mEnabled;
+    InputEventCircularReader mInputReader;
+    sensors_event_t mPendingEvent;
+    sensors_event_t mCalEvent;
+    bool mHasPendingEvent;
+    int inputDataOverrun;
+    int conf_fd;
 };
-
-/*****************************************************************************/
-
-#endif  // ANDROID_PROXIMITY_SENSOR_H
+#endif  // ANDROID_GYRO_SENSOR_H

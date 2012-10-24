@@ -14,35 +14,23 @@
  * limitations under the License.
  */
 
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/select.h>
-#include <cutils/log.h>
-#include <sys/stat.h>
-
 #include "GyroSensor.h"
-#include "sensors.h"
 
-#define GYRO_ENABLE "/sys/bus/i2c/devices/5-0068/enable"
-#define GYRO_POLL_DELAY "/sys/bus/i2c/devices/5-0068/poll"
-#define GYRO_MIN_DELAY 10000000
+#define CONVERT_GYRO    ((70.0f / 1000.0f) * ((float)M_PI / 180.0f))
 
-
-/*****************************************************************************/
-
-GyroSensor::GyroSensor()
-    : SensorBase("gyro"),
+GyroSensor::GyroSensor(const sensor_platform_config_t *config)
+    : SensorBase(config),
       mEnabled(0),
       mInputReader(4),
-      mHasPendingEvent(false)
+      mHasPendingEvent(false),
+      inputDataOverrun(0)
+
 {
-    data_fd = SensorBase::openInputDev("l3g4200d");
-    inputDataOverrun = 0;
-    LOGE_IF(data_fd < 0, "can't open l3g4200d gyro input dev");
+    if (mConfig->handle != SENSORS_HANDLE_GYROSCOPE)
+        E("GyroSensor: Incorrect sensor config");
+
+    data_fd = SensorBase::openInputDev(mConfig->name);
+    LOGE_IF(data_fd < 0, "can't open gyro input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
     mPendingEvent.sensor = SENSORS_HANDLE_GYROSCOPE;
@@ -70,13 +58,13 @@ int GyroSensor::enable(int32_t handle, int en)
     if (flags == mEnabled)
         return 0;
 
-    if ((fd = open(GYRO_ENABLE, O_RDWR)) < 0) {
-        E("GyroSensor: Open %s failed!", GYRO_ENABLE);
+    if ((fd = open(mConfig->activate_path, O_RDWR)) < 0) {
+        E("GyroSensor: Open %s failed!", mConfig->activate_path);
         return -1;
     }
 
     if (flags == 1 && mEnabled == 0) {
-        conf_fd = open("/data/gyro.conf", O_RDONLY);
+        conf_fd = open(mConfig->config_path, O_RDONLY);
         memset(mCalEvent.data, 0, sizeof(mCalEvent.data));
         if (conf_fd > -1) {
             ret = pread(conf_fd, buf, sizeof(buf), 0);
@@ -115,16 +103,16 @@ int GyroSensor::setDelay(int32_t handle, int64_t delay_ns)
     unsigned long delay_ms;
     char buf[10] = { 0 };
 
-    D("GyroSensor::%s, delay_ns=%lld", __func__, delay_ns);
 
-    if ((fd = open(GYRO_POLL_DELAY, O_RDWR)) < 0) {
-        E("GyroSensor: Open %s failed!", GYRO_POLL_DELAY);
+    if ((fd = open(mConfig->poll_path, O_RDWR)) < 0) {
+        E("GyroSensor: Open %s failed!", mConfig->poll_path);
         return -1;
     }
 
-    if (delay_ns < GYRO_MIN_DELAY)
-        delay_ns = GYRO_MIN_DELAY;
+    if (delay_ns < mConfig->min_delay)
+        delay_ns = mConfig->min_delay;
 
+    D("GyroSensor::%s, delay_ns=%lld", __func__, delay_ns);
     delay_ms = delay_ns / 1000000;
     snprintf(buf, sizeof(buf), "%ld", delay_ms);
     write(fd, buf, sizeof(buf));
@@ -169,10 +157,10 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
         } else if (type == EV_SYN) {
             /* drop input event overrun data */
             if (event->code == SYN_DROPPED) {
-                LOGE("GyroSensor: input event overrun, dropped event:drop");
+                E("GyroSensor: input event overrun, dropped event:drop");
                 inputDataOverrun = 1;
             } else if (inputDataOverrun) {
-                LOGE("GyroSensor: input event overrun, dropped event:sync");
+                E("GyroSensor: input event overrun, dropped event:sync");
                 inputDataOverrun = 0;
             } else {
                 mPendingEvent.timestamp = timevalToNano(event->time);
@@ -185,7 +173,7 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
                 }
             }
         } else {
-            LOGE("GyroSensor: unknown event (type=%d, code=%d)",
+            E("GyroSensor: unknown event (type=%d, code=%d)",
                     type, event->code);
         }
         mInputReader.next();

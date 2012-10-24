@@ -14,23 +14,7 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
-#include <errno.h>
-#include <unistd.h>
-#include <poll.h>
-
-#include <sys/cdefs.h>
-#include <sys/types.h>
-
-#include <linux/input.h>
-
-#include <cutils/log.h>
-
 #include "InputEventReader.h"
-#include "sensors.h"
-/*****************************************************************************/
-
-struct input_event;
 
 InputEventCircularReader::InputEventCircularReader(size_t numEvents)
     : mBuffer(new input_event[numEvents * 2]),
@@ -56,7 +40,7 @@ ssize_t InputEventCircularReader::fill(int fd)
         const ssize_t nread = read(fd, mHead, mFreeSpace * sizeof(input_event));
         D("%s, nread = %d", __func__, nread);
         if (nread<0 || nread % sizeof(input_event)) {
-            // we got a partial event!!
+            /* we got a partial event!! */
             return nread<0 ? -errno : -EINVAL;
         }
 

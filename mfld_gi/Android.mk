@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#For clovertrail and mfld_gi devices
-ifneq (,$(findstring $(TARGET_PRODUCT),victoriabay mfld_gi ctp_pr1 ctp_nomodem))
+ifneq (,$(findstring $(TARGET_PRODUCT),mfld_gi))
 
 LOCAL_PATH := $(call my-dir)
 
@@ -24,32 +23,20 @@ ifneq ($(TARGET_SIMULATOR),true)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := sensors.$(TARGET_DEVICE)
-
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
-
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
+LOCAL_SRC_FILES := config.cpp                      \
+                    ../InputEventReader.cpp	       \
+                    ../sensors.cpp                 \
+                    ../SensorBase.cpp
 
-ifeq ($(TARGET_PRODUCT),mfld_gi)
-LOCAL_CFLAGS += -DTARGET_MFLD_GI=1
-endif
-ifneq (,$(findstring $(TARGET_PRODUCT),victoriabay ctp_pr1 ctp_nomodem))
-LOCAL_CFLAGS += -DTARGET_CLVT=1
-endif
-
-
-LOCAL_SRC_FILES := 					\
-			sensors.cpp 			\
-			GyroSensor.cpp			\
-			SensorBase.cpp			\
-			LightSensor.cpp			\
-			ProximitySensor.cpp		\
-			AccelSensor.cpp			\
-			CompassSensor.cpp		\
-			PressureSensor.cpp		\
-			InputEventReader.cpp		\
-			CompassCalibration.cpp
+LOCAL_SRC_FILES += ../AccelSensor.cpp              \
+                 ../LightSensor.cpp                \
+                 ../ProximitySensor.cpp            \
+                 ../CompassSensor.cpp              \
+                 ../CompassCalibration.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
 LOCAL_PRELINK_MODULE := false
