@@ -1,7 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
-ifneq ($(TARGET_PRODUCT),sim)
-ifneq (,$(findstring $(CUSTOM_BOARD), mfld_cdk))
+ifneq ($(TARGET_DEVICE),sim)
+ifneq (,$(findstring $(TARGET_DEVICE), mfld_cdk))
 # HAL module implemenation, not prelinked and stored in
 # hw/<SENSORS_HARDWARE_MODULE_ID>.<ro.hardware>.so
 include $(CLEAR_VARS)

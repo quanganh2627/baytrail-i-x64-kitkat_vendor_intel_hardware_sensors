@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifneq (,$(findstring $(TARGET_PRODUCT),ctp_pr1 ctp_nomodem))
+ifneq (,$(findstring $(TARGET_DEVICE),ctp_pr1 ctp_nomodem))
 
 LOCAL_PATH := $(call my-dir)
 
