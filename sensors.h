@@ -50,7 +50,6 @@ __BEGIN_DECLS
 
 /* * SENSORS_HANDLE_xxx should greater than SENSORS_HANDLE_BASE
  * and must be unique.  */
-
 #define SENSORS_HANDLE_LIGHT            1
 #define SENSORS_HANDLE_PROXIMITY        2
 #define SENSORS_HANDLE_ACCELERAMETER    3
