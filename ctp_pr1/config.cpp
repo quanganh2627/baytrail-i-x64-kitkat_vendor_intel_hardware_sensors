@@ -95,7 +95,7 @@ static const sensor_platform_config_t sensor_configs[] = {
         poll_path:      "/sys/bus/i2c/devices/5-001e/lsm303cmp/poll",
         data_path:      NULL,
         config_path:    "/data/compass.conf",
-        mapper:         { 0 },
+        mapper:         { AXIS_Y, AXIS_X, AXIS_Z },
         scale:          { 670, 670, -600 },
         range:          { 0 },
         min_delay:      0,

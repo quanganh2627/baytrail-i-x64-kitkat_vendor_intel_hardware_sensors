@@ -297,13 +297,13 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
         int type = event->type;
         if (type == EV_REL && !inputDataOverrun) {
             if (event->code == EVENT_TYPE_M_O_X)
-                mMagneticEvent.magnetic.y =
+                mMagneticEvent.data[mConfig->mapper[AXIS_X]] =
                         COMPASS_CONVERT(event->value, mConfig->scale[AXIS_X]);
             else if (event->code == EVENT_TYPE_M_O_Y)
-                mMagneticEvent.magnetic.x =
+                mMagneticEvent.data[mConfig->mapper[AXIS_Y]] =
                         COMPASS_CONVERT(event->value, mConfig->scale[AXIS_Y]);
             else if (event->code == EVENT_TYPE_M_O_Z)
-                mMagneticEvent.magnetic.z =
+                mMagneticEvent.data[mConfig->mapper[AXIS_Z]] =
                         COMPASS_CONVERT(event->value, mConfig->scale[AXIS_Z]);
         } else if (type == EV_SYN) {
             int64_t time = timevalToNano(event->time);
