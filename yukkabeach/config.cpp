@@ -16,7 +16,7 @@
 
 #include "../sensors.h"
 
-#include "../LightSensor.h"
+#include "../LightSensor_apds9300.h"
 #include "../AccelSensor.h"
 #include "../CompassSensor.h"
 #include "../AmbientTemperatureSensor.h"

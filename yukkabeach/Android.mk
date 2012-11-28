@@ -33,7 +33,7 @@ LOCAL_SRC_FILES := config.cpp                      \
                     ../SensorBase.cpp
 
 LOCAL_SRC_FILES += ../AccelSensor.cpp              \
-                 ../LightSensor.cpp                \
+                 ../LightSensor_apds9300.cpp		\
                  ../CompassSensor.cpp              \
                  ../CompassCalibration.cpp         \
                  ../AmbientTemperatureSensor.cpp
