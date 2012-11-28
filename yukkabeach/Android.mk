@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifneq (,$(findstring $(TARGET_DEVICE),yukkabeach))
+ifneq (,$(findstring $(REF_DEVICE_NAME),yukkabeach))
 
 LOCAL_PATH := $(call my-dir)
 

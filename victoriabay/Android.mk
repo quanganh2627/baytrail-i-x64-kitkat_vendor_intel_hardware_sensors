@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifneq (,$(findstring $(TARGET_DEVICE),victoriabay))
+ifneq (,$(findstring $(REF_DEVICE_NAME),victoriabay))
 
 LOCAL_PATH := $(call my-dir)
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifneq (,$(findstring $(TARGET_DEVICE),mfld_gi))
+ifneq (,$(findstring $(REF_DEVICE_NAME),mfld_gi))
 
 LOCAL_PATH := $(call my-dir)
 

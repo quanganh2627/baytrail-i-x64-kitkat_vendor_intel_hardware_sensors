@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Only for PR2 devices
-ifeq ($(TARGET_PRODUCT),merr_vv)
+
+ifeq ($(REF_PRODUCT_NAME),merr_vv)
 
 LOCAL_PATH := $(call my-dir)
 
