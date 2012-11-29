@@ -35,7 +35,8 @@ LOCAL_SRC_FILES := config.cpp                      \
 LOCAL_SRC_FILES += ../AccelSensor.cpp              \
                  ../LightSensor.cpp                \
                  ../CompassSensor.cpp              \
-                 ../CompassCalibration.cpp
+                 ../CompassCalibration.cpp         \
+                 ../AmbientTemperatureSensor.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
 LOCAL_PRELINK_MODULE := false

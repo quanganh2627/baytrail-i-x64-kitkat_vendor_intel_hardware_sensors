@@ -19,6 +19,7 @@
 #include "../LightSensor.h"
 #include "../AccelSensor.h"
 #include "../CompassSensor.h"
+#include "../AmbientTemperatureSensor.h"
 
 #define RANGE_A                     (2*GRAVITY_EARTH)
 #define RESOLUTION_A                (GRAVITY_EARTH / 1000)
@@ -74,6 +75,20 @@ static const sensor_platform_config_t sensor_configs[] = {
         min_delay:      0,
         priv_data:      1,
     },
+/* thermal */
+    {
+        handle:         SENSORS_HANDLE_AMBIENT_TEMPERATURE,
+        name:           "temperature",
+        activate_path:  NULL,
+        poll_path:      "/sys/devices/platform/mid_thermal_probe/poll",
+        data_path:      "/dev/thermal_probe",
+        config_path:    "/data/thermal.conf",
+        mapper:         { 0 },
+        scale:          { 0 },
+        range:          { 0 },
+        min_delay:      0,
+        priv_data:      0,
+    },
 };
 
 static const struct sensor_t sensor_list[] = {
@@ -89,6 +104,10 @@ static const struct sensor_t sensor_list[] = {
       "STMicroelectronics",
       1, SENSORS_HANDLE_MAGNETIC_FIELD,
       SENSOR_TYPE_MAGNETIC_FIELD, RANGE_M, RESOLUTION_M, 0.1f, 20000, { } },
+    { "Thermal probe sensor",
+      "Intel",
+      1, SENSORS_HANDLE_AMBIENT_TEMPERATURE,
+      SENSOR_TYPE_AMBIENT_TEMPERATURE, RANGE_M, RESOLUTION_M, 0.1f, 1000000, { } },
 };
 
 static SensorBase* platform_sensors[ARRAY_SIZE(sensor_list)];
@@ -128,6 +147,9 @@ SensorBase **get_platform_sensors()
         case SENSORS_HANDLE_MAGNETIC_FIELD:
             platform_sensors[i] = new CompassSensor(&sensor_configs[i]);
             break;
+	case SENSORS_HANDLE_AMBIENT_TEMPERATURE:
+	    platform_sensors[i] = new AmbTempSensor(&sensor_configs[i]);
+	    break;
         default:
             E("Error, no Sensor ID handle %d found\n", handle);
             return NULL;
