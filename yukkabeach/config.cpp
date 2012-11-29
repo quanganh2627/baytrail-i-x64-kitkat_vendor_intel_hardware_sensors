@@ -69,7 +69,7 @@ static const sensor_platform_config_t sensor_configs[] = {
         data_path:      NULL,
         config_path:    "/data/compass.conf",
         mapper:         { AXIS_X, AXIS_Y, AXIS_Z },
-        scale:          { 670, -670, 600 },
+        scale:          { -670, 670, -600 },
         range:          { 0 },
         min_delay:      0,
         priv_data:      0,
