@@ -72,14 +72,12 @@ static const struct sensor_t sSensorList[] = {
           "Intel Inc.",
           1, SENSORS_HANDLE_GRAVITY,
           SENSOR_TYPE_GRAVITY,
-	// Below is the same as accelerometer.
-	  RANGE_A, CONVERT_A, 0.006f, 100000, { }},
+	  RANGE_A, CONVERT_A, 0.006f, 10000, { }},
 	{ "Linear Acceleration sensor",
 	  "Intel Inc.",
 	  1, SENSORS_HANDLE_LINEAR_ACCELERATION,
 	  SENSOR_TYPE_LINEAR_ACCELERATION,
-        // Below is the same as accelerometer.
-	  RANGE_A, CONVERT_A, 0.006f, 100000, { }},
+	  RANGE_A, CONVERT_A, 0.006f, 10000, { }},
 	{ "Rotation Vector sensor",
 	  "Intel Inc.",
 	  1, SENSORS_HANDLE_ROTATION_VECTOR,
@@ -87,7 +85,7 @@ static const struct sensor_t sSensorList[] = {
 	  1, // Max-range, copy from android's virtual sensor.
 	  1.0f/ (1<<24), //Resolution, copy from android's virtual sensor.
 	  0.106f, //Power, acc.power + mag.power, too bad to hardcode it.
-	  100000,{}}, // The same as accelerometer
+	  10000,{}}, // The same as accelerometer
 	{ "Orientation sensor",
 	  "Intel Inc.",
 	  1, SENSORS_HANDLE_ORIENTATION,
@@ -96,7 +94,7 @@ static const struct sensor_t sSensorList[] = {
 	  1.0f, //Resolution, copy from android's virtual sensor.
 	// Below is the same as Rotation vector sensor.
 	  0.106f,
-	  100000,{}},
+	  10000,{}},
 };
 
 
