@@ -72,7 +72,7 @@ static const sensor_platform_config_t sensor_configs[] = {
         scale:          { -670, 670, -600 },
         range:          { 0 },
         min_delay:      0,
-        priv_data:      0,
+        priv_data:      1,
     },
 };
 
