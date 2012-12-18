@@ -49,6 +49,7 @@ private:
     float mKxx, mKyy, mKzz;
 
     /* data filter */
+    int mFilterEn;
     sensors_event_t filter_buffer[FILTER_LENGTH];
     float filter_sum[3];
     int filter_index;

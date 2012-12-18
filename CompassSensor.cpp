@@ -18,7 +18,6 @@
 #include "CompassCalibration.h"
 
 #define COMPASS_CONVERT(x, gain) ((x) * 100 / gain)
-#define NEED_FILTER 1
 
 CompassSensor::CompassSensor(const sensor_platform_config_t *config)
         : SensorBase(config),
@@ -31,6 +30,12 @@ CompassSensor::CompassSensor(const sensor_platform_config_t *config)
 
     data_fd = SensorBase::openInputDev(mConfig->name);
     LOGE_IF(data_fd < 0, "can't open compass input dev");
+
+    if (!config->priv_data)
+        mFilterEn = 0;
+    else
+        mFilterEn =
+		((union sensor_data_t *)config->priv_data)->compass_filter_en;
 
     mMagneticEvent.version = sizeof(sensors_event_t);
     mMagneticEvent.sensor = SENSORS_HANDLE_MAGNETIC_FIELD;
@@ -330,7 +335,7 @@ int CompassSensor::readEvents(sensors_event_t* data, int count)
                         mMagneticEvent.timestamp);
 
                     /* data filter: used to mitigate data floating */
-                    if (mConfig->priv_data == NEED_FILTER)
+                    if (mFilterEn)
                         filter();
 
                     *data++ = mMagneticEvent;

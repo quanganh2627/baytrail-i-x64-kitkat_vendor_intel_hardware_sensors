@@ -30,7 +30,7 @@ typedef struct sensor_platform_config {
     float   scale[3];
     float   range[2];
     int     min_delay;
-    int     priv_data;    /* sensor specific data */
+    const union sensor_data_t *priv_data;    /* sensor specific data */
 } sensor_platform_config_t;
 
 class SensorBase {

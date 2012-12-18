@@ -25,6 +25,7 @@ class LightSensor : public SensorBase {
     sensors_event_t mPendingEvent;
     bool mHasPendingEvent;
     int inputDataOverrun;
+    float mGlassFactor;
 
 public:
     LightSensor(const sensor_platform_config_t *config);

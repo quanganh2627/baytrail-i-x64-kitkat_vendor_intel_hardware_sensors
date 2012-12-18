@@ -105,6 +105,11 @@ enum axis {
     AXIS_Z
 };
 
+union sensor_data_t {
+    int compass_filter_en;
+    float light_glass_factor;
+};
+
 class SensorBase;
 
 const struct sensor_t* get_platform_sensor_list(int *num);

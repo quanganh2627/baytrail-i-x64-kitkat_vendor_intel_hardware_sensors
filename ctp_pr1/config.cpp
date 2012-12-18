@@ -43,7 +43,9 @@
 #define RESOLUTION_PRESSURE         (0.24f)
 
 /* Sequence of sensor type in sensor_configs and sensor_list should me the same */
-
+static const union sensor_data_t compass_data = {
+    compass_filter_en:    1,
+};
 static const sensor_platform_config_t sensor_configs[] = {
 /* accel */
     {
@@ -99,7 +101,7 @@ static const sensor_platform_config_t sensor_configs[] = {
         scale:          { 670, 670, -600 },
         range:          { 0 },
         min_delay:      0,
-        priv_data:      1,
+        priv_data:      &compass_data,
     },
 /* gyro */
     {

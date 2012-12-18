@@ -34,7 +34,12 @@
 #define RESOLUTION_G                ((70.0f / 1000.0f) * ((float)M_PI / 180.0f))
 
 /* Sequence of sensor type in sensor_configs and sensor_list should me the same */
-
+static const union sensor_data_t compass_data = {
+    compass_filter_en:    1,
+};
+static const union sensor_data_t light_data = {
+    light_glass_factor:    0.11,
+};
 static const sensor_platform_config_t sensor_configs[] = {
 /* accel */
     {
@@ -62,7 +67,7 @@ static const sensor_platform_config_t sensor_configs[] = {
         scale:          { 0 },
         range:          { 0, 10000.0 },
         min_delay:      0,
-        priv_data:      0,
+        priv_data:      &light_data,
     },
 /* compass */
     {
@@ -76,7 +81,7 @@ static const sensor_platform_config_t sensor_configs[] = {
         scale:          { -670, -670, 600 },
         range:          { 0 },
         min_delay:      0,
-        priv_data:      1,
+        priv_data:      &compass_data,
     },
 /* gyro */
     {
