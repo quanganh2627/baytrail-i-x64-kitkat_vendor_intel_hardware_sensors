@@ -34,7 +34,7 @@ LOCAL_SRC_FILES := config.cpp                   \
 
 LOCAL_SRC_FILES +=  ../AccelSensor.cpp          \
                     ../LightSensor.cpp          \
-                    ../ProximitySensor.cpp      \
+                    ../ProximitySensor_apds990x.cpp \
                     ../CompassSensor.cpp        \
                     ../CompassCalibration.cpp   \
                     ../GyroSensor.cpp           \

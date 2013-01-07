@@ -20,7 +20,7 @@
 #include "SensorBase.h"
 
 #define APDS990X_MAX_THRESH               500
-#define APDS990X_MIN_THRESH               150
+#define APDS990X_MIN_THRESH               10
 #define APDS990X_DISTANCE_THRESH          150
 #define APDS990X_ENABLE_TRY               10
 
