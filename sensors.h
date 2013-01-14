@@ -24,6 +24,7 @@
 #include <poll.h>
 #include <math.h>
 #include <dirent.h>
+#include <ctype.h>
 #include <stdint.h>
 #include <sys/stat.h>
 #include <sys/cdefs.h>
@@ -88,7 +89,9 @@ __BEGIN_DECLS
 #define EVENT_TYPE_PRESSURE         REL_X
 #define EVENT_TYPE_TEMPERATURE      REL_Y
 
+#define PATH_MAX_LEN                256
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+#define MIN(a, b) ((a) < (b) ? a : b)
 
 #define NSEC_PER_SEC    1000000000L
 static inline int64_t timespec_to_ns(const struct timespec *ts)

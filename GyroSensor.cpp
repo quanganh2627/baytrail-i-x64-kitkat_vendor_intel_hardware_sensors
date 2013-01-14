@@ -58,8 +58,9 @@ int GyroSensor::enable(int32_t handle, int en)
     if (flags == mEnabled)
         return 0;
 
-    if ((fd = open(mConfig->activate_path, O_RDWR)) < 0) {
-        E("GyroSensor: Open %s failed!", mConfig->activate_path);
+    if ((fd = SensorBase::openFile(mConfig->activate_path, O_RDWR)) < 0) {
+        E("GyroSensor: Open device file failed, possible path: %s!",
+                                                mConfig->activate_path);
         return -1;
     }
 
@@ -104,8 +105,9 @@ int GyroSensor::setDelay(int32_t handle, int64_t delay_ns)
     char buf[10] = { 0 };
 
 
-    if ((fd = open(mConfig->poll_path, O_RDWR)) < 0) {
-        E("GyroSensor: Open %s failed!", mConfig->poll_path);
+    if ((fd = SensorBase::openFile(mConfig->poll_path, O_RDWR)) < 0) {
+        E("GyroSensor: Open device file failed, possible path: %s!",
+                                                mConfig->poll_path);
         return -1;
     }
 

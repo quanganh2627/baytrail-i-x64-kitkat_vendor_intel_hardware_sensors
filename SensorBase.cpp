@@ -89,3 +89,40 @@ int SensorBase::openInputDev(const char* inputName)
     closedir(dir);
     return fd;
 }
+
+static char *trim_space(char *str)
+{
+    char *end;
+
+    while (isspace(*str))
+        str++;
+    if (*str == 0)
+        return 0;
+    end = str + strlen(str) - 1;
+    while (end > str && isspace(*end))
+        *end-- = 0;
+    return str;
+}
+
+int SensorBase::openFile(const char *all_path, int flags)
+{
+    int fd;
+    char *str, *str_left;
+    char path[PATH_MAX_LEN] = { 0 };
+
+    strncpy(path, all_path, MIN(strlen(all_path), sizeof(path)));
+    str_left = path;
+    while ((str = strsep(&str_left, ";")) != NULL) {
+        str = trim_space(str);
+        if (access(str, F_OK) == 0) {
+            if ((fd = open(str, flags)) < 0) {
+                return -1;
+            } else {
+                LOGI("Sensor HAL: Open file %s", str);
+                return fd;
+            }
+        }
+    }
+
+    return -1;
+}

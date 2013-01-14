@@ -39,6 +39,7 @@ protected:
     int   data_fd;
 
     int openInputDev(const char* inputName);
+    int openFile(const char *all_path, int flags);
     static int64_t getTimestamp();
     static int64_t timevalToNano(timeval const& t)
     {
