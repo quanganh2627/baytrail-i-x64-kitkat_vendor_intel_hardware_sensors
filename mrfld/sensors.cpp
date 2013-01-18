@@ -51,7 +51,7 @@ static const struct sensor_t sSensorList[] = {
         { "PSH Magnetic field sensor",
           "Intel Inc.",
           1, SENSORS_HANDLE_MAGNETIC_FIELD,
-          SENSOR_TYPE_MAGNETIC_FIELD, 800.0f, CONVERT_M, 0.1f, 13300, { } },
+          SENSOR_TYPE_MAGNETIC_FIELD, 800.0f, CONVERT_M, 0.1f, 10000, { } },
         { "PSH Ambient Light sensor",
           "Intel Inc.",
           1, SENSORS_HANDLE_LIGHT,
