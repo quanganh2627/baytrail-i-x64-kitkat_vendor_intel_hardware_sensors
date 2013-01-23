@@ -114,6 +114,8 @@ int SensorBase::openFile(const char *all_path, int flags)
     str_left = path;
     while ((str = strsep(&str_left, ";")) != NULL) {
         str = trim_space(str);
+        if (!str)
+            break;
         if (access(str, F_OK) == 0) {
             if ((fd = open(str, flags)) < 0) {
                 return -1;

@@ -70,7 +70,10 @@ sensors_poll_context_t::sensors_poll_context_t()
     sensor_list = get_platform_sensor_list(&mNumSensors);
 
     SensorBase **sensors = get_platform_sensors();
-    LOGE_IF(!sensors, "Get platform sensors error!");
+    if (!sensors) {
+        LOGE("Get platform sensors error!");
+        return;
+    }
 
     for (int i = 0; i < mNumSensors; i++) {
         int handle = sensor_list[i].handle;
