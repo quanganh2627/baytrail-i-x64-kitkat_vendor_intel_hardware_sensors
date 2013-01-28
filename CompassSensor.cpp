@@ -18,6 +18,8 @@
 #include "CompassCalibration.h"
 
 #define COMPASS_CONVERT(x, gain) ((x) * 100 / gain)
+#define VEC_DIFF_THRESHOLD_SQR 64
+#define TOTAL_LARGE_LIMIT 5
 
 CompassSensor::CompassSensor(const sensor_platform_config_t *config)
         : SensorBase(config),
@@ -189,6 +191,7 @@ void CompassSensor::filter()
 {
     int pre_index;
     int i;
+    static int too_large_count = 0;
 
     /* reset filter if data is not following
      * the previous one.
@@ -199,6 +202,26 @@ void CompassSensor::filter()
             filter_index = -1;
             D("compass sensor filter, reset filter because long time delay, pre = %lld, now = %lld",
                 filter_buffer[pre_index].timestamp, mMagneticEvent.timestamp);
+        }
+
+        /* if the module difference of the magnetic vector is continuously larger
+           than a threshold(for example, 8 ut), the device may have been significantly
+           moved, we flush the filter buffer to quickly respond to the change.*/
+        double x =  (double)mMagneticEvent.magnetic.x;
+        double y =  (double)mMagneticEvent.magnetic.y;
+        double z =  (double)mMagneticEvent.magnetic.z;
+        double delta_x = x - filter_buffer[filter_index].magnetic.x;
+        double delta_y = y - filter_buffer[filter_index].magnetic.y;
+        double delta_z = z - filter_buffer[filter_index].magnetic.z;
+
+        if (delta_x * delta_x + delta_y * delta_y + delta_z * delta_z > VEC_DIFF_THRESHOLD_SQR)
+            ++too_large_count;
+        else
+            too_large_count = 0;
+
+        if (too_large_count >= TOTAL_LARGE_LIMIT) {
+            filter_index = -1;
+            too_large_count = 0;
         }
     }
 

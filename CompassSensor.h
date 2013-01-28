@@ -19,7 +19,7 @@
 
 #include "SensorBase.h"
 
-#define FILTER_LENGTH 40
+#define FILTER_LENGTH 100
 #define FILTER_VALID_TIME (100L * 1000L * 1000L) /* 100ms */
 
 class CompassSensor : public SensorBase {
