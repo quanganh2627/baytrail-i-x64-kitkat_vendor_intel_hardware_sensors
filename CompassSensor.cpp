@@ -37,7 +37,7 @@ CompassSensor::CompassSensor(const sensor_platform_config_t *config)
         mFilterEn = 0;
     else
         mFilterEn =
-		((union sensor_data_t *)config->priv_data)->compass_filter_en;
+            ((union sensor_data_t *)config->priv_data)->compass_filter_en;
 
     mMagneticEvent.version = sizeof(sensors_event_t);
     mMagneticEvent.sensor = SENSORS_HANDLE_MAGNETIC_FIELD;
@@ -48,6 +48,7 @@ CompassSensor::CompassSensor(const sensor_platform_config_t *config)
     mMagneticEvent.magnetic.x = 0;
 
     mCalDataFile = -1;
+    mCaled = 0;
 }
 
 CompassSensor::~CompassSensor()
@@ -66,42 +67,25 @@ void CompassSensor::readCalibrationData()
 
     int ret = pread(mCalDataFile, buf, sizeof(buf), 0);
     if (ret > 0) {
-        ret = sscanf(buf, "%d %f %f %f %f %f %f %f %f %f\n", &mCaled,
-                     &mMinX, &mMaxX, &mMinY, &mMaxY, &mMinZ, &mMaxZ,
-                     &mKxx, &mKyy, &mKzz);
-        if (ret != 10) {
-            mMinX = mMaxX = mMinY = mMaxY = mMinZ = mMaxZ = 0;
-            mCaled = mKxx = mKyy = mKzz = 0;
-        }
+        ret = sscanf(buf, "%d %lf %lf %lf %lf %lf %lf %lf\n", &mCaled,
+            &mCalData.off_x, &mCalData.off_y, &mCalData.off_z, &mCalData.w11,
+            &mCalData.w22, &mCalData.w33, &mCalData.bfield);
+        if (ret != 8)
+            mCaled = 0;
     } else {
-        mMinX = mMaxX = mMinY = mMaxY = mMinZ = mMaxZ = 0;
-        mCaled = mKxx = mKyy = mKzz = 0;
+        mCaled = 0;
     }
 
-    if (mCaled == 1) {
-        CompassCalData data;
-        data.minx = mMinX;
-        data.maxx = mMaxX;
-        data.miny = mMinY;
-        data.maxy = mMaxY;
-        data.minz = mMinZ;
-        data.maxz = mMaxZ;
-        data.matrix[0][0] = mKxx;
-        data.matrix[1][1] = mKyy;
-        data.matrix[2][2] = mKzz;
-        CompassCal_init(1, &data);
-    } else {
-        CompassCal_init(0, NULL);
-    }
+    CompassCal_init(mCaled, mCalData);
 }
 
 void CompassSensor::storeCalibrationData()
 {
     char buf[512];
     memset(buf, 0, 512);
-    sprintf(buf, "%d %f %f %f %f %f %f %f %f %f\n", mCaled,
-            mMinX, mMaxX, mMinY, mMaxY, mMinZ, mMaxZ,
-            mKxx, mKyy, mKzz);
+    sprintf(buf, "%d %f %f %f %f %f %f %f\n", mCaled,
+            mCalData.off_x, mCalData.off_y, mCalData.off_z, mCalData.w11, mCalData.w22,
+            mCalData.w33, mCalData.bfield);
     pwrite(mCalDataFile, buf, sizeof(buf), 0);
 }
 
@@ -272,32 +256,19 @@ void CompassSensor::filter()
 void CompassSensor::calibration(int64_t time)
 {
     long current_time_ms = time / 1000000;
-    CompassCalData data;
     CompassCal_collectData(mMagneticEvent.magnetic.x,
         mMagneticEvent.magnetic.y, mMagneticEvent.magnetic.z,
         current_time_ms);
 
-    if (CompassCal_readyCheck() == 1) {
-        CompassCal_computeCal(&data);
+    if (CompassCal_readyCheck()) {
+        CompassCal_computeCal(&mCalData);
         mCaled = 1;
-        mMinX = data.minx;
-        mMaxX = data.maxx;
-        mMinY = data.miny;
-        mMaxY = data.maxy;
-        mMinZ = data.minz;
-        mMaxZ = data.maxz;
-        mKxx = data.matrix[0][0];
-        mKyy = data.matrix[1][1];
-        mKzz = data.matrix[2][2];
     }
 
     if (mCaled == 1) {
-        float offsetx = (mMaxX + mMinX) / 2;
-        float offsety = (mMaxY + mMinY) / 2;
-        float offsetz = (mMaxZ + mMinZ) / 2;
-        mMagneticEvent.magnetic.x = (mMagneticEvent.magnetic.x - offsetx) * mKxx;
-        mMagneticEvent.magnetic.y = (mMagneticEvent.magnetic.y - offsety) * mKyy;
-        mMagneticEvent.magnetic.z = (mMagneticEvent.magnetic.z - offsetz) * mKzz;
+        mMagneticEvent.magnetic.x = (mMagneticEvent.magnetic.x - mCalData.off_x) * mCalData.w11;
+        mMagneticEvent.magnetic.y = (mMagneticEvent.magnetic.y - mCalData.off_y) * mCalData.w22;
+        mMagneticEvent.magnetic.z = (mMagneticEvent.magnetic.z - mCalData.off_z) * mCalData.w33;
         mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
     } else {
         mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;
