@@ -1,246 +1,234 @@
+//#define SENSOR_DBG
+//#define DBG_RAW_DATA
 #include "CompassSensor.h"
 #include "CompassCalibration.h"
+#include "mat.h"
 
-/* Earth magnetic parameters */
-#define MAG_MAX 60.0f /* 60 mt*/
-#define MAG_MIN 25.0f /* 25 mt*/
-#define MAG_MAX_INC 10.0f /* 10 mt */
+using namespace android;
 
-/* Geometry parameters */
-#define LINE_SEGS 8
+#define DS_SIZE  24
+typedef mat<double, 3, DS_SIZE> mat_input_t;
 
-/* Used to collect enough data from sensor */
-static int line_segs[3][LINE_SEGS];
-static int fit_line;
+#define MIN_DIFF 1.5f
+#define MAX_SQR_ERR 4.5f
+#define LOOKBACK_COUNT 6
 
-/* Used to reject sudden jump data */
-static struct prev_point {
-    float p[3];
-    long time;
-} prev_p;
+/* collected sensor data. Note we collect 2 set of data,
+   1 for calibration calculation, the other for verification
+   of calibration result*/
+static float select_points[2*DS_SIZE][3];
+static int select_point_count = 0;
 
-static int calibrated;
+#ifdef DBG_RAW_DATA
+#define MAX_RAW_DATA_COUNT 2000
+static FILE *raw_data = NULL;
+static FILE *raw_data_selected = NULL;
+static int raw_data_count = 0;
+int file_no = 0;
+#endif
 
-static CompassCalData calData;
+static CompassCalData cal_data;
 
-static inline float cal_datax(int rawMagX)
+static bool ellipsoid_fit(const mat_input_t &M, CompassCalData &data)
 {
-    return (rawMagX - (calData.minx + calData.maxx) / 2) * calData.matrix[0][0];
-}
+    int i, j;
+    mat<double, 6, DS_SIZE> H;
+    mat<double, 1, DS_SIZE> W;
 
-static inline float cal_datay(int rawMagY)
-{
-    return (rawMagY - (calData.miny + calData.maxy) / 2) * calData.matrix[1][1];
-}
-
-static inline float cal_dataz(int rawMagZ)
-{
-    return (rawMagZ - (calData.minz + calData.maxz) / 2) * calData.matrix[2][2];
-}
-
-/* Filter abnoral data from calibration */
-static int abnormal_data(float rawMagX, float rawMagY, float rawMagZ, long currentTimeMSec)
-{
-    int fast_change = 0;
-    /* ignore fast change data */
-    if (prev_p.time != 0 && currentTimeMSec - prev_p.time <= 20) {
-        if (fabs(rawMagX - prev_p.p[0]) > MAG_MAX_INC ||
-            fabs(rawMagY - prev_p.p[1]) > MAG_MAX_INC ||
-            fabs(rawMagZ - prev_p.p[2]) > MAG_MAX_INC)
-            fast_change = 1;
-    }
-    prev_p.time = currentTimeMSec;
-    prev_p.p[0] = rawMagX;
-    prev_p.p[1] = rawMagY;
-    prev_p.p[2] = rawMagZ;
-    if (fast_change == 1)
-        return 1;
-
-    /* Any mag field larger than MAG_MAX is an abnormal data
-     * With one exception, if not calibrated yet, accept big data.
-     * Because without hard iron calibration the normal data
-     * also can be big.
-     */
-    if (calibrated == 0)
-        return 0;
-    if (pow(cal_datax(rawMagX), 2) +
-        pow(cal_datay(rawMagY), 2) +
-        pow(cal_dataz(rawMagZ), 2) >= pow(MAG_MAX, 2))
-        return 1;
-    return 0;
-}
-
-/* Find enough data to fit x, y and z axes
- * return 1 for fit, 0 for not
- */
-static int fit_line_segs(float x, float y, float z)
-{
-    /* one point only fit one seg on one axe, this
-     * make more data has to be collected to finish
-     * calibration, thus obtain better calibration
-     * result.
-     */
-    if (LINE_SEGS < 2)
-        return 0; /* avoid div0 exception */
-    float off = x - calData.minx;
-    float per = off / (calData.maxx - calData.minx);
-    int seg = (int) (per / (1.0f / LINE_SEGS));
-    /* val is between min and max */
-    if (per != 1 && per != 0) {
-        if (line_segs[0][seg] == 0) {
-            line_segs[0][seg] = 1;
-            D("CompassCalibration:fit_line,x[%d]=[%f,%f,%f]", seg, x, y, z);
-            return 1;
-        }
+    for (i = 0; i < DS_SIZE; ++i) {
+        W[0][i] = M[0][i] * M[0][i];
+        H[0][i] = M[0][i];
+        H[1][i] = M[1][i];
+        H[2][i] = M[2][i];
+        H[3][i] = -1 * M[1][i] * M[1][i];
+        H[4][i] = -1 * M[2][i] * M[2][i];
+        H[5][i] = 1;
     }
 
-    off = y - calData.miny;
-    per = off / (calData.maxy - calData.miny);
-    seg = (int) (per / (1.0f / LINE_SEGS));
-    /* val is between min and max */
-    if (per != 1 && per != 0) {
-        if (line_segs[1][seg] == 0) {
-            line_segs[1][seg] = 1;
-            D("CompassCalibration:fit_line,y[%d]=[%f,%f,%f]", seg, x, y, z);
-            return 1;
-        }
+    mat<double, DS_SIZE, 6> H_trans = transpose(H);
+    mat<double, 6, 6> temp1 = invert(H_trans * H);
+    mat<double, DS_SIZE, 6> temp2 = temp1 * H_trans;
+    mat<double, 1, 6> P = temp2 * W;
+
+    data.off_x = 0.5 * P[0][0];
+    data.off_y = 0.5 * P[0][1] / P[0][3];
+    data.off_z = 0.5 * P[0][2] / P[0][4];
+
+    double A11, A22, A33;
+    A11 = 1.0f/(P[0][5] + data.off_x * data.off_x + P[0][3] * data.off_y * data.off_y
+          + P[0][4] * data.off_z * data.off_z);
+    A22 = P[0][3] * A11;
+    A33 = P[0][4] * A11;
+
+    if (isnan(A11) || isinf(A11) || isnan(A22) || isinf(A22) || isnan(A33) || isinf(A33)) {
+        D("CompassCalibration: calibration failed! found NaN or Inf number!");
+        return false;
     }
 
-    off = z - calData.minz;
-    per = off / (calData.maxz - calData.minz);
-    seg = (int) (per / (1.0f / LINE_SEGS));
-    /* val is between min and max */
-    if (per != 1 && per != 0) {
-        if (line_segs[2][seg] == 0) {
-            line_segs[2][seg] = 1;
-            D("CompassCalibration:fit_line,z[%d]=[%f,%f,%f]", seg, x, y, z);
-            return 1;
-        }
-    }
-    return 0;
+    data.w11 = sqrt(A11);
+    data.w22 = sqrt(A22);
+    data.w33 = sqrt(A33);
+    data.bfield = 1.0 / pow(data.w11 * data.w22 * data.w33, 1.0/3.0);
+    data.w11 *= data.bfield;
+    data.w22 *= data.bfield;
+    data.w33 *= data.bfield;
+
+    return true;
 }
 
 /* reset calibration algorithm */
 static void reset()
 {
-    calData.minx = calData.miny = calData.minz = 0;
-    calData.maxx = calData.maxy = calData.maxz = 0;
-    for (int i = 0; i < 3; i++)
-        for (int k = 0; k < 3; k++)
-            calData.matrix[i][k] = 0;
-    calibrated = 0;
-    prev_p.time = 0;
-    prev_p.p[0] = 0;
-    prev_p.p[1] = 0;
-    prev_p.p[2] = 0;
-    fit_line = 0;
-    for (int i = 0; i < 3; i++)
-        for (int j = 0; j < LINE_SEGS; j ++)
-            line_segs[i][j] = 0;
+    select_point_count = 0;
+    for (int i = 0; i < 2*DS_SIZE; ++i)
+        for (int j=0; j < 3; ++j)
+            select_points[i][j] = 0;
 }
 
-void CompassCal_init(int calied, CompassCalData* data)
+void CompassCal_init(int caled, const CompassCalData &data)
 {
-    reset();
-    if (calied == 0)
-        return;
-    calData.minx = data->minx;
-    calData.maxx = data->maxx;
-    calData.miny = data->miny;
-    calData.maxy = data->maxy;
-    calData.minz = data->minz;
-    calData.maxz = data->maxz;
 
-    calData.matrix[0][0] = data->matrix[0][0];
-    calData.matrix[1][1] = data->matrix[1][1];
-    calData.matrix[2][2] = data->matrix[2][2];
-    calibrated = 1;
+#ifdef DBG_RAW_DATA
+    if (raw_data) {
+        fclose(raw_data);
+        raw_data = NULL;
+    }
+
+    if (raw_data_selected) {
+        fclose(raw_data_selected);
+        raw_data_selected = NULL;
+    }
+
+    // open raw data file
+    char path[64];
+    snprintf(path, 64, "/data/raw_compass_data_full_%d.txt", file_no);
+    raw_data = fopen(path, "w+");
+    snprintf(path, 64, "/data/raw_compass_data_selected_%d.txt", file_no);
+    raw_data_selected = fopen(path, "w+");
+    ++file_no;
+    raw_data_count = 0;
+#endif
+
+    reset();
+    if (caled) {
+        cal_data = data;
+        D("CompassCalibration: load old data, caldata: %f %f %f %f %f %f %f",
+            cal_data.off_x, cal_data.off_y, cal_data.off_z, cal_data.w11,
+            cal_data.w22, cal_data.w33, cal_data.bfield);
+    } else {
+        cal_data.off_x = 0;
+        cal_data.off_y = 0;
+        cal_data.off_z = 0;
+        cal_data.w11 = 1;
+        cal_data.w22 = 1;
+        cal_data.w33 = 1;
+    }
 }
 
 /* return 0 reject value, return 1 accept value. */
 int CompassCal_collectData(float rawMagX, float rawMagY, float rawMagZ, long currentTimeMSec)
 {
-    if (abnormal_data(rawMagX, rawMagY, rawMagZ, currentTimeMSec))
-        return 0;
+    float data[3] = {rawMagX, rawMagY, rawMagZ};
 
-    if (calData.maxx == 0 && calData.minx == 0)
-        calData.maxx = calData.minx = rawMagX;
-    else {
-        if (rawMagX > calData.maxx)
-            calData.maxx = rawMagX;
-        if (rawMagX < calData.minx)
-            calData.minx = rawMagX;
+#ifdef DBG_RAW_DATA
+    if (raw_data && raw_data_count < MAX_RAW_DATA_COUNT) {
+        fprintf(raw_data, "%f %f %f %d\n", (double)rawMagX, (double)rawMagY,
+                 (double)rawMagZ, (int)currentTimeMSec);
+        raw_data_count++;
     }
 
-    if (calData.maxy == 0 && calData.miny == 0)
-        calData.maxy = calData.miny = rawMagY;
-    else {
-        if (rawMagY > calData.maxy)
-            calData.maxy = rawMagY;
-        if (rawMagY < calData.miny)
-            calData.miny = rawMagY;
+    if (raw_data && raw_data_count >= MAX_RAW_DATA_COUNT) {
+        fclose(raw_data);
+        raw_data = NULL;
+    }
+#endif
+
+    // For the current point to be accepted, each x/y/z value must be different enough
+    // to the last several collected points
+    if (select_point_count > 0 && select_point_count < 2 * DS_SIZE) {
+        int lookback = LOOKBACK_COUNT < select_point_count ? LOOKBACK_COUNT : select_point_count;
+        for (int index = 0; index < lookback; ++index){
+            for (int j = 0; j < 3; ++j) {
+                if (fabsf(data[j] - select_points[select_point_count-1-index][j]) < MIN_DIFF) {
+                    D("CompassCalibration:point reject: [%f,%f,%f], selected_count=%d",
+                       (double)data[0], (double)data[1], (double)data[2], select_point_count);
+                        return 0;
+                }
+            }
+        }
     }
 
-    if (calData.maxz == 0 && calData.minz == 0)
-        calData.maxz = calData.minz = rawMagZ;
-    else {
-        if (rawMagZ > calData.maxz)
-            calData.maxz = rawMagZ;
-        if (rawMagZ < calData.minz)
-            calData.minz = rawMagZ;
+    if (select_point_count < 2 * DS_SIZE) {
+        memcpy(select_points[select_point_count], data, sizeof(float) * 3);
+        ++select_point_count;
+        D("CompassCalibration:point collected [%f,%f,%f], selected_count=%d",
+            (double)data[0], (double)data[1], (double)data[2], select_point_count);
+#ifdef DBG_RAW_DATA
+        if (raw_data_selected) {
+            fprintf(raw_data_selected, "%f %f %f\n", (double)data[0], (double)data[1], (double)data[2]);
+        }
+#endif
     }
+   return 1;
+}
 
-    if (fit_line)
-        fit_line_segs(rawMagX, rawMagY, rawMagZ);
-    return 1;
+
+// use second data set to calculate square error
+double calc_square_err(const CompassCalData &data)
+{
+    double err = 0;
+    for (int i = DS_SIZE; i < 2 * DS_SIZE; ++i) {
+        double x = (select_points[i][0] - data.off_x) * data.w11;
+        double y = (select_points[i][1] - data.off_y) * data.w22;
+        double z = (select_points[i][2] - data.off_z) * data.w33;
+        double diff = sqrt(x*x + y*y + z*z) - data.bfield;
+        err += diff * diff;
+    }
+    err /= DS_SIZE;
+    return err;
 }
 
 /* check if calibration complete */
 int CompassCal_readyCheck()
 {
-    if (calibrated == 1)
-        return calibrated;
+    mat_input_t mat;
+    int ready = 0;
 
-    /* condition1: reach MAG_MIN at each axe */
-    if (calData.maxx - calData.minx < 2 * MAG_MIN ||
-        calData.maxy - calData.miny < 2 * MAG_MIN ||
-        calData.maxz - calData.minz < 2 * MAG_MIN)
+    if (select_point_count < 2*DS_SIZE)
         return 0;
 
-    /* condition 2: reach every line seg of every axe */
-    fit_line = 1;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < LINE_SEGS; j++)
-            if (line_segs[i][j] == 0)
-                return 0;
+    // enough points have been collected, do the ellipsoid calibration
+    for (int i = 0; i < DS_SIZE; ++i) {
+        mat[0][i] = select_points[i][0];
+        mat[1][i] = select_points[i][1];
+        mat[2][i] = select_points[i][2];
     }
 
-    calibrated = 1;
-    return calibrated;
+    /* check if result is good */
+    CompassCalData new_cal_data;
+    if (ellipsoid_fit(mat, new_cal_data)) {
+        double err_new = calc_square_err(new_cal_data);
+        if (err_new < MAX_SQR_ERR) {
+            double err = calc_square_err(cal_data);
+            if (err_new < err) {
+              // new cal_data is better, so we switch to the new
+              cal_data = new_cal_data;
+              ready = 1;
+              D("CompassCalibration: ready check success, caldata: %f %f %f %f %f %f %f, err %f",
+                cal_data.off_x, cal_data.off_y, cal_data.off_z, cal_data.w11,
+                cal_data.w22, cal_data.w33, cal_data.bfield, err_new);
+            }
+        }
+    }
+
+    reset();
+    return ready;
 }
 
 void CompassCal_computeCal(CompassCalData* data)
 {
-    /* Compute soft/hard iron, compute offset
-     * and scale only, no rotate affect involved.
-     */
-    float max_length = calData.maxx - calData.minx;
-    if (calData.maxy - calData.miny > max_length)
-        max_length = calData.maxy - calData.miny;
-    if (calData.maxz - calData.minz > max_length)
-        max_length = calData.maxz - calData.minz;
-    calData.matrix[0][0] = max_length / (calData.maxx - calData.minx);
-    calData.matrix[1][1] = max_length / (calData.maxy - calData.miny);
-    calData.matrix[2][2] = max_length / (calData.maxz - calData.minz);
-
-    data->minx = calData.minx;
-    data->maxx = calData.maxx;
-    data->miny = calData.miny;
-    data->maxy = calData.maxy;
-    data->minz = calData.minz;
-    data->maxz = calData.maxz;
-
-    for (int i = 0; i < 3; i++)
-        for (int k = 0; k < 3; k++)
-            data->matrix[i][k] = calData.matrix[i][k];
+    // calculation has been done in readycheck(),
+    // just return the result here
+    if (data)
+        *data = cal_data;
 }

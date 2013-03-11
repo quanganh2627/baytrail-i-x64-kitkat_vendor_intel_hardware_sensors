@@ -53,7 +53,7 @@ int64_t SensorBase::getTimestamp()
 
 int SensorBase::openInputDev(const char* inputName)
 {
-    int fd = -1;
+    int fd = -1, clkid = CLOCK_MONOTONIC;
     const char *dirname = "/dev/input";
     char devname[PATH_MAX];
     char *filename;
@@ -87,6 +87,10 @@ int SensorBase::openInputDev(const char* inputName)
         }
     }
     closedir(dir);
+
+    if (fd >= 0)
+        ioctl(fd, EVIOCSCLOCKID, &clkid);
+
     return fd;
 }
 

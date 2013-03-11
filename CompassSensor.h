@@ -18,6 +18,7 @@
 #define ANDROID_COMPASS_SENSOR_H
 
 #include "SensorBase.h"
+#include "CompassCalibration.h"
 
 #define FILTER_LENGTH 100
 #define FILTER_VALID_TIME (100L * 1000L * 1000L) /* 100ms */
@@ -45,8 +46,7 @@ private:
     /* for calibration */
     int mCalDataFile;
     int mCaled;
-    float mMinX, mMinY, mMinZ, mMaxX, mMaxY, mMaxZ;
-    float mKxx, mKyy, mKzz;
+    CompassCalData mCalData;
 
     /* data filter */
     int mFilterEn;

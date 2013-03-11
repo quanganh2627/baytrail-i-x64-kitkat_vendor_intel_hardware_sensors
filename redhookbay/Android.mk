@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifneq (,$(findstring $(REF_DEVICE_NAME),ctp_pr1 ctp_nomodem))
+ifeq ($(REF_DEVICE_NAME),redhookbay)
 
 LOCAL_PATH := $(call my-dir)
 
