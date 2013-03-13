@@ -107,8 +107,10 @@ static const sensor_platform_config_t sensor_configs[] = {
     {
         handle:         SENSORS_HANDLE_GYROSCOPE,
         name:           "l3g4200d",
-        activate_path:  "/sys/bus/i2c/devices/5-006a/enable",
-        poll_path:      "/sys/bus/i2c/devices/5-006a/poll",
+        activate_path:  "/sys/bus/i2c/devices/5-006a/enable;"
+                        "/sys/bus/i2c/devices/5-0068/enable",
+        poll_path:      "/sys/bus/i2c/devices/5-006a/poll;"
+                        "/sys/bus/i2c/devices/5-0068/poll",
         data_path:      NULL,
         config_path:    "/data/gyro.conf",
         mapper:         { 0 },
