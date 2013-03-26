@@ -179,6 +179,8 @@ static int poll__close(struct hw_device_t *dev)
     sensors_poll_context_t *ctx = (sensors_poll_context_t *)dev;
     if (ctx)
         delete ctx;
+    if (sensor_platform_finalize)
+        sensor_platform_finalize();
 
     return 0;
 }

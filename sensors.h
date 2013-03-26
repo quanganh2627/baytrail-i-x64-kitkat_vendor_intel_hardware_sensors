@@ -54,7 +54,7 @@ __BEGIN_DECLS
  * and must be unique.  */
 #define SENSORS_HANDLE_LIGHT            1
 #define SENSORS_HANDLE_PROXIMITY        2
-#define SENSORS_HANDLE_ACCELERAMETER    3
+#define SENSORS_HANDLE_ACCELEROMETER    3
 #define SENSORS_HANDLE_MAGNETIC_FIELD   4
 #define SENSORS_HANDLE_GYROSCOPE        5
 #define SENSORS_HANDLE_PRESSURE         6
@@ -115,6 +115,7 @@ class SensorBase;
 
 const struct sensor_t* get_platform_sensor_list(int *num);
 SensorBase** get_platform_sensors();
+extern void (* sensor_platform_finalize)();
 
 __END_DECLS
 #endif  // ANDROID_SENSORS_H
