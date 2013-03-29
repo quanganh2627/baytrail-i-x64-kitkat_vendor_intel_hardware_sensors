@@ -29,6 +29,7 @@ public:
     virtual int enable(int32_t handle, int enabled);
 
 private:
+    float processRawData(int value, float scale);
     int mEnabled;
     InputEventCircularReader mInputReader;
     sensors_event_t mPendingEvent;

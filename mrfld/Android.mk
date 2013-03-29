@@ -13,11 +13,9 @@
 # limitations under the License.
 
 
-ifeq ($(REF_PRODUCT_NAME),merr_vv)
+ifeq ($(ENABLE_SENSOR_HUB),true)
 
 LOCAL_PATH := $(call my-dir)
-
-ifneq ($(TARGET_SIMULATOR),true)
 
 # HAL module implemenation, not prelinked, and stored in
 # hw/<SENSORS_HARDWARE_MODULE_ID>.<ro.product.board>.so
@@ -27,7 +25,8 @@ LOCAL_MODULE := sensors.$(TARGET_DEVICE)
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
+LOCAL_MODULE_TAGS += debug
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
 LOCAL_SRC_FILES := 					\
@@ -48,7 +47,5 @@ LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libsensorhub
 LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)
-
-endif # !TARGET_SIMULATOR
 
 endif

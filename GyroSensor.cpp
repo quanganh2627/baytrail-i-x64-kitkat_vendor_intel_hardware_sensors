@@ -123,9 +123,9 @@ int GyroSensor::setDelay(int32_t handle, int64_t delay_ns)
     return 0;
 }
 
-float processRawData(int value)
+float GyroSensor::processRawData(int value, float scale)
 {
-    return (float)value * CONVERT_GYRO;
+    return (float)value * CONVERT_GYRO * scale;
 }
 
 int GyroSensor::readEvents(sensors_event_t* data, int count)
@@ -147,14 +147,17 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
         if (type == EV_REL && !inputDataOverrun) {
             float value = event->value;
            if (event->code == REL_X) {
-                mPendingEvent.data[1] =
-                    processRawData(value) - mCalEvent.data[1];
+                mPendingEvent.data[mConfig->mapper[AXIS_X]] =
+                    processRawData(value, mConfig->scale[AXIS_X])
+                    - mCalEvent.data[mConfig->mapper[AXIS_X]];
             } else if (event->code == REL_Y) {
-                mPendingEvent.data[0] =
-                    processRawData(value) - mCalEvent.data[0];
+                mPendingEvent.data[mConfig->mapper[AXIS_Y]] =
+                    processRawData(value, mConfig->scale[AXIS_Y])
+                    - mCalEvent.data[mConfig->mapper[AXIS_Y]];
             } else if (event->code == REL_Z) {
-                mPendingEvent.data[2] =
-                    processRawData(value) * -1 - mCalEvent.data[2];
+                mPendingEvent.data[mConfig->mapper[AXIS_Z]] =
+                    processRawData(value, mConfig->scale[AXIS_Z])
+                    - mCalEvent.data[mConfig->mapper[AXIS_Z]];
             }
         } else if (type == EV_SYN) {
             /* drop input event overrun data */

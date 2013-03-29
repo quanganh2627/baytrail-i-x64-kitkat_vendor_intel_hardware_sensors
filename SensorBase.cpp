@@ -51,43 +51,61 @@ int64_t SensorBase::getTimestamp()
     return int64_t(t.tv_sec)*1000000000LL + t.tv_nsec;
 }
 
+
 int SensorBase::openInputDev(const char* inputName)
 {
     int fd = -1, clkid = CLOCK_MONOTONIC;
+    const char *sys_dirname = "/sys/class/input";
     const char *dirname = "/dev/input";
     char devname[PATH_MAX];
     char *filename;
     DIR *dir;
     struct dirent *de;
-    dir = opendir(dirname);
+    int len;
+    dir = opendir(sys_dirname);
+
     if(dir == NULL)
         return -1;
 
-    strcpy(devname, dirname);
+    /*scan the /sys/class instead of /dev to get the
+      device path, this is to avoid close delay of files
+      in /dev/input/event* */
+    strcpy(devname, sys_dirname);
     filename = devname + strlen(devname);
     *filename++ = '/';
     while ((de = readdir(dir))) {
-        if (de->d_name[0] == '.' &&
-            (de->d_name[1] == '\0' ||
-             (de->d_name[1] == '.' && de->d_name[2] == '\0')))
+        if (!strstr(de->d_name, "event"))
             continue;
-
         strcpy(filename, de->d_name);
+        filename += strlen(de->d_name);
+	strcpy(filename, "/device/name");
+	filename -= strlen(de->d_name);
         fd = open(devname, O_RDONLY);
         if (fd >= 0) {
             char name[80];
-            if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), &name) < 1) {
+            len=read(fd, &name, sizeof(name) - 1);
+            if (len < 1)
                 name[0] = '\0';
-            }
-            if (!strcmp(name, inputName))
+	    else
+                name[len-1] = '\0';
+            if (!strcmp(name, inputName)) {
+		close(fd);
                 break;
-
+	    }
             close(fd);
             fd = -1;
         }
     }
     closedir(dir);
 
+    if (fd < 0)
+	return fd;
+
+    strcpy(devname, dirname);
+    filename = devname + strlen(devname);
+    *filename++ = '/';
+    strcpy(filename, de->d_name);
+    fd = open(devname, O_RDONLY);
     if (fd >= 0)
         ioctl(fd, EVIOCSCLOCKID, &clkid);
 
