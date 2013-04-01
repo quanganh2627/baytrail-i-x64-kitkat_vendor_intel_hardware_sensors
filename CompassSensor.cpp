@@ -49,6 +49,7 @@ CompassSensor::CompassSensor(const sensor_platform_config_t *config)
 
     mCalDataFile = -1;
     mCaled = 0;
+    memset(&mCalData, 0, sizeof(CompassCalData));
 }
 
 CompassSensor::~CompassSensor()
@@ -75,6 +76,10 @@ void CompassSensor::readCalibrationData()
     } else {
         mCaled = 0;
     }
+    if (!mCaled) {
+        I("CompassSensor - %s: calibration data is not ready.", __func__);
+        memset(&mCalData, 0, sizeof(CompassCalData));
+    }
 
     CompassCal_init(mCaled, mCalData);
 }
@@ -82,11 +87,18 @@ void CompassSensor::readCalibrationData()
 void CompassSensor::storeCalibrationData()
 {
     char buf[512];
+    int ret;
     memset(buf, 0, 512);
-    sprintf(buf, "%d %f %f %f %f %f %f %f\n", mCaled,
-            mCalData.off_x, mCalData.off_y, mCalData.off_z, mCalData.w11, mCalData.w22,
-            mCalData.w33, mCalData.bfield);
-    pwrite(mCalDataFile, buf, sizeof(buf), 0);
+    snprintf(buf, sizeof(buf), "%d %f %f %f %f %f %f %f\n",
+            mCaled, mCalData.off_x, mCalData.off_y, mCalData.off_z,
+            mCalData.w11, mCalData.w22, mCalData.w33, mCalData.bfield);
+    ret = pwrite(mCalDataFile, buf, sizeof(buf), 0);
+    if (ret < 0) {
+        E("CompassSensor - Store calibration data failed: %s", strerror(ret));
+        E("CompassSensor - calibration data: %d %f %f %f %f %f %f %f\n",
+                mCaled, mCalData.off_x, mCalData.off_y, mCalData.off_z,
+                mCalData.w11, mCalData.w22, mCalData.w33, mCalData.bfield);
+    }
 }
 
 int CompassSensor::enable(int32_t handle, int en)
@@ -105,7 +117,7 @@ int CompassSensor::enable(int32_t handle, int en)
             lock.l_whence = SEEK_SET;
             lock.l_len = 0;
             if (fcntl(mCalDataFile, F_SETLK, &lock) < 0)
-                D("compass calibration file lock fail");
+                E("CompassSensor - calibration file lock fail");
 
             readCalibrationData();
             filter_index = -1;
@@ -118,7 +130,7 @@ int CompassSensor::enable(int32_t handle, int en)
             lock.l_whence = SEEK_SET;
             lock.l_len = 0;
             if (fcntl(mCalDataFile, F_SETLK, &lock) < 0)
-                D("compass calibration file unlock fail");
+                E("CompassSensor - calibration file unlock fail");
 
             storeCalibrationData();
             close(mCalDataFile);
