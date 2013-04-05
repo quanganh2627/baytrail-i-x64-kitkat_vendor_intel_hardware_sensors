@@ -40,7 +40,12 @@ LOCAL_SRC_FILES +=  ../AccelSensor.cpp          \
                     ../GyroSensor.cpp           \
                     ../PressureSensor.cpp
 
-LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
+LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
+                    external/icu4c/common \
+                    external/libxml2/include
+LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc
+LOCAL_STATIC_LIBRARIES := libxml2
+
 LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)

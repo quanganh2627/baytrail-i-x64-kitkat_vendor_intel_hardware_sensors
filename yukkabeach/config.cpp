@@ -37,7 +37,7 @@ static const union sensor_data_t compass_data = {
 static const sensor_platform_config_t sensor_configs[] = {
 /* accel */
     {
-        handle:         SENSORS_HANDLE_ACCELERAMETER,
+        handle:         SENSORS_HANDLE_ACCELEROMETER,
         name:           "accel",
         activate_path:  "/sys/bus/i2c/devices/5-0019/lis3dh/enable",
         poll_path:      "/sys/bus/i2c/devices/5-0019/lis3dh/poll",
@@ -96,7 +96,7 @@ static const sensor_platform_config_t sensor_configs[] = {
 static const struct sensor_t sensor_list[] = {
     { "MODEL_LSM303DLHC 3-axis Accelerometer",
       "STMicroelectronics",
-      1, SENSORS_HANDLE_ACCELERAMETER,
+      1, SENSORS_HANDLE_ACCELEROMETER,
       SENSOR_TYPE_ACCELEROMETER, RANGE_A, RESOLUTION_A, 0.11f, 10000, { } },
     { "Avago APDS-9300 Digital Ambient Light Sensor",
       "Avago",
@@ -143,7 +143,7 @@ SensorBase **get_platform_sensors()
         case SENSORS_HANDLE_LIGHT:
             platform_sensors[i] = new LightSensor(&sensor_configs[i]);
             break;
-        case SENSORS_HANDLE_ACCELERAMETER:
+        case SENSORS_HANDLE_ACCELEROMETER:
             platform_sensors[i] = new AccelSensor(&sensor_configs[i]);
             break;
         case SENSORS_HANDLE_MAGNETIC_FIELD:

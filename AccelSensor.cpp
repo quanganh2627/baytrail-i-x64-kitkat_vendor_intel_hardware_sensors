@@ -25,14 +25,14 @@ AccelSensor::AccelSensor(const sensor_platform_config_t *config)
       mInputReader(32),
       inputDataOverrun(0)
 {
-    if (mConfig->handle != SENSORS_HANDLE_ACCELERAMETER)
+    if (mConfig->handle != SENSORS_HANDLE_ACCELEROMETER)
         E("AccelSensor: Incorrect sensor config");
 
     data_fd = SensorBase::openInputDev(mConfig->name);
     LOGE_IF(data_fd < 0, "can't open accel input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = SENSORS_HANDLE_ACCELERAMETER;
+    mPendingEvent.sensor = SENSORS_HANDLE_ACCELEROMETER;
     mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
     mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
