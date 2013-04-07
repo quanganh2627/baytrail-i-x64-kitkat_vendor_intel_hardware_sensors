@@ -357,8 +357,68 @@ static float sensor_config_get_unit(char *unit_name) {
 }
 
 static int sensor_config_detect_sensor(int type) {
+    psh_sensor_t psh_sensor_type;
+    handle_t handle;
+
     if(type < 0)
         return 0;
+
+    switch (type) {
+    case SENSOR_TYPE_LIGHT:
+        psh_sensor_type = SENSOR_ALS;
+        break;
+    case SENSOR_TYPE_PROXIMITY:
+        psh_sensor_type = SENSOR_PROXIMITY;
+        break;
+    case SENSOR_TYPE_ACCELEROMETER:
+        psh_sensor_type = SENSOR_ACCELEROMETER;
+        break;
+    case SENSOR_TYPE_MAGNETIC_FIELD:
+        psh_sensor_type = SENSOR_COMP;
+        break;
+    case SENSOR_TYPE_GYROSCOPE:
+        psh_sensor_type = SENSOR_GYRO;
+        break;
+    case SENSOR_TYPE_PRESSURE:
+        psh_sensor_type = SENSOR_BARO;
+        break;
+    case SENSOR_TYPE_GRAVITY:
+        psh_sensor_type = SENSOR_GRAVITY;
+        break;
+    case SENSOR_TYPE_LINEAR_ACCELERATION:
+        psh_sensor_type = SENSOR_LINEAR_ACCEL;
+        break;
+    case SENSOR_TYPE_ROTATION_VECTOR:
+        psh_sensor_type = SENSOR_ROTATION_VECTOR;
+        break;
+    case SENSOR_TYPE_ORIENTATION:
+        psh_sensor_type = SENSOR_ORIENTATION;
+        break;
+    case SENSOR_TYPE_GESTURE_FLICK:
+        psh_sensor_type = SENSOR_GESTURE_FLICK;
+        break;
+    case SENSOR_TYPE_GESTURE:
+        psh_sensor_type = SENSOR_GS;
+        break;
+    case SENSOR_TYPE_TERMINAL:
+        psh_sensor_type = SENSOR_TC;
+        break;
+    case SENSOR_TYPE_PHYSICAL_ACTIVITY:
+        psh_sensor_type = SENSOR_ACTIVITY;
+        break;
+    case SENSOR_TYPE_PEDOMETER:
+        psh_sensor_type = SENSOR_PEDOMETER;
+        break;
+    default:
+        return 0;
+    }
+
+    handle = psh_open_session(psh_sensor_type);
+    if (handle == NULL)
+        return 0;
+
+    psh_close_session(handle);
+
     return 1;
 }
 
