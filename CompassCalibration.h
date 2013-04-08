@@ -1,38 +1,19 @@
 #ifndef __COMPASS_CALIBRATION_H__
 #define __COMPASS_CALIBRATION_H__
-
-/* Compass Calibration Transform Structure
- * The calibration progress should be applied
- * outside the algorithm.
- *
- * Ex:
- * x = (RawX - off_x) * w11
- * y = (RawY - off_y) * w22
- * z = (RawZ - off_z) * w33
- */
-
-typedef struct {
-    /* hard iron offsets */
-    double off_x;
-    double off_y;
-    double off_z;
-
-    /* soft iron matrix members */
-    double w11;
-    double w22;
-    double w33;
-
-    /* geomagnetic strength */
-    double bfield;
-} CompassCalData;
+#include <stdio.h>
 
 /* CompassCal_init
- * Initialize calibration algorithm. Must be called at once.
+ * Initialize calibration algorithm. Must be called at first.
  *
  * If compass has been calibrated before, old calibration data
- * could be passed into algorithm.
+ * are loaded from calDataFile
  */
-void CompassCal_init(int caled, const CompassCalData &data);
+void CompassCal_init(FILE *calDataFile);
+
+/* CompassCal_storeResult
+ * store the result calibration data into file
+ */
+void CompassCal_storeResult(FILE *calDataFile);
 
 /* CompassCal_collectData
  * collect compass data to calibrate
@@ -44,25 +25,28 @@ void CompassCal_init(int caled, const CompassCalData &data);
  * Return 0 if raw data is rejected,
  * return 1 if the data is accepted.
  */
-int CompassCal_collectData(float rawMagX, float rawMagY, float rawMagZ, long currentTimeMSec);
+int CompassCal_collectData(float rawMagX, float rawMagY, float rawMagZ,
+                           long currentTimeMSec);
 
 /* CompassCal_readyCheck
  * Check if enough raw data has been collected
  * to generate a calibration result.
  *
- * Return 1 if enough raw data has been
+ * Return 1 if enough raw data has been collected
  * otherwise return 0.
  */
 int CompassCal_readyCheck();
 
 /* CompassCal_computeCal
- * Compute transform structure and store
- * the result in data.
+ * Calibrate the raw compass data with current
+ * calibration determinants and output the calibrated
+ * result.
  *
  * This function should only be called
  * after calling CompassCal_readyCheck and
  * the return value is 1.
  */
-void CompassCal_computeCal(CompassCalData* data);
+void CompassCal_computeCal(float rawX, float rawY, float rawZ, float *resultX,
+                          float *resultY, float *resultZ);
 
 #endif /*__COMPASS_CALIBRATION_H__*/
