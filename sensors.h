@@ -48,6 +48,7 @@ __BEGIN_DECLS
 #endif
 
 #define  E(...)  LOGE(__VA_ARGS__)
+#define  I(...)  LOGI(__VA_ARGS__)
 
 /* * SENSORS_HANDLE_xxx should greater than SENSORS_HANDLE_BASE
  * and must be unique.  */
