@@ -14,47 +14,46 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_SENSOR_BASE_H
-#define ANDROID_SENSOR_BASE_H
+#ifndef ANDROID_GESTURE_FLICK_SENSOR_H
+#define ANDROID_GESTURE_FLICK_SENSOR_H
 
 #include <stdint.h>
 #include <errno.h>
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-#include "sensors.h"
-#include "libsensorhub/libsensorhub.h"
+#include "SensorBase.h"
 
 /*****************************************************************************/
 
-struct sensors_event_t;
+/*
+ * Author: Zheng Huan <huan.zheng@intel.com>
+ * Group: PSI, MCG
+ * Virtual sensor that interacts with PSH to report gesture flick events to sensor manager
+ * The following gesture flick events will be reported
+ *   Left Flick
+ *   Right Flick
+ *   Left Flick Twice
+ *   Right Flick Twice
+ *   Up Flick
+ *   Down Flick
+ */
 
-class SensorBase {
-protected:
-    const char* data_name;
-    int         data_fd;
-    handle_t mHandle;
-
-    void openSession(const char* inputName);
-    static int64_t getTimestamp();
-
-
-    static int64_t timevalToNano(timeval const& t) {
-        return t.tv_sec*1000000000LL + t.tv_usec*1000;
-    }
+class GestureFlickSensor : public SensorBase {
+    int mEnabled;
+    sensors_event_t mPendingEvent;
+    bool mHasPendingEvent;
 
 public:
-   SensorBase(const char* data_name);
-
-    virtual ~SensorBase();
-
-    virtual int readEvents(sensors_event_t* data, int count) = 0;
+    GestureFlickSensor();
+    virtual ~GestureFlickSensor();
+    virtual int readEvents(sensors_event_t* data, int count);
     virtual bool hasPendingEvents() const;
-    virtual int getFd() const;
+    virtual int enable(int32_t handle, int enabled);
     virtual int setDelay(int32_t handle, int64_t ns);
-    virtual int enable(int32_t handle, int enabled) = 0;
+private:
+    int getGestureFlickEvent(struct gesture_flick_data* data) const;
 };
 
 /*****************************************************************************/
-
-#endif  // ANDROID_SENSOR_BASE_H
+#endif  // ANDROID_GESTURE_FLICK_SENSOR_H

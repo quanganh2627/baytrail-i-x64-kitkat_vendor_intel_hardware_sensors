@@ -48,8 +48,6 @@ CompassSensor::CompassSensor(const sensor_platform_config_t *config)
     mMagneticEvent.magnetic.x = 0;
 
     mCalDataFile = -1;
-    mCaled = 0;
-    memset(&mCalData, 0, sizeof(CompassCalData));
 }
 
 CompassSensor::~CompassSensor()
@@ -63,41 +61,19 @@ CompassSensor::~CompassSensor()
 
 void CompassSensor::readCalibrationData()
 {
-    char buf[512];
-    memset(buf, 0, 512);
-
-    int ret = pread(mCalDataFile, buf, sizeof(buf), 0);
-    if (ret > 0) {
-        ret = sscanf(buf, "%d %lf %lf %lf %lf %lf %lf %lf\n", &mCaled,
-            &mCalData.off_x, &mCalData.off_y, &mCalData.off_z, &mCalData.w11,
-            &mCalData.w22, &mCalData.w33, &mCalData.bfield);
-        if (ret != 8)
-            mCaled = 0;
-    } else {
-        mCaled = 0;
-    }
-    if (!mCaled) {
-        I("CompassSensor - %s: calibration data is not ready.", __func__);
-        memset(&mCalData, 0, sizeof(CompassCalData));
-    }
-
-    CompassCal_init(mCaled, mCalData);
+    FILE * dataFile = fdopen(dup(mCalDataFile), "r");
+    CompassCal_init(dataFile);
+    if (dataFile)
+        fclose(dataFile);
 }
 
 void CompassSensor::storeCalibrationData()
 {
-    char buf[512];
-    int ret;
-    memset(buf, 0, 512);
-    snprintf(buf, sizeof(buf), "%d %f %f %f %f %f %f %f\n",
-            mCaled, mCalData.off_x, mCalData.off_y, mCalData.off_z,
-            mCalData.w11, mCalData.w22, mCalData.w33, mCalData.bfield);
-    ret = pwrite(mCalDataFile, buf, sizeof(buf), 0);
-    if (ret < 0) {
-        E("CompassSensor - Store calibration data failed: %s", strerror(ret));
-        E("CompassSensor - calibration data: %d %f %f %f %f %f %f %f\n",
-                mCaled, mCalData.off_x, mCalData.off_y, mCalData.off_z,
-                mCalData.w11, mCalData.w22, mCalData.w33, mCalData.bfield);
+    FILE * dataFile = fdopen(dup(mCalDataFile), "w");
+    if (dataFile) {
+        rewind(dataFile);
+        CompassCal_storeResult(dataFile);
+        fclose(dataFile);
     }
 }
 
@@ -273,14 +249,10 @@ void CompassSensor::calibration(int64_t time)
         current_time_ms);
 
     if (CompassCal_readyCheck()) {
-        CompassCal_computeCal(&mCalData);
-        mCaled = 1;
-    }
-
-    if (mCaled == 1) {
-        mMagneticEvent.magnetic.x = (mMagneticEvent.magnetic.x - mCalData.off_x) * mCalData.w11;
-        mMagneticEvent.magnetic.y = (mMagneticEvent.magnetic.y - mCalData.off_y) * mCalData.w22;
-        mMagneticEvent.magnetic.z = (mMagneticEvent.magnetic.z - mCalData.off_z) * mCalData.w33;
+        CompassCal_computeCal(mMagneticEvent.magnetic.x,
+        mMagneticEvent.magnetic.y, mMagneticEvent.magnetic.z,
+        &mMagneticEvent.magnetic.x, &mMagneticEvent.magnetic.y,
+        &mMagneticEvent.magnetic.z);
         mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_HIGH;
     } else {
         mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;

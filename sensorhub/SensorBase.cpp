@@ -103,6 +103,12 @@ void SensorBase::openSession(const char* inputName) {
     if(!strcmp(inputName, "orientation")){
         mHandle = psh_open_session(SENSOR_ORIENTATION);
     }
+    if(!strcmp(inputName, "terminal")){
+        mHandle = psh_open_session(SENSOR_TC);
+    }
+    if(!strcmp(inputName, "gestureflick")){
+        mHandle = psh_open_session(SENSOR_GESTURE_FLICK);
+    }
 
 
     if (mHandle == NULL) {

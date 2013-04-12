@@ -41,62 +41,14 @@
 #include "GravitySensor.h"
 #include "RotationVectorSensor.h"
 #include "OrientationSensor.h"
+#include "TerminalSensor.h"
+#include "GestureFlickSensor.h"
+#include "GestureSensor.h"
+#include "PhysicalActivitySensor.h"
+#include "PedometerSensor.h"
 
 /* The SENSORS Module */
-static const struct sensor_t sSensorList[] = {
-        { "PSH Accelerometer",
-          "Intel Inc.",
-          1, SENSORS_HANDLE_ACCELERATION,
-          SENSOR_TYPE_ACCELEROMETER, RANGE_A, CONVERT_A, 0.006f, 10000, { } },
-        { "PSH Magnetic field sensor",
-          "Intel Inc.",
-          1, SENSORS_HANDLE_MAGNETIC_FIELD,
-          SENSOR_TYPE_MAGNETIC_FIELD, 800.0f, CONVERT_M, 0.1f, 10000, { } },
-        { "PSH Ambient Light sensor",
-          "Intel Inc.",
-          1, SENSORS_HANDLE_LIGHT,
-          SENSOR_TYPE_LIGHT, 50000.0f, 1.0f, 0.35f, 0, { } },
-        { "PSH Proximity sensor",
-          "Intel Inc.",
-          1, SENSORS_HANDLE_PROXIMITY,
-          SENSOR_TYPE_PROXIMITY, 15.0f, 15.0f, 0.35f, 0, { } },
-        { "PSH Gyroscope sensor",
-          "Intel Inc.",
-          1, SENSORS_HANDLE_GYROSCOPE,
-          SENSOR_TYPE_GYROSCOPE, RANGE_GYRO, CONVERT_GYRO, 6.1f, 10000, { } },
-        { "PSH Pressure sensor",
-          "Intel Inc.",
-          1, SENSORS_HANDLE_PRESSURE,
-          SENSOR_TYPE_PRESSURE, 120000, 1.0f, 0.001f, 50000, { } },
-        { "PSH Gravity sensor",
-          "Intel Inc.",
-          1, SENSORS_HANDLE_GRAVITY,
-          SENSOR_TYPE_GRAVITY,
-	  RANGE_A, CONVERT_A, 0.006f, 10000, { }},
-	{ "PSH Linear Acceleration sensor",
-	  "Intel Inc.",
-	  1, SENSORS_HANDLE_LINEAR_ACCELERATION,
-	  SENSOR_TYPE_LINEAR_ACCELERATION,
-	  RANGE_A, CONVERT_A, 0.006f, 10000, { }},
-	{ "PSH Rotation Vector sensor",
-	  "Intel Inc.",
-	  1, SENSORS_HANDLE_ROTATION_VECTOR,
-	  SENSOR_TYPE_ROTATION_VECTOR,
-	  1, // Max-range, copy from android's virtual sensor.
-	  1.0f/ (1<<24), //Resolution, copy from android's virtual sensor.
-	  0.106f, //Power, acc.power + mag.power, too bad to hardcode it.
-	  10000,{}}, // The same as accelerometer
-	{ "PSH Orientation sensor",
-	  "Intel Inc.",
-	  1, SENSORS_HANDLE_ORIENTATION,
-	  SENSOR_TYPE_ORIENTATION,
-	  360, //Max-range, copy from android's virtual sensor.
-	  1.0f, //Resolution, copy from android's virtual sensor.
-	// Below is the same as Rotation vector sensor.
-	  0.106f,
-	  10000,{}},
-};
-
+static const struct sensor_t *sSensorList;
 
 static int open_sensors(const struct hw_module_t* module, const char* id,
                         struct hw_device_t** device);
@@ -105,8 +57,12 @@ static int open_sensors(const struct hw_module_t* module, const char* id,
 static int sensors__get_sensors_list(struct sensors_module_t* module,
                                      struct sensor_t const** list)
 {
-        *list = sSensorList;
-        return ARRAY_SIZE(sSensorList);
+    int sensor_count;
+
+    sSensorList = get_platform_sensor_list(&sensor_count);
+    *list = sSensorList;
+
+    return sensor_count;
 }
 
 static struct hw_module_methods_t sensors_module_methods = {
@@ -141,54 +97,22 @@ private:
     struct pollfd mPollFds[SENSORS_HANDLE_MAX + 1];
     int mWritePipeFd;
     int mNumSensors;
-    SensorBase *mSensors[SENSORS_HANDLE_MAX + 1]; // reserved 0 for SENSOR_HANDLE_BASE
+    SensorBase **mSensors; // reserved 0 for SENSOR_HANDLE_BASE
 };
 
 /*****************************************************************************/
 
 sensors_poll_context_t::sensors_poll_context_t()
 {
-    wake = mNumSensors = ARRAY_SIZE(sSensorList);
+    int handle;
+    sSensorList = get_platform_sensor_list(&mNumSensors);
+    wake = mNumSensors;
+    mSensors = get_platform_sensors();
     for (int i = 0; i < mNumSensors; i++) {
-	    int handle = sSensorList[i].handle;
-	    switch (handle) {
-		    case SENSORS_HANDLE_LIGHT:
-			    mSensors[handle] = new LightSensor();
-			    break;
-		    case SENSORS_HANDLE_PROXIMITY:
-			    mSensors[handle] = new ProximitySensor();
-			    break;
-		    case SENSORS_HANDLE_ACCELERATION:
-			    mSensors[handle] = new AccelSensor();
-			    break;
-		    case SENSORS_HANDLE_MAGNETIC_FIELD:
-			    mSensors[handle] = new MagneticSensor();
-			    break;
-		    case SENSORS_HANDLE_GYROSCOPE:
-			    mSensors[handle] = new GyroSensor();
-			    break;
-		    case SENSORS_HANDLE_PRESSURE:
-			    mSensors[handle] = new PressureSensor();
-			    break;
-		    case SENSORS_HANDLE_GRAVITY:
-			    mSensors[handle] = new GravitySensor();
-			    break;
-	            case SENSORS_HANDLE_LINEAR_ACCELERATION:
-			    mSensors[handle] = new LinearAccelSensor();
-			    break;
-		    case SENSORS_HANDLE_ROTATION_VECTOR:
-			    mSensors[handle] = new RotationVectorSensor();
-			    break;
-		    case SENSORS_HANDLE_ORIENTATION:
-			    mSensors[handle] = new OrientationSensor();
-			    break;
-		    default:
-			    LOGE("No Sensor id handle %d found\n", handle);
-			    continue;
-	    }
-	    mPollFds[i].fd = mSensors[handle]->getFd();
-	    mPollFds[i].events = POLLIN;
-	    mPollFds[i].revents = 0;
+        handle = sSensorList[i].handle;
+        mPollFds[i].fd = mSensors[handle]->getFd();
+        mPollFds[i].events = POLLIN;
+        mPollFds[i].revents = 0;
     }
     int  wakeFds[2];
     int result = pipe(wakeFds);

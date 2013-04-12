@@ -45,8 +45,6 @@ private:
 
     /* for calibration */
     int mCalDataFile;
-    int mCaled;
-    CompassCalData mCalData;
 
     /* data filter */
     int mFilterEn;
