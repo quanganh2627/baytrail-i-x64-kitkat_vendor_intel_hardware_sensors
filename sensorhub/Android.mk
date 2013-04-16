@@ -35,7 +35,7 @@ LOCAL_C_INCLUDES :=  $(COMMON_INCLUDES) \
         $(ANDROID_BUILD_TOP)/external/icu4c/common \
         $(ANDROID_BUILD_TOP)/external/libxml2/include \
         $(ANDROID_BUILD_TOP)/bionic \
-        $(TOP)/hardware/intel/libsensorhub/src/include \
+        $(TOP)/vendor/intel/hardware/libsensorhub/src/include \
         $(TOP)/vendor/intel/Aware/core/Physical/libs \
         $(TOP)/vendor/intel/Aware/core/Physical/ActivitySource-instant/fastact \
         $(TOP)/vendor/intel/Aware/core/Gesture/libgesture
