@@ -34,8 +34,8 @@ AccelSensor::AccelSensor(const sensor_platform_config_t *config)
     mPendingEvent.version = sizeof(sensors_event_t);
     mPendingEvent.sensor = SENSORS_HANDLE_ACCELEROMETER;
     mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
-    mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+    mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
 }
 
 AccelSensor::~AccelSensor()
