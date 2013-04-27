@@ -63,7 +63,8 @@ __BEGIN_DECLS
 #define SENSORS_HANDLE_PEDOMETER            15
 #define SENSORS_HANDLE_AUDIO_CLASSIFICATION 16
 #define SENSORS_HANDLE_AMBIENT_TEMPERATURE  17
-#define SENSORS_HANDLE_MAX              	17
+#define SENSORS_HANDLE_SHAKE                18
+#define SENSORS_HANDLE_MAX              	18
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
@@ -115,6 +116,7 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define SENSOR_TYPE_TERMINAL                103
 #define SENSOR_TYPE_AUDIO_CLASSIFICATION    104
 #define SENSOR_TYPE_PEDOMETER               105
+#define SENSOR_TYPE_SHAKE                   106
 
 // Sensor event types
 #define SHIFT_GESTURE_FLICK         4
@@ -122,6 +124,7 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define SHIFT_PHYSICAL_ACTIVITY     6
 #define SHIFT_TERMINAL              7
 #define SHIFT_AUDIO_CLASSIFICATION  8
+#define SHIFT_SHAKE_TITLT           9
 
 #define SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK        (1 << SHIFT_GESTURE_FLICK | 1)
 #define SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK       (1 << SHIFT_GESTURE_FLICK | 2)
@@ -167,6 +170,8 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_FEMALE_SPEECH    (1 << SHIFT_AUDIO_CLASSIFICATION | 6)
 #define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SILENT           (1 << SHIFT_AUDIO_CLASSIFICATION | 7)
 #define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_UNKNOWN          (1 << SHIFT_AUDIO_CLASSIFICATION | 8)
+
+#define SENSOR_EVENT_TYPE_SHAKE         (1 << SHIFT_SHAKE_TITLT | 1)
 
 // Sensor delay types
 #define SENSOR_DELAY_TYPE_PHYSICAL_ACTIVITY_INSTANT     (((1 << 3) + 1) * 1000)
