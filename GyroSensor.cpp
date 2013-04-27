@@ -36,6 +36,7 @@ GyroSensor::GyroSensor(const sensor_platform_config_t *config)
     mPendingEvent.sensor = SENSORS_HANDLE_GYROSCOPE;
     mPendingEvent.type = SENSOR_TYPE_GYROSCOPE;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+    mPendingEvent.gyro.status = SENSOR_STATUS_ACCURACY_HIGH;
 }
 
 GyroSensor::~GyroSensor()
