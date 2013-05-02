@@ -23,7 +23,7 @@
 #include <sys/types.h>
 
 #include "sensors.h"
-#include "libsensorhub/libsensorhub.h"
+#include <libsensorhub.h>
 
 /*****************************************************************************/
 
