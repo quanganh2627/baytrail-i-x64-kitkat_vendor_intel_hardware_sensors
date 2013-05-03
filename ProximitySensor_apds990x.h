@@ -19,10 +19,9 @@
 
 #include "SensorBase.h"
 
-#define APDS990X_MAX_THRESH               500
-#define APDS990X_MIN_THRESH               10
-#define APDS990X_DISTANCE_THRESH          100
-#define APDS990X_ENABLE_TRY               10
+#define APDS990X_MAX_THRESH               1000
+#define APDS990X_MIN_THRESH               30
+#define APDS990X_PS_INIT_DATA             0xffff
 
 #define SENSOR_CALIB_FILE       "/data/proximity.conf"
 

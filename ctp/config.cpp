@@ -221,12 +221,87 @@ static int sensor_config_get_platform_data(xmlNodePtr node, sensor_platform_conf
     }
 
     while (p != NULL) {
-        str = xmlNodeGetContent(p);
-        if (str == NULL || (!xmlStrcmp(str, (const xmlChar *)"0")) || (!xmlStrcmp(str, (const xmlChar *)""))) {
-            if (!p->properties) {
-                p = p->next;
-                continue;
+        if (p->properties) {
+            if ((!xmlStrcmp(p->name, (const xmlChar *)"mapper"))) {
+                attr = xmlGetProp(p, (const xmlChar*)"axis_x");
+                if (attr) {
+                    config->mapper[0] = sensor_config_get_axis((char *)attr);
+                    xmlFree(attr);
+                }
+                attr = xmlGetProp(p, (const xmlChar*)"axis_y");
+                if (attr) {
+                    config->mapper[1] = sensor_config_get_axis((char *)attr);
+                    xmlFree(attr);
+                }
+                attr = xmlGetProp(p, (const xmlChar*)"axis_z");
+                if (attr) {
+                    config->mapper[2] = sensor_config_get_axis((char *)attr);
+                    xmlFree(attr);
+                }
             }
+            else if ((!xmlStrcmp(p->name, (const xmlChar *)"scale"))) {
+                attr = xmlGetProp(p, (const xmlChar*)"axis_x");
+                if (attr) {
+                    config->scale[0] = atof((char *)attr);
+                    xmlFree(attr);
+                }
+                attr = xmlGetProp(p, (const xmlChar*)"axis_y");
+                if (attr) {
+                    config->scale[1] = atof((char *)attr);
+                    xmlFree(attr);
+                }
+                attr = xmlGetProp(p, (const xmlChar*)"axis_z");
+                if (attr) {
+                    config->scale[2] = atof((char *)attr);
+                    xmlFree(attr);
+                }
+            }
+            else if ((!xmlStrcmp(p->name, (const xmlChar *)"range"))) {
+                attr = xmlGetProp(p, (const xmlChar*)"min");
+                if (attr) {
+                    config->range[0] = atof((char *)attr);
+                    xmlFree(attr);
+                }
+                attr = xmlGetProp(p, (const xmlChar*)"max");
+                if (attr) {
+                    config->range[1] = atof((char *)attr);
+                    xmlFree(attr);
+                }
+            }
+            else if ((!xmlStrcmp(p->name, (const xmlChar *)"priv_data"))) {
+                attr = xmlGetProp(p, (const xmlChar*)"compass_filter_en");
+                if (attr) {
+                    temp = (sensor_data_t *)malloc(sizeof(union sensor_data_t));
+                    if(!temp)
+                        LOGE("malloc priv_data error!\n");
+                    else
+                        temp->compass_filter_en = atoi((char *)attr);
+                    config->priv_data = temp;
+                    xmlFree(attr);
+                }
+                else if ((attr = xmlGetProp(p, (const xmlChar*)"light_glass_factor"))) {
+                    temp = (sensor_data_t *)malloc(sizeof(union sensor_data_t));
+                    if(!temp)
+                        LOGE("malloc priv_data error!\n");
+                    else
+                        temp->light_glass_factor = atof((char *)attr);
+                    config->priv_data = temp;
+                    xmlFree(attr);
+                }
+            }
+            p = p->next;
+            continue;
+        }
+
+        str = xmlNodeGetContent(p);
+        if (str == NULL) {
+            p = p->next;
+            continue;
+        }
+	if ((!xmlStrcmp(str, (const xmlChar *)"0")) || (!xmlStrcmp(str, (const xmlChar *)""))) {
+            xmlFree(str);
+            p = p->next;
+            continue;
         }
 
         if ((!xmlStrcmp(p->name, (const xmlChar *)"name"))) {
@@ -244,69 +319,8 @@ static int sensor_config_get_platform_data(xmlNodePtr node, sensor_platform_conf
         else if ((!xmlStrcmp(p->name, (const xmlChar *)"config_path"))) {
             config->config_path = generate_string(str);
         }
-        else if ((!xmlStrcmp(p->name, (const xmlChar *)"mapper"))) {
-            attr = xmlGetProp(p, (const xmlChar*)"axis_x");
-            if (attr) {
-                config->mapper[0] = sensor_config_get_axis((char *)attr);
-                xmlFree(attr);
-            }
-            attr = xmlGetProp(p, (const xmlChar*)"axis_y");
-            if (attr) {
-                config->mapper[1] = sensor_config_get_axis((char *)attr);
-                xmlFree(attr);
-            }
-            attr = xmlGetProp(p, (const xmlChar*)"axis_z");
-            if (attr) {
-                config->mapper[2] = sensor_config_get_axis((char *)attr);
-                xmlFree(attr);
-            }
-        }
-        else if ((!xmlStrcmp(p->name, (const xmlChar *)"scale"))) {
-            attr = xmlGetProp(p, (const xmlChar*)"axis_x");
-            if (attr) {
-                config->scale[0] = atof((char *)attr);
-                xmlFree(attr);
-            }
-            attr = xmlGetProp(p, (const xmlChar*)"axis_y");
-            if (attr) {
-                config->scale[1] = atof((char *)attr);
-                xmlFree(attr);
-            }
-            attr = xmlGetProp(p, (const xmlChar*)"axis_z");
-            if (attr) {
-                config->scale[2] = atof((char *)attr);
-                xmlFree(attr);
-            }
-        }
-        else if ((!xmlStrcmp(p->name, (const xmlChar *)"range"))) {
-            attr = xmlGetProp(p, (const xmlChar*)"min");
-            if (attr) {
-                config->range[0] = atof((char *)attr);
-                xmlFree(attr);
-            }
-            attr = xmlGetProp(p, (const xmlChar*)"max");
-            if (attr) {
-                config->range[1] = atof((char *)attr);
-                xmlFree(attr);
-            }
-        }
         else if ((!xmlStrcmp(p->name, (const xmlChar *)"min_delay"))) {
             config->min_delay = atoi((char *)str);
-        }
-        else if ((!xmlStrcmp(p->name, (const xmlChar *)"priv_data"))) {
-            attr = xmlGetProp(p, (const xmlChar*)"compass_filter_en");
-            if (attr) {
-                temp = (sensor_data_t *)malloc(sizeof(union sensor_data_t));
-                temp->compass_filter_en = atoi((char *)attr);
-                config->priv_data = temp;
-                xmlFree(attr);
-            }
-            else if ((attr = xmlGetProp(p, (const xmlChar*)"light_glass_factor"))) {
-                temp = (sensor_data_t *)malloc(sizeof(union sensor_data_t));
-                temp->light_glass_factor = atof((char *)attr);
-                config->priv_data = temp;
-                xmlFree(attr);
-            }
         }
         xmlFree(str);
         p = p->next;
@@ -326,11 +340,11 @@ static int sensor_config_get_sensor(xmlNodePtr node, struct sensor_t *sensor_ite
     }
     while (p != NULL) {
         str = xmlNodeGetContent(p);
-        if (str == NULL || (!xmlStrcmp(str, (const xmlChar *)"0"))) {
-            if (!p->properties) {
-                p = p->next;
-                continue;
-            }
+        if (str == NULL || (!xmlStrcmp(str, (const xmlChar *)"0")) || (!xmlStrcmp(str, (const xmlChar *)""))) {
+            if (str != NULL)
+                xmlFree(str);
+            p = p->next;
+            continue;
         }
 
         if ((!xmlStrcmp(p->name, (const xmlChar *)"name"))) {
