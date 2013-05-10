@@ -58,7 +58,8 @@ LOCAL_SRC_FILES :=     config.cpp                 \
                        GestureFlickSensor.cpp     \
                        GestureSensor.cpp          \
                        PhysicalActivitySensor.cpp \
-                       PedometerSensor.cpp
+                       PedometerSensor.cpp \
+                       ShakeSensor.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc libsensorhub libutils libstlport
 LOCAL_STATIC_LIBRARIES := libxml2

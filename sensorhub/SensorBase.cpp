@@ -109,6 +109,9 @@ void SensorBase::openSession(const char* inputName) {
     if(!strcmp(inputName, "gestureflick")){
         mHandle = psh_open_session(SENSOR_GESTURE_FLICK);
     }
+    if(!strcmp(inputName, "shake")){
+        mHandle = psh_open_session(SENSOR_SHAKING);
+    }
 
 
     if (mHandle == NULL) {
