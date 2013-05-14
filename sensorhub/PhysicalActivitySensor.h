@@ -27,7 +27,6 @@
 #include <utils/Mutex.h>
 
 #include "activity.h"
-#include "FastActivity.h"
 
 #include "SensorBase.h"
 
@@ -65,16 +64,9 @@ using android::Mutex;
 #define SYMBOL_ACTIVITY_INSTANT_PROCESS "activity_instant_process"
 #define LIB_ACTIVITY_INSTANT "libActivityInstant.so"
 
-#define SYMBOL_FAST_ACTIVITY_INIT "FastActivity_init"
-#define SYMBOL_FAST_ACTIVITY_PROCESS "FastActivity_process"
-#define LIB_FAST_ACTIVITY "libfastact.so"
-
 typedef SH_STATUS (*FUNC_ACTIVITY_INSTANT_INIT) (ACTIVITY_CB cb, void *ctx);
 typedef int (*FUNC_ACTIVITY_INSTANT_COLLECT_DATA) (short ax, short ay, short az);
 typedef SH_STATUS (*FUNC_ACTIVITY_INSTANT_PROCESS) ();
-
-typedef bool (*FUNC_FAST_ACTIVITY_INIT) ();
-typedef short (*FUNC_FAST_ACTIVITY_PROCESS) (short *data);
 
 class PhysicalActivitySensor : public SensorBase
 {
@@ -144,8 +136,6 @@ private:
 
     // for instant mode calculation
     short mPSHCn;  // result from lab algorithm
-    short mFastCn;  // result from fast activity algorithm
-    short mAgreeCn;  // result combined from two results
 
     // Algorithm function pointers
     void *mLibActivityInstant;
@@ -153,9 +143,6 @@ private:
     FUNC_ACTIVITY_INSTANT_COLLECT_DATA mActivityInstantCollectData;
     FUNC_ACTIVITY_INSTANT_PROCESS mActivityInstantProcess;
 
-    void *mLibFastActivity;
-    FUNC_FAST_ACTIVITY_INIT mFastActivityInit;
-    FUNC_FAST_ACTIVITY_PROCESS mFastActivityProcess;
     // decorator stuff to process output coming from PSH
     class Client
     {

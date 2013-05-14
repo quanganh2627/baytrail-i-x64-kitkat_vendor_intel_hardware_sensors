@@ -70,8 +70,6 @@ PhysicalActivitySensor::PhysicalActivitySensor()
     mWorkerThread = THREAD_NOT_STARTED;
 
     mPSHCn = 0;
-    mFastCn = 0;
-    mAgreeCn = RAND;
 
     mPAHandle = PSH_SESSION_NOT_OPENED;
     mAccHandle = PSH_SESSION_NOT_OPENED;
@@ -80,9 +78,6 @@ PhysicalActivitySensor::PhysicalActivitySensor()
     mActivityInstantInit = NULL;
     mActivityInstantCollectData = NULL;
     mActivityInstantProcess = NULL;
-    mLibFastActivity = NULL;
-    mFastActivityInit = NULL;
-    mFastActivityProcess = NULL;
 
     connectToPSH();
 
@@ -125,23 +120,6 @@ void PhysicalActivitySensor::loadAlgorithm()
     } else {
         LOGE("Can't find libActivityInstant.so!!");
     }
-
-    // load libfastact.so
-    mLibFastActivity = dlopen(LIB_FAST_ACTIVITY, RTLD_NOW);
-    if (mLibFastActivity != NULL) {
-        mFastActivityInit = (FUNC_FAST_ACTIVITY_INIT) dlsym(mLibFastActivity,
-                                                 SYMBOL_FAST_ACTIVITY_INIT);
-        mFastActivityProcess = (FUNC_FAST_ACTIVITY_PROCESS) dlsym(mLibFastActivity,
-                                                 SYMBOL_FAST_ACTIVITY_PROCESS);
-
-        if (mFastActivityInit != NULL && mFastActivityProcess != NULL) {
-            LOGI("Got all required functions from libfastact.so");
-        } else {
-            LOGE("Can't get all required functions from libfastact.so!!");
-        }
-    } else {
-        LOGE("Can't find libfastact.so!!");
-    }
 }
 
 void PhysicalActivitySensor::unLoadAlgorithm()
@@ -149,16 +127,12 @@ void PhysicalActivitySensor::unLoadAlgorithm()
     if (mLibActivityInstant != NULL) {
         dlclose(mLibActivityInstant);
     }
-    if (mLibFastActivity != NULL) {
-        dlclose(mLibFastActivity);
-    }
 }
 
 bool PhysicalActivitySensor::isAlgorithmLoaded()
 {
     if (mActivityInstantInit != NULL && mActivityInstantCollectData != NULL &&
-        mActivityInstantProcess != NULL &&
-        mFastActivityInit != NULL && mFastActivityProcess != NULL) {
+        mActivityInstantProcess != NULL) {
         return true;
     } else {
         return false;
@@ -413,23 +387,9 @@ int PhysicalActivitySensor::ActCB(void *ctx, short *results, int len)
 {
     PhysicalActivitySensor *src = (PhysicalActivitySensor*)ctx;
     src->mPSHCn = results[0] & 0xF;
-    short pdp = results[0] & (~0xF);
-    LOGI("CN: %s %s", classNames[src->mPSHCn], classNames[src->mFastCn]);
-
-    if (src->mPSHCn == SED || src->mFastCn == SED) {
-        src->mAgreeCn = SED;
-    } else if (src->mPSHCn == RUNNING || src->mFastCn == RUNNING) {
-        src->mAgreeCn = RUNNING;
-    } else if (src->mPSHCn == src->mFastCn) {
-        src->mAgreeCn = src->mFastCn;
-    } else if (src->mAgreeCn != WALKING) {
-        src->mAgreeCn = RAND;
-    } else {
-        src->mAgreeCn = WALKING;
-    }
 
     // report out final value
-    int report = getPA(src->mAgreeCn);
+    int report = getPA(src->mPSHCn);
     write(src->mResultPipe[1], &report, sizeof(report));
 
     return 0;
@@ -538,7 +498,6 @@ void* PhysicalActivitySensor::workerThread(void *data)
     // if instant mode, initialize algorithm
     if (instantMode) {
         (*src->mActivityInstantInit)(ActCB, data);
-        (*src->mFastActivityInit)();
     }
 
     // let's poll
@@ -553,7 +512,6 @@ void* PhysicalActivitySensor::workerThread(void *data)
                 LOGE("Unexpected Read End");
                 break;
             }
-            src->mFastCn = (*src->mFastActivityProcess)(accel);
             if ((*src->mActivityInstantCollectData)(accel[0], accel[1], accel[2])) {
                 LOGI("Process");
                 (*src->mActivityInstantProcess)();
@@ -818,6 +776,8 @@ bool PhysicalActivitySensor::ClientSummarizer::accept(short *item, int len)
 
     for (int i = 0; i < mClient->N; ++i) {
         int cn = CN(mClient->mStream[i]);
+        if (cn < 0 || cn >= ACTNUM)
+            return false;
         scores[cn] += mWeights[i];
         sum += mWeights[i];
     }

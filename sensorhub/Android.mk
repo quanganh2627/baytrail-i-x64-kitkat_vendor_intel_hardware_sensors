@@ -36,7 +36,6 @@ LOCAL_C_INCLUDES :=  $(COMMON_INCLUDES) \
         $(ANDROID_BUILD_TOP)/external/libxml2/include \
         $(ANDROID_BUILD_TOP)/bionic \
         $(TOP)/vendor/intel/Aware/core/Physical/libs \
-        $(TOP)/vendor/intel/Aware/core/Physical/ActivitySource-instant/fastact \
         $(TOP)/vendor/intel/Aware/core/Gesture/libgesture
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\" -DINSTANT_MODE
