@@ -84,7 +84,7 @@ int AccelSensor::setDelay(int32_t handle, int64_t ns)
         return 0;
 
     if (ns / 1000 == SENSOR_NOPOLL)
-        ms = 0;
+        ms = 200;
     else
         ms = ns / 1000000;
 
