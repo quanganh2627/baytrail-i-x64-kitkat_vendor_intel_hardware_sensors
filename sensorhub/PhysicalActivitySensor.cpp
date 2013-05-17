@@ -438,6 +438,7 @@ void* PhysicalActivitySensor::workerThread(void *data)
     short accel[3];
     struct phy_activity_data actData;
     Client *client = NULL;
+    Client *tmpClient = NULL;
     // Get current delay
     int64_t delay;
     {
@@ -480,8 +481,8 @@ void* PhysicalActivitySensor::workerThread(void *data)
         }
 
         // create decorators
-        client = new NCycleClient(paDelay);
-        client = new ClientSummarizer(client);
+        tmpClient = new NCycleClient(paDelay);
+        client = new ClientSummarizer(tmpClient);
 
         psh_fd = psh_get_fd(src->mPAHandle);
     }
