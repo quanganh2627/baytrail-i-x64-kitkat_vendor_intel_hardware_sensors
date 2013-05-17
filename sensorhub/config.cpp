@@ -233,11 +233,12 @@ static int sensor_config_get_sensor(xmlNodePtr node, struct sensor_t *sensor_ite
 
     while (p != NULL) {
         str = xmlNodeGetContent(p);
-        if (str == NULL || (!xmlStrcmp(str, (const xmlChar *)"0"))) {
-            if (!p->properties) {
-                p = p->next;
-                continue;
-            }
+        if (str == NULL || (!xmlStrcmp(str, (const xmlChar *)"0"))
+            || (!xmlStrcmp(str, (const xmlChar *)""))) {
+            if (str != NULL)
+                xmlFree(str);
+            p = p->next;
+            continue;
         }
 
         if ((!xmlStrcmp(p->name, (const xmlChar *)"name"))) {
