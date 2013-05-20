@@ -30,6 +30,7 @@
 #include "GestureSensor.h"
 #include "PhysicalActivitySensor.h"
 #include "PedometerSensor.h"
+#include "ShakeSensor.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -124,6 +125,9 @@ SensorBase **get_platform_sensors()
             break;
         case SENSORS_HANDLE_PEDOMETER:
             platform_sensors[handle] = new PedometerSensor();
+            break;
+        case SENSORS_HANDLE_SHAKE:
+            platform_sensors[handle] = new ShakeSensor();
             break;
         default:
             LOGE("No Sensor id handle %d found\n", handle);
@@ -302,6 +306,8 @@ static int sensor_config_get_handle(const char *type) {
         return SENSORS_HANDLE_PHYSICAL_ACTIVITY;
     else if (!strcmp(type, "pedometer"))
         return SENSORS_HANDLE_PEDOMETER;
+    else if (!strcmp(type, "shake"))
+        return SENSORS_HANDLE_SHAKE;
     return -1;
 }
 
@@ -341,6 +347,8 @@ static int sensor_config_get_type(const char *type) {
         return SENSOR_TYPE_PHYSICAL_ACTIVITY;
     else if (!strcmp(type, "pedometer"))
         return SENSOR_TYPE_PEDOMETER;
+    else if (!strcmp(type, "shake"))
+        return SENSOR_TYPE_SHAKE;
     return -1;
 }
 
@@ -408,6 +416,9 @@ static int sensor_config_detect_sensor(int type) {
         break;
     case SENSOR_TYPE_PEDOMETER:
         psh_sensor_type = SENSOR_PEDOMETER;
+        break;
+    case SENSOR_TYPE_SHAKE:
+        psh_sensor_type = SENSOR_SHAKING;
         break;
     default:
         return 0;

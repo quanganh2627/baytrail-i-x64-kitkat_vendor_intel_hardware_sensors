@@ -64,7 +64,7 @@ int ProximitySensor::calibThresh(int raw_data)
 
     memset(&calib, 0, sizeof(calib));
     while ((ret = pread(fd, &calib, sizeof(calib), offset)) > 0) {
-        LOGI("ProximitySensor: pread %d bytes from seonsr config file", ret);
+        D("ProximitySensor: pread %d bytes from seonsr config file", ret);
         if (calib.type == SENSOR_TYPE_PROXIMITY) {
             LOGI("ProximitySensor: thresh=%d, raw_data=%d",
                                                     calib.thresh, raw_data);
@@ -73,7 +73,13 @@ int ProximitySensor::calibThresh(int raw_data)
         }
         offset += sizeof(calib);
     }
-    if (raw_data < thresh && raw_data >= APDS990X_MIN_THRESH) {
+
+    if (calib.type != SENSOR_TYPE_PROXIMITY &&
+            raw_data == APDS990X_PS_INIT_DATA) {
+            LOGI("ProximitySensor: No data for calibration, abort...");
+            return -1;
+    }
+    if (raw_data < thresh) {
         thresh = raw_data;
         calib.thresh = thresh;
         calib.type = SENSOR_TYPE_PROXIMITY;
@@ -85,19 +91,28 @@ int ProximitySensor::calibThresh(int raw_data)
 
     lock.l_type = F_UNLCK;
     if (fcntl(fd, F_SETLK, &lock) < 0) {
-        LOGI("ProximitySensor: File unlock failed, %s", strerror(errno));
+        E("ProximitySensor: File unlock failed, %s", strerror(errno));
         thresh = -1;
     }
     close(fd);
+
+    if (thresh >= 0 && thresh < APDS990X_MIN_THRESH)
+	    thresh = APDS990X_MIN_THRESH;
+
+    thresh = (thresh * 17) / 10;
+    if (thresh > APDS990X_MAX_THRESH)
+	    thresh = APDS990X_MAX_THRESH;
 
     return thresh;
 }
 
 int ProximitySensor::enable(int32_t, int en)
 {
-    int fd, thresh, raw_data = 0, len;
+    int fd, thresh, ret;
     int flag = en ? 1 : 0;
+    int raw_data = APDS990X_PS_INIT_DATA;
     char buf[16] = { 0 };
+    struct pollfd pfd;
 
     LOGI("ProximitySensor - %s - enable=%d", __func__, en);
     if (flag == mEnabled)
@@ -113,23 +128,29 @@ int ProximitySensor::enable(int32_t, int en)
 
     if ((fd = open(mConfig->data_path, O_RDONLY)) < 0) {
         LOGI("ProximitySensor: open %s failed, %s!",
-				mConfig->data_path, strerror(errno));
+                mConfig->data_path, strerror(errno));
         return 0;
     }
-    for (int i = 0; i < APDS990X_ENABLE_TRY; i++) {
-        usleep(100000);
-        len = read(fd, &buf, sizeof(buf) - 1);
-        if (len < 0) {
+
+    pfd.fd = data_fd;
+    pfd.events = POLLIN;
+    /* Waiting for first sensor raw data */
+    ret = poll(&pfd, 1, 50);
+    if (ret < 0) {
+        E("ProximitySeneor - %s: poll first data error, %s",
+                __func__, strerror(errno));
+    } else {
+        if (ret == 0)
+            I("ProximitySeneor - %s: poll first data timeout", __func__);
+        ret = read(fd, &buf, sizeof(buf) - 1);
+        if (ret < 0) {
             LOGI("ProximitySensor: read %s failed, %s!",
 				    mConfig->data_path, strerror(errno));
 
             close(fd);
             return 0;
         }
-        LOGI("ProximitySensor - buf: %s", buf);
         sscanf(buf, "%d\n", &raw_data);
-        if (raw_data > 0)
-            break;
     }
     close(fd);
 
@@ -138,22 +159,19 @@ int ProximitySensor::enable(int32_t, int en)
         LOGI("ProximitySensor - calibration failed");
         return 0;
     }
-
-    thresh += APDS990X_DISTANCE_THRESH;
     if ((fd = open(mConfig->config_path, O_WRONLY)) < 0) {
         LOGI("ProximitySensor: open %s failed, %s",
 			mConfig->config_path, strerror(errno));
         return 0;
     }
+
     memset(buf, 0, sizeof(buf));
     snprintf(buf, sizeof(buf), "%d\n", thresh);
+    LOGI("ProximitySensor: set thresh to %s.", buf);
     if (write(fd, buf, strlen(buf)) < 0) {
         LOGI("ProximitySensor: write %s failed, %s",
                 mConfig->config_path, strerror(errno));
-        close(fd);
-        return 0;
     }
-    LOGI("ProximitySensor: set thresh to %s.", buf);
     close(fd);
     return 0;
 }

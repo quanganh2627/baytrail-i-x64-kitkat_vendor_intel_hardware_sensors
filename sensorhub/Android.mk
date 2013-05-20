@@ -35,7 +35,6 @@ LOCAL_C_INCLUDES :=  $(COMMON_INCLUDES) \
         $(ANDROID_BUILD_TOP)/external/icu4c/common \
         $(ANDROID_BUILD_TOP)/external/libxml2/include \
         $(ANDROID_BUILD_TOP)/bionic \
-        $(TOP)/vendor/intel/hardware/libsensorhub/src/include \
         $(TOP)/vendor/intel/apps/Aware/core/Physical/libs \
         $(TOP)/vendor/intel/apps/Aware/core/Physical/ActivitySource-instant/fastact \
         $(TOP)/vendor/intel/apps/Aware/core/Gesture/libgesture
@@ -58,7 +57,8 @@ LOCAL_SRC_FILES :=     config.cpp                 \
                        GestureFlickSensor.cpp     \
                        GestureSensor.cpp          \
                        PhysicalActivitySensor.cpp \
-                       PedometerSensor.cpp
+                       PedometerSensor.cpp \
+                       ShakeSensor.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc libsensorhub libutils libstlport
 LOCAL_STATIC_LIBRARIES := libxml2

@@ -14,36 +14,41 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_PROXIMITY_SENSOR_H
-#define ANDROID_PROXIMITY_SENSOR_H
+#ifndef ANDROID_SHAKE_SENSOR_H
+#define ANDROID_SHAKE_SENSOR_H
+
+#include <stdint.h>
+#include <errno.h>
+#include <sys/cdefs.h>
+#include <sys/types.h>
 
 #include "SensorBase.h"
 
-#define APDS990X_MAX_THRESH               1000
-#define APDS990X_MIN_THRESH               30
-#define APDS990X_PS_INIT_DATA             0xffff
+/*****************************************************************************/
 
-#define SENSOR_CALIB_FILE       "/data/proximity.conf"
+/*
+ * Author: Zheng Huan <huan.zheng@intel.com> Wang Xun <xun.a.wang@intel.com>
+ * Group: PSI, MCG
+ * Virtual sensor that interacts with PSH to report shake events to sensor manager
+ * The following gesture flick events will be reported
+ *   Shake
+ */
 
-typedef struct ps_calib {
-    int type;
-    int thresh;
-} ps_calib_t;
-
-class ProximitySensor : public SensorBase {
+class ShakeSensor : public SensorBase {
     int mEnabled;
     sensors_event_t mPendingEvent;
     bool mHasPendingEvent;
 
-private:
-    int calibThresh(int raw);
-
 public:
-    ProximitySensor(const sensor_platform_config_t *config);
-    virtual ~ProximitySensor();
+    ShakeSensor();
+    virtual ~ShakeSensor();
     virtual int readEvents(sensors_event_t* data, int count);
     virtual bool hasPendingEvents() const;
     virtual int enable(int32_t handle, int enabled);
+    virtual int setDelay(int32_t handle, int64_t ns);
+private:
+    int getShakeEvent(struct shaking_data* data) const;
 };
 
-#endif  // ANDROID_PROXIMITY_SENSOR_H
+/*****************************************************************************/
+#endif  // ANDROID_SHAKE_SENSOR_H
