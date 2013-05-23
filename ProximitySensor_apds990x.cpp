@@ -39,10 +39,26 @@ ProximitySensor::~ProximitySensor()
         enable(0, 0);
 }
 
-int ProximitySensor::calibThresh(int raw_data)
+int ProximitySensor::getThresh(ps_calib_t *calib)
 {
-    int ret, fd, thresh = APDS990X_MAX_THRESH;
-    off_t offset = 0;
+    int thresh;
+
+    thresh = calib->average;
+    if (thresh < APDS990X_MIN_CROSSTALK)
+	    thresh = APDS990X_MIN_CROSSTALK;
+
+    thresh = (thresh * 18) / 10;
+    if (thresh > APDS990X_MAX_CROSSTALK)
+	    thresh = APDS990X_MAX_CROSSTALK;
+
+    I("ProximitySensor: crosstalk average: %d, set thresh to %d",
+            calib->average, thresh);
+    return thresh;
+}
+
+int ProximitySensor::calibCrosstalk(int raw_data)
+{
+    int i, ret, fd, sum = 0;
     struct flock lock;
     ps_calib_t calib;
 
@@ -57,53 +73,72 @@ int ProximitySensor::calibThresh(int raw_data)
     lock.l_whence = SEEK_SET;
     lock.l_len = 0;
     if (fcntl(fd, F_SETLK, &lock) < 0) {
-        LOGI("ProximitySensor: File lock failed failed, %s", strerror(errno));
+        I("ProximitySensor: File lock failed failed, %s", strerror(errno));
         close(fd);
         return -1;
     }
 
     memset(&calib, 0, sizeof(calib));
-    while ((ret = pread(fd, &calib, sizeof(calib), offset)) > 0) {
-        D("ProximitySensor: pread %d bytes from seonsr config file", ret);
-        if (calib.type == SENSOR_TYPE_PROXIMITY) {
-            LOGI("ProximitySensor: thresh=%d, raw_data=%d",
-                                                    calib.thresh, raw_data);
-            thresh = calib.thresh;
-            break;
-        }
-        offset += sizeof(calib);
+    if ((ret = pread(fd, &calib, sizeof(calib), 0)) > 0) {
+        I("ProximitySensor: crosstalk sample num=%d, average=%d, raw_data=%d",
+                calib.num, calib.average, raw_data);
+    } else {
+        I("ProximitySensor: No calibration file found, raw_data=%d", raw_data);
     }
 
-    if (calib.type != SENSOR_TYPE_PROXIMITY &&
-            raw_data == APDS990X_PS_INIT_DATA) {
-            LOGI("ProximitySensor: No data for calibration, abort...");
+    if (calib.num == 0 && raw_data == APDS990X_PS_INIT_DATA) {
+            I("ProximitySensor: No data for calibration, abort...");
             return -1;
     }
-    if (raw_data < thresh) {
-        thresh = raw_data;
-        calib.thresh = thresh;
-        calib.type = SENSOR_TYPE_PROXIMITY;
-        if ((ret = pwrite(fd, &calib, sizeof(calib), offset)) > 0)
-            LOGI("ProximitySensor: write %d bytes to sensor config file", ret);
-        else
-            LOGI("ProximitySensor: write data failed, %s", strerror(errno));
+    if (raw_data < APDS990X_MIN_CROSSTALK)
+        raw_data += APDS990X_MIN_CROSSTALK;
+
+    if (calib.num > SAMPLE_MAX_NUM) {
+        E("ProximitySensor: crosstalk sample count error: %d", calib.num);
+        return -1;
     }
+    if (calib.num == 0) {
+        if (raw_data > APDS990X_MAX_CROSSTALK)
+            return -1;
+        calib.average = raw_data;
+        calib.crosstalk[0] = raw_data;
+        calib.num = 1;
+    } else if (calib.num < SAMPLE_MAX_NUM) {
+        if (raw_data > calib.average * 2) {
+            I("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
+                    raw_data, calib.average, calib.num);
+            return getThresh(&calib);
+        }
+        calib.crosstalk[calib.num++] = raw_data;
+        for (i = 0; i < calib.num; i++)
+            sum += calib.crosstalk[i];
+        calib.average = sum / calib.num;
+    } else {
+        if (raw_data > (calib.average * 15) / 10) {
+            I("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
+                    raw_data, calib.average, calib.num);
+            return getThresh(&calib);
+        }
+        for (i = 1; i < calib.num; i++) {
+            sum += calib.crosstalk[i];
+            calib.crosstalk[i - 1] = calib.crosstalk[i];
+        }
+        sum += raw_data;
+        calib.average = sum / calib.num;
+        calib.crosstalk[i - 1] = raw_data;
+    }
+    if ((ret = pwrite(fd, &calib, sizeof(calib), 0)) > 0)
+        D("ProximitySensor: Write %d bytes to sensor config file", ret);
+    else
+        E("ProximitySensor: Write data failed, %s", strerror(errno));
 
     lock.l_type = F_UNLCK;
-    if (fcntl(fd, F_SETLK, &lock) < 0) {
+    if (fcntl(fd, F_SETLK, &lock) < 0)
         E("ProximitySensor: File unlock failed, %s", strerror(errno));
-        thresh = -1;
-    }
+
     close(fd);
 
-    if (thresh >= 0 && thresh < APDS990X_MIN_THRESH)
-	    thresh = APDS990X_MIN_THRESH;
-
-    thresh = (thresh * 17) / 10;
-    if (thresh > APDS990X_MAX_THRESH)
-	    thresh = APDS990X_MAX_THRESH;
-
-    return thresh;
+    return getThresh(&calib);
 }
 
 int ProximitySensor::enable(int32_t, int en)
@@ -114,7 +149,7 @@ int ProximitySensor::enable(int32_t, int en)
     char buf[16] = { 0 };
     struct pollfd pfd;
 
-    LOGI("ProximitySensor - %s - enable=%d", __func__, en);
+    I("ProximitySensor - %s - enable=%d", __func__, en);
     if (flag == mEnabled)
         return 0;
 
@@ -127,7 +162,7 @@ int ProximitySensor::enable(int32_t, int en)
         return 0;
 
     if ((fd = open(mConfig->data_path, O_RDONLY)) < 0) {
-        LOGI("ProximitySensor: open %s failed, %s!",
+        I("ProximitySensor: open %s failed, %s!",
                 mConfig->data_path, strerror(errno));
         return 0;
     }
@@ -144,7 +179,7 @@ int ProximitySensor::enable(int32_t, int en)
             I("ProximitySeneor - %s: poll first data timeout", __func__);
         ret = read(fd, &buf, sizeof(buf) - 1);
         if (ret < 0) {
-            LOGI("ProximitySensor: read %s failed, %s!",
+            E("ProximitySensor: read %s failed, %s!",
 				    mConfig->data_path, strerror(errno));
 
             close(fd);
@@ -154,22 +189,20 @@ int ProximitySensor::enable(int32_t, int en)
     }
     close(fd);
 
-    LOGI("ProximitySensor - raw data for calibration:%d", raw_data);
-    if ((thresh = calibThresh(raw_data)) < 0) {
-        LOGI("ProximitySensor - calibration failed");
+    if ((thresh = calibCrosstalk(raw_data)) < 0) {
+        E("ProximitySensor - calibration failed");
         return 0;
     }
     if ((fd = open(mConfig->config_path, O_WRONLY)) < 0) {
-        LOGI("ProximitySensor: open %s failed, %s",
+        E("ProximitySensor: open %s failed, %s",
 			mConfig->config_path, strerror(errno));
         return 0;
     }
 
     memset(buf, 0, sizeof(buf));
     snprintf(buf, sizeof(buf), "%d\n", thresh);
-    LOGI("ProximitySensor: set thresh to %s.", buf);
     if (write(fd, buf, strlen(buf)) < 0) {
-        LOGI("ProximitySensor: write %s failed, %s",
+        E("ProximitySensor: write %s failed, %s",
                 mConfig->config_path, strerror(errno));
     }
     close(fd);
@@ -193,7 +226,7 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
     data->timestamp = getTimestamp();
     read(data_fd, &val, sizeof(int));
     data->distance = (float)(val == 1 ? 0 : 6);
-    LOGI("ProximitySensor - read data %f, %s",
+    I("ProximitySensor - read data %f, %s",
             data->distance, data->distance > 0 ? "far" : "near");
 
     return 1;
