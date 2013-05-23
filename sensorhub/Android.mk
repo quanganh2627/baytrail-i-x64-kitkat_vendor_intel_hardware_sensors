@@ -35,9 +35,8 @@ LOCAL_C_INCLUDES :=  $(COMMON_INCLUDES) \
         $(ANDROID_BUILD_TOP)/external/icu4c/common \
         $(ANDROID_BUILD_TOP)/external/libxml2/include \
         $(ANDROID_BUILD_TOP)/bionic \
-        $(TOP)/vendor/intel/apps/Aware/core/Physical/libs \
-        $(TOP)/vendor/intel/apps/Aware/core/Physical/ActivitySource-instant/fastact \
-        $(TOP)/vendor/intel/apps/Aware/core/Gesture/libgesture
+        $(ANDROID_BUILD_TOP)/vendor/intel/hardware/libsensorhub/src/include \
+        $(TARGET_OUT_HEADERS)/awarelibs
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\" -DINSTANT_MODE
 LOCAL_SRC_FILES :=     config.cpp                 \
