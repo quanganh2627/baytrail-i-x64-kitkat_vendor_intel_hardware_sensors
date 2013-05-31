@@ -19,15 +19,17 @@
 
 #include "SensorBase.h"
 
-#define APDS990X_MAX_THRESH               1000
-#define APDS990X_MIN_THRESH               30
+#define APDS990X_MAX_CROSSTALK            900
+#define APDS990X_MIN_CROSSTALK            20
 #define APDS990X_PS_INIT_DATA             0xffff
 
-#define SENSOR_CALIB_FILE       "/data/proximity.conf"
+#define SAMPLE_MAX_NUM                    20
+#define SENSOR_CALIB_FILE                 "/data/proximity.conf"
 
 typedef struct ps_calib {
-    int type;
-    int thresh;
+    int num;
+    int average;
+    int crosstalk[SAMPLE_MAX_NUM];
 } ps_calib_t;
 
 class ProximitySensor : public SensorBase {
@@ -36,7 +38,8 @@ class ProximitySensor : public SensorBase {
     bool mHasPendingEvent;
 
 private:
-    int calibThresh(int raw);
+    int calibCrosstalk(int raw);
+    int getThresh(ps_calib_t *calib);
 
 public:
     ProximitySensor(const sensor_platform_config_t *config);

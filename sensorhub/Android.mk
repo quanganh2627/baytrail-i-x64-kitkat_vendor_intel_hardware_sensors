@@ -35,7 +35,6 @@ LOCAL_C_INCLUDES :=  $(COMMON_INCLUDES) \
         $(ANDROID_BUILD_TOP)/external/icu4c/common \
         $(ANDROID_BUILD_TOP)/external/libxml2/include \
         $(ANDROID_BUILD_TOP)/bionic \
-        $(ANDROID_BUILD_TOP)/hardware/intel/libsensorhub/src/include \
         $(TARGET_OUT_HEADERS)/awarelibs
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\" -DINSTANT_MODE
