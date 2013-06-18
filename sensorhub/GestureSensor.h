@@ -82,27 +82,39 @@ public:
 
 private:
     /**
-     * Thread starts when gesture sensor is enabled, stops when gesture sensor is disabled
-     * In thread, read PSH gesturespotter output, and call libgesture API
-     * to process data; write into pipe the final result
-     * to update result
+     * Thread starts in ActivateContext(), stops in DeactivateContext()
+     * In thread, read PSH accel output, and call libgesture libgesturespotting API
+     * to process data;
      */
-    static void*            pollingThreadGesture(void* data);
-    bool                    startGesture();
-    void                    stopGesture();
-    pthread_t               mPollingThreadIDGesture;
-    handle_t                mHandleGesture;
-    int                     mWakeFdsGesture[2];
-    Mutex                   mMutexGesture;
-    bool                    mInitGesture;
+    static void*            PollingThread_accel(void* data);
+    bool                    Start_accel();
+    void                    Stop_accel();
+    pthread_t               mPollingThreadIDAccel;
+    handle_t                mHandleAccel;
+    int                     mWakeFdsAccel[2];
+    Mutex                   mMutexAccel;
+
+    /**
+     * Thread starts in ActivateContext(), stops in DeactivateContext()
+     * In thread, read PSH gyro output
+     */
+    static void*            PollingThread_gyro(void* data);
+    bool                    Start_gyro();
+    void                    Stop_gyro();
+    pthread_t               mPollingThreadIDGyro;
+    handle_t                mHandleGyro;
+    int                     mWakeFdsGyro[2];
+    short                   mDataGyro[3];
+    Mutex                   mMutexGyro;
+
 
     /**
      * Thread starts when gesture sensor is enabled, stops when gesture sensor is disabled
      * In thread, read PSH proximity sensor output, and update mFlagProximity
      */
-    static void*            pollingThreadProximity(void* data);
-    bool                    startProximity();
-    void                    stopProximity();
+    static void*            PollingThread_proximity(void* data);
+    bool                    Start_proximity();
+    void                    Stop_proximity();
     pthread_t               mPollingThreadIDProximity;
     handle_t                mHandleProximity;
     int                     mWakeFdsProximity[2];
@@ -122,6 +134,8 @@ private:
 
     static int getGestureFromString(char* gesture);
     static void threadID();
+
+    bool mInitGesture;
 };
 
 /*****************************************************************************/
