@@ -64,7 +64,8 @@ __BEGIN_DECLS
 #define SENSORS_HANDLE_AUDIO_CLASSIFICATION 16
 #define SENSORS_HANDLE_AMBIENT_TEMPERATURE  17
 #define SENSORS_HANDLE_SHAKE                18
-#define SENSORS_HANDLE_MAX              	18
+#define SENSORS_HANDLE_SIMPLE_TAPPING       20
+#define SENSORS_HANDLE_MAX              	20
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
@@ -117,6 +118,7 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define SENSOR_TYPE_AUDIO_CLASSIFICATION    104
 #define SENSOR_TYPE_PEDOMETER               105
 #define SENSOR_TYPE_SHAKE                   106
+#define SENSOR_TYPE_SIMPLE_TAPPING          108
 
 // Sensor event types
 #define SHIFT_GESTURE_FLICK         4
@@ -125,6 +127,7 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define SHIFT_TERMINAL              7
 #define SHIFT_AUDIO_CLASSIFICATION  8
 #define SHIFT_SHAKE_TITLT           9
+#define SHIFT_SIMPLE_TAPPING        10
 
 #define SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK        (1 << SHIFT_GESTURE_FLICK | 1)
 #define SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK       (1 << SHIFT_GESTURE_FLICK | 2)
@@ -172,6 +175,7 @@ static inline int64_t timespec_to_ns(const struct timespec *ts)
 #define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_UNKNOWN          (1 << SHIFT_AUDIO_CLASSIFICATION | 8)
 
 #define SENSOR_EVENT_TYPE_SHAKE         (1 << SHIFT_SHAKE_TITLT | 1)
+#define SENSOR_EVENT_TYPE_SIMPLE_TAPPING_DOUBLE_TAPPING         (1 << SHIFT_SIMPLE_TAPPING | 1)
 
 // Sensor delay types
 #define SENSOR_DELAY_TYPE_PHYSICAL_ACTIVITY_INSTANT     (((1 << 3) + 1) * 1000)
