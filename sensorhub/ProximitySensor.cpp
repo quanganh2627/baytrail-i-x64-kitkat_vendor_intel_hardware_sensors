@@ -110,7 +110,7 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
         if (p_ps_phy_data->near == 1)
             mPendingEvent.distance = (float)0;
         else
-            mPendingEvent.distance = (float)15;
+            mPendingEvent.distance = (float)5;
 
         mPendingEvent.timestamp = getTimestamp();
 
