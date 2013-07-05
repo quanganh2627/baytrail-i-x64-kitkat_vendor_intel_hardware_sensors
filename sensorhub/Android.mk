@@ -28,12 +28,12 @@ LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_C_INCLUDES :=  $(COMMON_INCLUDES) \
-        $(TOP)/frameworks/base/include/ \
-        $(ANDROID_BUILD_TOP)/external/stlport/stlport/ \
-        $(ANDROID_BUILD_TOP)/external/stlport/stlport/stl \
-        $(ANDROID_BUILD_TOP)/external/stlport/stlport/using/h/ \
-        $(ANDROID_BUILD_TOP)/external/icu4c/common \
-        $(ANDROID_BUILD_TOP)/external/libxml2/include \
+        $(call include-path-for, frameworks-base) \
+        $(call include-path-for, stlport) \
+        $(call include-path-for, stlport)/stl \
+        $(call include-path-for, stlport)/using/h/ \
+        $(call include-path-for, icu4c-common) \
+        $(call include-path-for, libxml2) \
         $(ANDROID_BUILD_TOP)/bionic \
         $(TARGET_OUT_HEADERS)/awarelibs
 
