@@ -39,6 +39,17 @@ ProximitySensor::ProximitySensor()
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }
 
+ProximitySensor::ProximitySensor(int handle)
+    : SensorBase("proximity", handle),
+      mEnabled(0),
+      mHasPendingEvent(false)
+{
+    mPendingEvent.version = sizeof(sensors_event_t);
+    mPendingEvent.sensor = idHandle;
+    mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
+    memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+}
+
 ProximitySensor::~ProximitySensor() {
     if (mEnabled)
         enable(0, 0);

@@ -32,7 +32,17 @@ GyroSensor::GyroSensor()
       mEnabled(0)
 {
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = SENSORS_HANDLE_GYROSCOPE;
+    mPendingEvent.sensor = idHandle;
+    mPendingEvent.type = SENSOR_TYPE_GYROSCOPE;
+    memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+}
+
+GyroSensor::GyroSensor(int handle)
+    : SensorBase("gyro", handle),
+      mEnabled(0)
+{
+    mPendingEvent.version = sizeof(sensors_event_t);
+    mPendingEvent.sensor = idHandle;
     mPendingEvent.type = SENSOR_TYPE_GYROSCOPE;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }

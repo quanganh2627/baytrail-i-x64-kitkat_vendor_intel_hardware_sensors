@@ -32,6 +32,7 @@ struct sensors_event_t;
 class SensorBase {
 protected:
     int         data_fd;
+    int idHandle;
     handle_t mHandle;
 
     void openSession(const char* inputName);
@@ -45,6 +46,7 @@ protected:
 public:
     const char* data_name;
    SensorBase(const char* data_name);
+   SensorBase(const char* data_name, int handle);
 
     virtual ~SensorBase();
 
