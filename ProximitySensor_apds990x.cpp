@@ -47,7 +47,7 @@ int ProximitySensor::getThresh(ps_calib_t *calib)
     if (thresh < APDS990X_MIN_CROSSTALK)
 	    thresh = APDS990X_MIN_CROSSTALK;
 
-    thresh = (thresh * 18) / 10;
+    thresh = (thresh * 22) / 10;
     if (thresh > APDS990X_MAX_CROSSTALK)
 	    thresh = APDS990X_MAX_CROSSTALK;
 
@@ -104,7 +104,7 @@ int ProximitySensor::calibCrosstalk(int raw_data)
         calib.crosstalk[0] = raw_data;
         calib.num = 1;
     } else if (calib.num < SAMPLE_MAX_NUM) {
-        if (raw_data > calib.average * 2) {
+        if (raw_data > APDS990X_MAX_CROSSTALK) {
             I("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
                     raw_data, calib.average, calib.num);
             return getThresh(&calib);
@@ -114,7 +114,7 @@ int ProximitySensor::calibCrosstalk(int raw_data)
             sum += calib.crosstalk[i];
         calib.average = sum / calib.num;
     } else {
-        if (raw_data > (calib.average * 15) / 10) {
+        if (raw_data > calib.average * 2) {
             I("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
                     raw_data, calib.average, calib.num);
             return getThresh(&calib);
