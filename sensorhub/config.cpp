@@ -32,6 +32,7 @@
 #include "PedometerSensor.h"
 #include "ShakeSensor.h"
 #include "SimpleTappingSensor.h"
+#include "AudioClassifierSensor.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -132,6 +133,9 @@ SensorBase **get_platform_sensors()
             break;
         case SENSORS_HANDLE_SIMPLE_TAPPING:
             platform_sensors[handle] = new SimpleTappingSensor();
+            break;
+        case SENSORS_HANDLE_AUDIO_CLASSIFICATION:
+            platform_sensors[handle] = new AudioClassifierSensor();
             break;
         default:
             LOGE("No Sensor id handle %d found\n", handle);
@@ -315,6 +319,8 @@ static int sensor_config_get_handle(const char *type) {
         return SENSORS_HANDLE_SHAKE;
     else if (!strcmp(type, "simple_tapping"))
         return SENSORS_HANDLE_SIMPLE_TAPPING;
+    else if (!strcmp(type, "audio_classifier"))
+        return SENSORS_HANDLE_AUDIO_CLASSIFICATION;
     return -1;
 }
 
@@ -358,6 +364,8 @@ static int sensor_config_get_type(const char *type) {
         return SENSOR_TYPE_SHAKE;
     else if (!strcmp(type, "simple_tapping"))
         return SENSOR_TYPE_SIMPLE_TAPPING;
+    else if (!strcmp(type, "audio_classifier"))
+        return SENSOR_TYPE_AUDIO_CLASSIFICATION;
     return -1;
 }
 
@@ -431,6 +439,9 @@ static int sensor_config_detect_sensor(int type) {
         break;
     case SENSOR_TYPE_SIMPLE_TAPPING:
         psh_sensor_type = SENSOR_STAP;
+        break;
+    case SENSOR_TYPE_AUDIO_CLASSIFICATION:
+        psh_sensor_type = SENSOR_LPE;
         break;
     default:
         return 0;
