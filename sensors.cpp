@@ -143,8 +143,10 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
             if ((mPollFds[i].revents & POLLIN) || sensor->hasPendingEvents()) {
                 int nb = sensor->readEvents(data, count);
                 if (nb < count) {
-                    /* no more data for this sensor */
+                    /* no more data or error for this sensor */
                     mPollFds[i].revents = 0;
+                    if (nb < 0)
+                        continue;
                 }
                 count -= nb;
                 nbEvents += nb;
