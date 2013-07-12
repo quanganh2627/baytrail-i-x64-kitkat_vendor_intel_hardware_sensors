@@ -112,7 +112,9 @@ void SensorBase::openSession(const char* inputName) {
     if(!strcmp(inputName, "shake")){
         mHandle = psh_open_session(SENSOR_SHAKING);
     }
-
+    if(!strcmp(inputName, "simpletapping")){
+        mHandle = psh_open_session(SENSOR_STAP);
+    }
 
     if (mHandle == NULL) {
         E("can't open session for %s", inputName);

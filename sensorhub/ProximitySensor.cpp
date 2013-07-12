@@ -64,7 +64,7 @@ int ProximitySensor::enable(int32_t, int en) {
             return -1;
         }
     } else if (flags == 1) {
-        ret = psh_start_streaming(mHandle, 1, 0);
+        ret = psh_start_streaming_with_flag(mHandle, 1, 0, NO_STOP_WHEN_SCREEN_OFF);
         if (ret != 0) {
             E("ProximitySensor - %s, failed to start streaming, ret = %d",
                                                      __FUNCTION__, ret);
@@ -110,7 +110,7 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
         if (p_ps_phy_data->near == 1)
             mPendingEvent.distance = (float)0;
         else
-            mPendingEvent.distance = (float)15;
+            mPendingEvent.distance = (float)5;
 
         mPendingEvent.timestamp = getTimestamp();
 
