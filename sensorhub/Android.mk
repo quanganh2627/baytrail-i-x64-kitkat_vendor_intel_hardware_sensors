@@ -15,6 +15,8 @@
 
 ifeq ($(ENABLE_SENSOR_HUB),true)
 
+ifneq ($(REF_DEVICE_NAME), saltbay)
+
 LOCAL_PATH := $(call my-dir)
 
 # HAL module implemenation, not prelinked, and stored in
@@ -64,5 +66,7 @@ LOCAL_STATIC_LIBRARIES := libxml2
 LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)
+
+endif # !saltbay
 
 endif
