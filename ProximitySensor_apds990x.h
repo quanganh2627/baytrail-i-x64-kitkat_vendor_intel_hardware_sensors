@@ -19,7 +19,7 @@
 
 #include "SensorBase.h"
 
-#define APDS990X_MAX_CROSSTALK            900
+#define APDS990X_MAX_CROSSTALK            600
 #define APDS990X_MIN_CROSSTALK            20
 #define APDS990X_PS_INIT_DATA             0xffff
 

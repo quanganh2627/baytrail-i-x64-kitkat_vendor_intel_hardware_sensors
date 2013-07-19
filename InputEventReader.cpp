@@ -41,6 +41,7 @@ ssize_t InputEventCircularReader::fill(int fd)
         D("%s, nread = %d", __func__, nread);
         if (nread<0 || nread % sizeof(input_event)) {
             /* we got a partial event!! */
+            E("%s, error while read input event: nread = %ld", __func__, nread);
             return nread<0 ? -errno : -EINVAL;
         }
 
