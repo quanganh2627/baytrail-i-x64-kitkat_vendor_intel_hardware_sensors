@@ -38,6 +38,7 @@ public:
 private:
     int mEnabled;
     sensors_event_t mPendingEvent;
+    int64_t last_timestamp;
 
     int setInitialState();
 };

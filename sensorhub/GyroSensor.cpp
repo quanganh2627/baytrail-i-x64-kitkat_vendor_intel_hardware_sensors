@@ -91,6 +91,8 @@ int GyroSensor::setDelay(int32_t handle, int64_t delay_ns)
     delay_ms = delay_ns / 1000000;
     data_rate = 1000 / delay_ms;
 
+    last_timestamp = getTimestamp();
+
     ret = psh_start_streaming(mHandle, data_rate, 0);
     if (ret != 0) {
         E("psh_start_streaming failed, ret is %d", ret);
@@ -113,6 +115,8 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
     char buf[512];
     struct gyro_raw_data *p_gyro_raw_data;
     int unit_size = sizeof(struct gyro_raw_data);
+    int64_t current_timestamp;
+    int64_t step;
 
     D("GyroSensor::%s", __FUNCTION__);
 
@@ -128,6 +132,10 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
         size = (512 / unit_size) * unit_size;
 
     size = read(data_fd, buf, size);
+    count = size / unit_size;
+
+    current_timestamp = getTimestamp();
+    step = (current_timestamp - last_timestamp) / count;
 
     char *p = buf;
     p_gyro_raw_data = (struct gyro_raw_data *)buf;
@@ -137,7 +145,7 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
         mPendingEvent.data[1] = processRawData(p_gyro_raw_data->y);
         mPendingEvent.data[2] = processRawData(p_gyro_raw_data->z);
 
-        mPendingEvent.timestamp = getTimestamp();
+        mPendingEvent.timestamp = last_timestamp + step * (numEventReceived + 1);
 
         if (mEnabled == 1) {
            *data++ = mPendingEvent;
@@ -152,5 +160,8 @@ int GyroSensor::readEvents(sensors_event_t* data, int count)
 
     D("GyroSensor::%s, numEventReceived is %d", __FUNCTION__,
                                            numEventReceived);
+
+    last_timestamp = current_timestamp;
+
     return numEventReceived;
 }

@@ -92,6 +92,8 @@ int GravitySensor::setDelay(int32_t handle, int64_t ns)
     if (data_rate > MAX_DATA_RATE)
         data_rate = MAX_DATA_RATE;
 
+    last_timestamp = getTimestamp();
+
     ret = psh_start_streaming(mHandle, data_rate, 0);
     if (ret != 0) {
         E("psh_start_streaming failed, ret is %d", ret);
@@ -107,6 +109,8 @@ int GravitySensor::readEvents(sensors_event_t* data, int count)
     char buf[512];
     struct gravity_data *p_gravity_data;
     int unit_size = sizeof(struct gravity_data);
+    int64_t current_timestamp;
+    int64_t step;
 
     D("Enter %s, count is %d", __FUNCTION__, count);
     if (count < 1)
@@ -124,8 +128,13 @@ int GravitySensor::readEvents(sensors_event_t* data, int count)
 
 
     size = read(data_fd, buf, size);
+    count = size / unit_size;
 
     D("GravitySensor::readEvents read size is %d", size);
+
+    current_timestamp = getTimestamp();
+
+    step = (current_timestamp - last_timestamp) / count;
 
     char *p = buf;
 
@@ -136,7 +145,7 @@ int GravitySensor::readEvents(sensors_event_t* data, int count)
         mPendingEvent.data[1] = ((float)p_gravity_data->y / (1000 * 65536)) * GRAVITY;
         mPendingEvent.data[2] = ((float)p_gravity_data->z / (1000 * 65536)) * GRAVITY;
 
-        mPendingEvent.timestamp = getTimestamp();
+        mPendingEvent.timestamp = last_timestamp + step * (numEventReceived + 1);
 
         if (mEnabled == 1) {
            *data++ = mPendingEvent;
@@ -150,6 +159,8 @@ int GravitySensor::readEvents(sensors_event_t* data, int count)
 
     D("GravitySensor::%s, numEventReceived is %d", __FUNCTION__,
                                             numEventReceived);
+
+    last_timestamp = current_timestamp;
 
     return numEventReceived;
 }

@@ -96,6 +96,8 @@ int MagneticSensor::setDelay(int32_t handle, int64_t ns)
     if (data_rate == 0)
         return -1;
 
+    last_timestamp = getTimestamp();
+
     ret = psh_start_streaming(mHandle, data_rate, 0);
 
     if (ret != 0) {
@@ -112,6 +114,8 @@ int MagneticSensor::readEvents(sensors_event_t* data, int count)
     char buf[512];
     struct compass_raw_data *p_compass_raw_data;
     int unit_size = sizeof(struct compass_raw_data);
+    int64_t current_timestamp;
+    int64_t step;
 
     if (count < 1)
         return -EINVAL;
@@ -127,6 +131,10 @@ int MagneticSensor::readEvents(sensors_event_t* data, int count)
         size = (512 / unit_size) * unit_size;
 
     size = read(data_fd, buf, size);
+    count = size / unit_size;
+
+    current_timestamp = getTimestamp();
+    step = (current_timestamp - last_timestamp) / count;
 
     char *p = buf;
     p_compass_raw_data = (struct compass_raw_data *)buf;
@@ -141,7 +149,7 @@ int MagneticSensor::readEvents(sensors_event_t* data, int count)
         else
             mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;
 
-        mMagneticEvent.timestamp = getTimestamp();
+        mMagneticEvent.timestamp = last_timestamp + step * (numEventReceived + 1);
 
         if (mEnabled) {
             *data++ = mMagneticEvent;
@@ -152,6 +160,8 @@ int MagneticSensor::readEvents(sensors_event_t* data, int count)
         p = p + unit_size;
         p_compass_raw_data = (struct compass_raw_data *)p;
     }
+
+    last_timestamp = current_timestamp;
 
     return numEventReceived;
 }
