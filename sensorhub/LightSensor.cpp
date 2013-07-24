@@ -109,7 +109,7 @@ int LightSensor::readEvents(sensors_event_t* data, int count)
     p_als_raw_data = (struct als_raw_data *)buf;
 
     while (size > 0) {
-        mPendingEvent.light = p_als_raw_data->lux/10;
+        mPendingEvent.light = (float)p_als_raw_data->lux/10;
         mPendingEvent.timestamp = getTimestamp();
 
         if (mEnabled == 1) {
