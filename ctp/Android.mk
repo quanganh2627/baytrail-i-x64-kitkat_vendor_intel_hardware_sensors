@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifeq ($(REF_DEVICE_NAME), $(filter $(REF_DEVICE_NAME), victoriabay))
+ifeq ($(REF_DEVICE_NAME), $(filter $(REF_DEVICE_NAME), redhookbay victoriabay))
 
 LOCAL_PATH := $(call my-dir)
 
