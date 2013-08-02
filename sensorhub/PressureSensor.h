@@ -30,6 +30,7 @@ class PressureSensor : public SensorBase {
     int mEnabled;
     sensors_event_t mPendingEvent;
     bool mHasPendingEvent;
+    int64_t last_timestamp;
 
     int setInitialState();
 

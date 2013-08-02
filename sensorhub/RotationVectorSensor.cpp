@@ -92,6 +92,8 @@ int RotationVectorSensor::setDelay(int32_t handle, int64_t ns)
     if (data_rate > MAX_DATA_RATE)
         data_rate = MAX_DATA_RATE;
 
+    last_timestamp = getTimestamp();
+
     ret = psh_start_streaming(mHandle, data_rate, 0);
     if (ret != 0) {
         E("psh_start_streaming failed, ret is %d", ret);
@@ -107,6 +109,8 @@ int RotationVectorSensor::readEvents(sensors_event_t* data, int count)
     char buf[512];
     struct rotation_vector_data *p_data;
     int unit_size = sizeof(struct rotation_vector_data);
+    int64_t current_timestamp;
+    int64_t step;
 
     if (count < 1)
         return -EINVAL;
@@ -122,8 +126,13 @@ int RotationVectorSensor::readEvents(sensors_event_t* data, int count)
         size = (512 / unit_size) * unit_size;
 
     size = read(data_fd, buf, size);
+    count = size / unit_size;
 
     D("RotationVectorSensor::readEvents read size is %d", size);
+
+    current_timestamp = getTimestamp();
+
+    step = (current_timestamp - last_timestamp) / count;
 
     char *p = buf;
 
@@ -135,7 +144,7 @@ int RotationVectorSensor::readEvents(sensors_event_t* data, int count)
         mPendingEvent.data[2] = (float)p_data->z/65536;
 	mPendingEvent.data[3] = (float)p_data->w/65536;
 
-        mPendingEvent.timestamp = getTimestamp();
+        mPendingEvent.timestamp = last_timestamp + step * (numEventReceived + 1);
 
         if (mEnabled == 1) {
            *data++ = mPendingEvent;
@@ -149,6 +158,8 @@ int RotationVectorSensor::readEvents(sensors_event_t* data, int count)
 
     D("RotationVectorSensor::%s, numEventReceived is %d", __FUNCTION__,
                                             numEventReceived);
+
+    last_timestamp = current_timestamp;
 
     return numEventReceived;
 }

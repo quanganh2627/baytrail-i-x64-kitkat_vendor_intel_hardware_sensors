@@ -91,6 +91,8 @@ int PressureSensor::setDelay(int32_t handle, int64_t delay_ns)
     ms = delay_ns / 1000000;
     data_rate = 1000 / ms;
 
+    last_timestamp = getTimestamp();
+
     ret = psh_start_streaming(mHandle, data_rate, 0);
     if (ret != 0) {
         E("psh_start_streaming failed, ret is %d", ret);
@@ -116,6 +118,8 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
     char buf[512];
     struct baro_raw_data *p_baro_raw_data;
     int unit_size = sizeof(struct baro_raw_data);
+    int64_t current_timestamp;
+    int64_t step;
 
     D("PressureSensor::%s", __FUNCTION__);
 
@@ -131,13 +135,17 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
         size = (512 / unit_size) * unit_size;
 
     size = read(data_fd, buf, size);
+    count = size / unit_size;
+
+    current_timestamp = getTimestamp();
+    step = (current_timestamp - last_timestamp) / count;
 
     char *p = buf;
     p_baro_raw_data = (struct baro_raw_data *)buf;
 
     while (size > 0) {
         mPendingEvent.pressure = p_baro_raw_data->p / 1000.0;
-        mPendingEvent.timestamp = getTimestamp();
+        mPendingEvent.timestamp = last_timestamp + step * (numEventReceived + 1);
 
         if (mEnabled == 1) {
            *data++ = mPendingEvent;
@@ -151,5 +159,8 @@ int PressureSensor::readEvents(sensors_event_t* data, int count)
 
     D("PressureSensor::%s, numEventReceived is %d", __FUNCTION__,
                                                 numEventReceived);
+
+    last_timestamp = current_timestamp;
+
     return numEventReceived;
 }
