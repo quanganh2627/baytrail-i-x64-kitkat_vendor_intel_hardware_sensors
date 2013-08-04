@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifeq ($(REF_DEVICE_NAME), $(filter $(REF_DEVICE_NAME), victoriabay))
+ifeq ($(REF_DEVICE_NAME),redhookbay)
+
+ifneq ($(USE_GENERAL_SENSOR_DRIVER),true)
 
 LOCAL_PATH := $(call my-dir)
 
@@ -41,8 +43,8 @@ LOCAL_SRC_FILES +=  ../AccelSensor.cpp          \
                     ../PressureSensor.cpp
 
 LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
-                    $(call include-path-for, icu4c-common) \
-                    $(call include-path-for, libxml2)
+                    external/icu4c/common \
+                    external/libxml2/include
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc
 LOCAL_STATIC_LIBRARIES := libxml2
 
@@ -52,4 +54,47 @@ include $(BUILD_SHARED_LIBRARY)
 
 endif # !TARGET_SIMULATOR
 
-endif
+else # USE_GENERAL_SENSOR_DRIVER True 
+
+LOCAL_PATH := $(call my-dir)
+
+ifneq ($(TARGET_SIMULATOR),true)
+
+# HAL module implemenation, not prelinked, and stored in
+# hw/<SENSORS_HARDWARE_MODULE_ID>.<ro.product.board>.so
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := sensors.$(TARGET_DEVICE)
+LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+LOCAL_MODULE_TAGS := optional
+
+LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
+LOCAL_SRC_FILES := config_general.cpp           \
+                   ../InputEventReader.cpp      \
+                   ../sensors.cpp               \
+                   ../SensorBase.cpp
+
+LOCAL_SRC_FILES +=  ../AccelSensor.cpp          \
+                    ../LightSensor_input_general.cpp    \
+                    ../ProximitySensor_input.cpp \
+                    ../CompassSensor.cpp        \
+                    ../CompassCalibration.cpp   \
+                    ../GyroSensor.cpp           \
+                    ../PressureSensor.cpp
+
+LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
+                    external/icu4c/common \
+                    external/libxml2/include
+LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc
+LOCAL_STATIC_LIBRARIES := libxml2
+
+LOCAL_PRELINK_MODULE := false
+
+include $(BUILD_SHARED_LIBRARY)
+
+endif # !TARGET_SIMULATOR
+
+endif # USE_GENERAL_SENSOR_DRIVER
+
+endif # REF_DEVICE_NAME
+
