@@ -27,7 +27,9 @@ LightSensor::LightSensor(const sensor_platform_config_t *config)
         E("LightSensor: Incorrect sensor config");
 
     data_fd = SensorBase::openInputDev(mConfig->name);
-    LOGE_IF(data_fd < 0, "can't open light input dev");
+    LOGE_IF(data_fd < 0, "can't open light input dev%s", mConfig->name);
+
+    D("LightSensor open light input dev%s", mConfig->name);
 
     if (!config->priv_data)
         mGlassFactor = 1.0;
@@ -98,15 +100,15 @@ int LightSensor::readEvents(sensors_event_t* data, int count)
     int numEventReceived = 0;
     input_event const* event;
 
-    D("LightSensor::%s", __func__);
     while (count && mInputReader.readEvent(&event)) {
         int type = event->type;
-        D("LightSensor:%s, type = %d, code = %d, count = %d",
-                                                    __func__, type, event->code, count);
+
+        D("LightSensor:%s, type = %d, code = %d, value = %d, count = %d",
+                           __func__, type, event->code, event->value, count);
+
         if (type == EV_ABS && !inputDataOverrun) {
             float value = event->value;
-            if (event->code == ABS_MISC)
-                mPendingEvent.light = value * mGlassFactor;
+            mPendingEvent.light = value * mGlassFactor;
         } else if (type == EV_SYN) {
             mPendingEvent.timestamp = timevalToNano(event->time);
             if (event->code == SYN_DROPPED) {

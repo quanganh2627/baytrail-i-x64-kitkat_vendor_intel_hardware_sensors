@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifeq ($(REF_DEVICE_NAME), $(filter $(REF_DEVICE_NAME), victoriabay))
+ifeq ($(REF_DEVICE_NAME),redhookbay)
 
 LOCAL_PATH := $(call my-dir)
 
@@ -33,8 +33,8 @@ LOCAL_SRC_FILES := config.cpp                   \
                    ../SensorBase.cpp
 
 LOCAL_SRC_FILES +=  ../AccelSensor.cpp          \
-                    ../LightSensor.cpp          \
-                    ../ProximitySensor_apds990x.cpp \
+                    ../LightSensor_input.cpp    \
+                    ../ProximitySensor_input.cpp \
                     ../CompassSensor.cpp        \
                     ../CompassCalibration.cpp   \
                     ../GyroSensor.cpp           \

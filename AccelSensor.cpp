@@ -84,8 +84,9 @@ int AccelSensor::setDelay(int32_t handle, int64_t ns)
 	    return -1;
     }
 
+    /*resume to 5 hz from interrupt trigger method*/
     if (ns / 1000 == SENSOR_NOPOLL)
-        ms = 0;
+        ms = 200;
     else
         ms = ns / 1000000;
 
