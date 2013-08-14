@@ -6,6 +6,7 @@
 #include "PedometerSensor.hpp"
 #include "PhysicalActivitySensor.hpp"
 #include "GestureSensor.hpp"
+#include "AudioClassifierSensor.hpp"
 #include <poll.h>
 
 static int open(const struct hw_module_t* module, const char* id,
@@ -91,6 +92,9 @@ static bool initSensors()
                                 break;
                         case SENSOR_TYPE_GESTURE:
                                 mSensor = new GestureSensor(mDevice);
+                                break;
+                        case SENSOR_TYPE_AUDIO_CLASSIFICATION:
+                                mSensor = new AudioClassifierSensor(mDevice);
                                 break;
                         default:
                                 LOGE("%s Unsupported sensor type: %d\n", __FUNCTION__, mDevice.getType());
