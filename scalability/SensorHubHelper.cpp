@@ -45,28 +45,28 @@ psh_sensor_t SensorHubHelper::getType(int sensorType)
         return SENSOR_INVALID;
 }
 
-void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate, int &flag)
+void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate, int &bufferDelay, streaming_flag &flag)
 {
         switch (sensorType) {
+        case SENSOR_TYPE_PROXIMITY:
+                flag = NO_STOP_WHEN_SCREEN_OFF;
         case SENSOR_TYPE_GESTURE_FLICK:
                 dataRate = GF_SAMPLE_RATE;
-                flag = GF_BUF_DELAY;
+                bufferDelay = GF_BUF_DELAY;
                 break;
         case SENSOR_TYPE_TERMINAL:
                 dataRate = TERM_RATE;
-                flag = TERM_DELAY;
+                bufferDelay = TERM_DELAY;
                 break;
         case SENSOR_TYPE_SHAKE:
                 dataRate = SHAKING_SAMPLE_RATE;
-                flag = SHAKING_BUF_DELAY;
+                bufferDelay = SHAKING_BUF_DELAY;
                 break;
         case SENSOR_TYPE_SIMPLE_TAPPING:
                 dataRate = STAP_SAMPLE_RATE;
-                flag = STAP_BUF_DELAY;
+                bufferDelay = STAP_BUF_DELAY;
                 break;
         default:
-                dataRate = -1;
-                flag = 0;
                 break;
         }
 }
