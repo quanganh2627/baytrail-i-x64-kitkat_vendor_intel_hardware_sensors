@@ -96,13 +96,14 @@ int PSHCommonSensor::setDelay(int handle, int64_t ns) {
                 return -1;
         }
 
+        last_timestamp = getTimestamp();
         return 0;
 }
 
 int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
         int count = 32;
 
-        count = SensorHubHelper::readSensorhubEvents(pollfd, sensorhubEvent, count, device.getType());
+        count = SensorHubHelper::readSensorhubEvents(pollfd, sensorhubEvent, count, device.getType(), last_timestamp);
         for (int i = 0; i < count; i++) {
                 event.data[device.getMapper(AXIS_X)] = sensorhubEvent[i].data[0] * device.getScale(AXIS_X);
                 event.data[device.getMapper(AXIS_Y)] = sensorhubEvent[i].data[1] * device.getScale(AXIS_Y);
@@ -110,7 +111,7 @@ int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
                 event.data[device.getMapper(AXIS_W)] = sensorhubEvent[i].data[3] * device.getScale(AXIS_W);
                 if (sensorhubEvent[i].accuracy != 0)
                         event.acceleration.status = sensorhubEvent[i].accuracy;
-                event.timestamp = getTimestamp();
+                event.timestamp = sensorhubEvent[i].timestamp;
                 eventQue.push(event);
         }
 
