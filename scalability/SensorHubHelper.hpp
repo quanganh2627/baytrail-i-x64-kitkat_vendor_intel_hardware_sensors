@@ -10,6 +10,7 @@ typedef unsigned char byte;
 struct sensorhub_event_t {
         int data[4];
         int accuracy;
+        int64_t timestamp;
 };
 
 class SensorHubHelper {
@@ -17,7 +18,7 @@ class SensorHubHelper {
         static size_t getUnitSize(int sensorType);
 public:
         static psh_sensor_t getType(int sensorType);
-        static ssize_t readSensorhubEvents(int fd, struct sensorhub_event_t* event, size_t count, int sensorType);
+        static ssize_t readSensorhubEvents(int fd, struct sensorhub_event_t* event, size_t count, int sensorType, int64_t &last_timestamp);
         static void getStartStreamingParameters(int sensorType, int &dataRate, int &bufferDelay, streaming_flag &flag);
         static bool setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler);
         static int getGestureFlickEvent(struct gesture_flick_data data);

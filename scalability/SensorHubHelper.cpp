@@ -209,8 +209,10 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
         return -1;
 }
 
-ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* events, size_t count, int sensorType)
+ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* events, size_t count, int sensorType, int64_t &last_timestamp)
 {
+        int64_t current_timestamp, timestamp_step;
+
         if (fd < 0)
                 return fd;
 
@@ -231,6 +233,8 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         }
 
         count = streamSize / unitSize;
+        current_timestamp = getTimestamp();
+        timestamp_step = (current_timestamp - last_timestamp) / count;
         switch (sensorType) {
         case SENSOR_TYPE_ACCELEROMETER:
                 for (unsigned int i = 0; i < count; i++) {
@@ -238,6 +242,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[1] = (reinterpret_cast<struct accel_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct accel_data*>(stream))[i].z;
                         events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_MAGNETIC_FIELD:
@@ -249,6 +254,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                                 events[i].accuracy = SENSOR_STATUS_ACCURACY_HIGH;
                         else
                                 events[i].accuracy = SENSOR_STATUS_ACCURACY_LOW;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_ORIENTATION:
@@ -257,6 +263,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[1] = (reinterpret_cast<struct orientation_data*>(stream))[i].pitch;
                         events[i].data[2] = (reinterpret_cast<struct orientation_data*>(stream))[i].roll;
                         events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_GYROSCOPE:
@@ -268,21 +275,25 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                                 events[i].accuracy = SENSOR_STATUS_ACCURACY_HIGH;
                         else
                                 events[i].accuracy = SENSOR_STATUS_ACCURACY_LOW;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_LIGHT:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = (reinterpret_cast<struct als_raw_data *>(stream))[i].lux;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_PRESSURE:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = (reinterpret_cast<struct baro_raw_data*>(stream))[i].p;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_PROXIMITY:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = (reinterpret_cast<struct ps_phy_data*>(stream))[i].near == 0 ? 1 : 0;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_GRAVITY:
@@ -291,6 +302,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[1] = (reinterpret_cast<struct gravity_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct gravity_data*>(stream))[i].z;
                         events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_LINEAR_ACCELERATION:
@@ -299,6 +311,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[1] = (reinterpret_cast<struct linear_accel_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct linear_accel_data*>(stream))[i].z;
                         events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_ROTATION_VECTOR:
@@ -307,26 +320,31 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[1] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].z;
                         events[i].data[3] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].w;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_GESTURE_FLICK:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = getGestureFlickEvent((reinterpret_cast<struct gesture_flick_data*>(stream))[i]);
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_TERMINAL:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = getTerminalEvent((reinterpret_cast<struct tc_data*>(stream))[i]);
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_SHAKE:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = getShakeEvent((reinterpret_cast<struct shaking_data*>(stream))[i]);
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_SIMPLE_TAPPING:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = getSimpleTappingEvent((reinterpret_cast<struct stap_data*>(stream))[i]);
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
         case SENSOR_TYPE_TEMPERATURE:
@@ -340,6 +358,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 LOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
                 break;
         }
+        last_timestamp = current_timestamp;
 
         delete[] stream;
 
