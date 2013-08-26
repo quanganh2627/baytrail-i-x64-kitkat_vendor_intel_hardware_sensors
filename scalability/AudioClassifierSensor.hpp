@@ -96,9 +96,9 @@ private:
 
     static int  workerThread(void* data);
 
-    void pthreadWait(int timeout);
+    void condEventWait(int timeout);
 
-    void pthreadStopWait();
+    void condEventStopWait();
 
     int getAudioDelay(int64_t);
 
