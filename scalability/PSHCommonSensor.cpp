@@ -43,7 +43,8 @@ int PSHCommonSensor::activate(int handle, int enabled) {
 
 int PSHCommonSensor::setDelay(int handle, int64_t ns) {
         int dataRate = 5;
-        int flag = 0;
+        int bufferDelay = 0;
+        streaming_flag flag = STOP_WHEN_SCREEN_OFF;
         int delay = 200;
         int minDelay = device.getMinDelay() / US_TO_MS;
 
@@ -63,16 +64,14 @@ int PSHCommonSensor::setDelay(int handle, int64_t ns) {
         if (delay < minDelay)
                 delay = minDelay;
 
+        if (delay != 0)
+                dataRate = 1000 / delay;
+
+        if (dataRate == 0 || minDelay == 0)
+                dataRate = 1;
+
         /* Some PSH session need to set different rate and delay */
-        SensorHubHelper::getStartStreamingParameters(device.getType(), dataRate, flag);
-
-        if (dataRate == -1) {
-                if (delay != 0)
-                        dataRate = 1000 / delay;
-
-                if (dataRate == 0 || minDelay == 0)
-                        dataRate = 1;
-        }
+        SensorHubHelper::getStartStreamingParameters(device.getType(), dataRate, bufferDelay, flag);
 
         if (dataRate < 0) {
                 LOGE("Invalid delay: %d", delay);
@@ -85,9 +84,15 @@ int PSHCommonSensor::setDelay(int handle, int64_t ns) {
                 return -1;
         }
 
-        error_t err = methods.psh_start_streaming(sensorHandle, dataRate, flag);
+        error_t err;
+        /* Wait for libsensorhub interface sync */
+        if (flag == STOP_WHEN_SCREEN_OFF)
+                err = methods.psh_start_streaming(sensorHandle, dataRate, bufferDelay);
+        else
+                err = methods.psh_start_streaming_with_flag(sensorHandle, dataRate, bufferDelay, flag);
         if (err != ERROR_NONE) {
-                LOGE("psh_start_streaming error %d handle: %x %d", err, sensorHandle, dataRate);
+                LOGE("psh_start_streaming(_with_flag) error %d name:%s handle: %x %d %d",
+                     err, device.getName(), sensorHandle, dataRate, flag);
                 return -1;
         }
 
