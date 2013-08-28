@@ -14,7 +14,7 @@
 
 ifeq ($(ENABLE_SENSOR_HUB),true)
 
-ifeq ($(REF_DEVICE_NAME), saltbay)
+ifeq ($(REF_DEVICE_NAME), $(filter $(REF_DEVICE_NAME), saltbay byt_t_ffrd8))
 
 LOCAL_PATH := $(call my-dir)
 
@@ -96,6 +96,6 @@ include $(BUILD_STATIC_LIBRARY)
 
 endif # !TARGET_SIMULATOR
 
-endif # saltbay
+endif # saltbay || byt_t_ffrd8
 
 endif

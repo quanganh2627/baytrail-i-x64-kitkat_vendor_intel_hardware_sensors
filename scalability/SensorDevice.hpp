@@ -23,11 +23,17 @@ typedef enum {
         SCALAR
 } sensors_event_property_t;
 
+typedef enum {
+        PRIMARY = 0,
+        SECONDARY = 1,
+} sensors_subname;
+
 class SensorDevice {
         struct sensor_t dev;
         int id; //start from 0
         sensor_category_t category; // 1 for PSH sensor, 0 for direct sensor
         sensors_event_property_t eventProperty;
+        sensors_subname subname;
         int mapper[4];
         float scale[4];
 public:
@@ -36,6 +42,7 @@ public:
                 std::memset(&dev, 0, sizeof(dev));
                 id = 0;
                 category = LINUX_DRIVER;
+                subname = PRIMARY;
                 for (int i = 0; i < 4; i++) {
                         mapper[i] = i;
                         scale[i] = 1.0;
@@ -59,6 +66,8 @@ public:
         void setCategory(const sensor_category_t &new_category) { category = new_category; }
         sensors_event_property_t getEventProperty() { return eventProperty; }
         void setEventProperty(const sensors_event_property_t &newEventProperty) { eventProperty = newEventProperty; }
+        sensors_subname getSubname() { return subname; }
+        void setSubname(const sensors_subname &new_subname) { subname = new_subname; }
         int getMapper(unsigned int index) { return index < 4 ? mapper[index] : -1; }
         void setMapper(unsigned int index, int value) { if (index < 4) mapper[index] = value; }
         float getScale(unsigned int index) { return index < 4 ? scale[index] : 1; }

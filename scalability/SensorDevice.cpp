@@ -26,6 +26,7 @@ SensorDevice::SensorDevice(const SensorDevice &device)
         dev.minDelay = device.dev.minDelay;
         id = device.id;
         category = device.category;
+        subname = device.subname;
         eventProperty = device.eventProperty;
         for (int i = 0; i < 3; i++) {
                 mapper[i] = device.mapper[i];
@@ -67,6 +68,7 @@ SensorDevice& SensorDevice::operator=(const SensorDevice &device)
         dev.minDelay = device.dev.minDelay;
         id = device.id;
         category = device.category;
+        subname = device.subname;
         eventProperty = device.eventProperty;
         for (int i = 0; i < 3; i++) {
                 mapper[i] = device.mapper[i];

@@ -1,21 +1,33 @@
 #include "PSHSensor.hpp"
 
-psh_sensor_t SensorHubHelper::getType(int sensorType)
+psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
 {
         switch (sensorType) {
         case SENSOR_TYPE_ACCELEROMETER:
+                if (subname == SECONDARY)
+                        return SENSOR_ACCELEROMETER_SEC;
                 return SENSOR_ACCELEROMETER;
         case SENSOR_TYPE_MAGNETIC_FIELD:
+                if (subname == SECONDARY)
+                        return SENSOR_COMP_SEC;
                 return SENSOR_COMP;
         case SENSOR_TYPE_ORIENTATION:
                 return SENSOR_ORIENTATION;
         case SENSOR_TYPE_GYROSCOPE:
+                if (subname == SECONDARY)
+                        return SENSOR_GYRO_SEC;
                 return SENSOR_GYRO;
         case SENSOR_TYPE_LIGHT:
+                if (subname == SECONDARY)
+                        return SENSOR_ALS_SEC;
                 return SENSOR_ALS;
         case SENSOR_TYPE_PRESSURE:
+                if (subname == SECONDARY)
+                        return SENSOR_BARO_SEC;
                 return SENSOR_BARO;
         case SENSOR_TYPE_PROXIMITY:
+                if (subname == SECONDARY)
+                        return SENSOR_PROXIMITY_SEC;
                 return SENSOR_PROXIMITY;
         case SENSOR_TYPE_GRAVITY:
                 return SENSOR_GRAVITY;

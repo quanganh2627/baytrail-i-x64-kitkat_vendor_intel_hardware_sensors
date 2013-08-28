@@ -17,7 +17,7 @@ class SensorHubHelper {
         struct sensorhub_event_t sensorhubEvent;
         static size_t getUnitSize(int sensorType);
 public:
-        static psh_sensor_t getType(int sensorType);
+        static psh_sensor_t getType(int sensorType, sensors_subname subname);
         static ssize_t readSensorhubEvents(int fd, struct sensorhub_event_t* event, size_t count, int sensorType, int64_t &last_timestamp);
         static void getStartStreamingParameters(int sensorType, int &dataRate, int &bufferDelay, streaming_flag &flag);
         static bool setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler);

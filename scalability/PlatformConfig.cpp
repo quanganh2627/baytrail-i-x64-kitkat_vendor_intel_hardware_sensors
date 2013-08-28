@@ -241,6 +241,8 @@ bool PlatformConfig::addSensorDevice(xmlNodePtr node, std::string type, std::str
 
                 if ((!xmlStrcmp(p->name, (const xmlChar *)"name"))){
                         mSensor.setName(reinterpret_cast<const char *>(str));
+                        if (xmlStrstr(str, reinterpret_cast<const xmlChar *>("Secondary")) != NULL)
+                                mSensor.setSubname(SECONDARY);
                 }
                 else if ((!xmlStrcmp(p->name, (const xmlChar *)"vendor"))) {
                         mSensor.setVendor(reinterpret_cast<const char *>(str));
