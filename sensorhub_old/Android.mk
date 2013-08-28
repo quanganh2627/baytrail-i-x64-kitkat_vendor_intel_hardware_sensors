@@ -15,7 +15,7 @@
 
 ifeq ($(ENABLE_SENSOR_HUB),true)
 
-ifneq ($(REF_DEVICE_NAME), $(filter $(REF_DEVICE_NAME), saltbay byt_t_ffrd8))
+ifeq ($(ENABLE_SCALABLE_SENSOR_HAL),false)
 
 LOCAL_PATH := $(call my-dir)
 
@@ -67,6 +67,6 @@ LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)
 
-endif # !saltbay && !byt_t_ffrd8
+endif # !ENABLE_SCALABLE_SENSOR_HAL
 
 endif
