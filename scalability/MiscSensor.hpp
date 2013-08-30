@@ -8,7 +8,7 @@ public:
         MiscSensor(SensorDevice &mDevice, struct PlatformData &mData) :DirectSensor(mDevice, mData) {}
         ~MiscSensor()
         {
-                if (pollfd >= 0)
+                if (pollfd != NULL)
                         close(pollfd);
         }
         int getPollfd();

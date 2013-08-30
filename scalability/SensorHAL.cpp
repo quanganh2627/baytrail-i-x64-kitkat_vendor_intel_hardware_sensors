@@ -139,7 +139,7 @@ static bool initSensors()
         mModule.count = mModule.sensors.size();
         mModule.list = new sensor_t[mModule.count];
 
-        for (int i = 0; i < mModule.count; i++) {
+        for (unsigned int i = 0; i < mModule.count; i++) {
                 mModule.sensors[i]->getDevice().copyItem(mModule.list + i);
         }
 
@@ -181,7 +181,7 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
 {
         static std::queue<sensors_event_t> eventQue;
         int eventNum = 0;
-        int num, err;
+        int num;
 
         while (true) {
                 while (eventQue.size() > 0 && eventNum <= count) {
@@ -195,9 +195,8 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
 
                 num = poll(mModule.pollfds, mModule.count, -1);
                 if (num <= 0) {
-                        err = errno;
-                        LOGE("%s: line: %d poll error: %d %s", __FUNCTION__, __LINE__, err, strerror(err));
-                        return -err;
+                        LOGE("%s: line: %d poll error: %d", __FUNCTION__, __LINE__, num);
+                        return -1;
                 }
                 for (int i = 0; i < mModule.count; i++) {
                         if (mModule.pollfds[i].revents & POLLIN)
