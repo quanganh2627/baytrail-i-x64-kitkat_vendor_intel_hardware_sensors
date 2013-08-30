@@ -260,6 +260,10 @@ void AudioClassifierSensor::AudioHAL::audioHalActivate() {
     aware_classifier_param_t * aware_classifier =
             (aware_classifier_param_t *) malloc(
                     sizeof(aware_classifier_param_t));
+    if (aware_classifier == NULL) {
+        LOGE("malloc failed");
+        return;
+    }
     aware_classifier->framesize = 128;
     aware_classifier->fborder = 24;
     aware_classifier->mfccorder = 12;
@@ -492,6 +496,11 @@ int AudioClassifierSensor::workerThread(void *data) {
     AudioClassifierSensor *src = (AudioClassifierSensor*) data;
     int psh_fd = -1;
     struct lpe_phy_data audioData;
+    // for klocwork issue
+    if (src == NULL || src->mAudioHal == NULL) {
+        LOGE("null pointer issue");
+        return NULL;
+    }
     // Get current delay
     int64_t delay;
     {
