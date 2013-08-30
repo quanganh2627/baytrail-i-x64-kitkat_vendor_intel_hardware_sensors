@@ -11,7 +11,7 @@ public:
         InputEventSensor(SensorDevice &mDevice, struct PlatformData &mData);
         ~InputEventSensor()
         {
-                if (pollfd != NULL)
+                if (pollfd >= 0)
                         close(pollfd);
         }
         int getPollfd();

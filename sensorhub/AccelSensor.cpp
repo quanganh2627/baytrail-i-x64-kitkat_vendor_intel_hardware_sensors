@@ -34,7 +34,18 @@ AccelSensor::AccelSensor()
       mEnabled(0)
 {
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = SENSORS_HANDLE_ACCELEROMETER;
+    mPendingEvent.sensor = idHandle;
+    mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
+    mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
+    memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+}
+
+AccelSensor::AccelSensor(int handle)
+: SensorBase("accel", handle),
+      mEnabled(0)
+{
+    mPendingEvent.version = sizeof(sensors_event_t);
+    mPendingEvent.sensor = idHandle;
     mPendingEvent.type = SENSOR_TYPE_ACCELEROMETER;
     mPendingEvent.acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));

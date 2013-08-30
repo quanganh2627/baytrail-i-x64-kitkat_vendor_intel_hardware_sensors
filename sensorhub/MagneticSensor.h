@@ -29,6 +29,7 @@
 class MagneticSensor : public SensorBase {
 public:
     MagneticSensor();
+    MagneticSensor(int handle);
     virtual ~MagneticSensor();
 
 

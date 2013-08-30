@@ -14,36 +14,42 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_PRESSURE_SENSOR_H
-#define ANDROID_PRESSURE_SENSOR_H
-
-#include <stdint.h>
-#include <errno.h>
-#include <sys/cdefs.h>
-#include <sys/types.h>
+#ifndef ANDROID_PROXIMITY_SENSOR_H
+#define ANDROID_PROXIMITY_SENSOR_H
 
 #include "SensorBase.h"
 
-/*****************************************************************************/
+#define APDS_PROX_DEF_THRES               600
 
-class PressureSensor : public SensorBase {
+#define APDS990X_MAX_THRESH               500
+#define APDS990X_MIN_THRESH               10
+#define APDS990X_DISTANCE_THRESH          100
+#define APDS990X_ENABLE_TRY               10
+
+#define SENSOR_CALIB_FILE       "/data/proximity.conf"
+
+typedef struct ps_calib {
+    int type;
+    int thresh;
+} ps_calib_t;
+
+class ProximitySensor : public SensorBase {
     int mEnabled;
+    InputEventCircularReader mInputReader;
     sensors_event_t mPendingEvent;
     bool mHasPendingEvent;
-    int64_t last_timestamp;
+    int inputDataOverrun;
+    int thresh;
 
-    int setInitialState();
+private:
+    int calibThresh(int raw);
 
 public:
-    PressureSensor();
-    PressureSensor(int handle);
-    virtual ~PressureSensor();
+    ProximitySensor(const sensor_platform_config_t *config);
+    virtual ~ProximitySensor();
     virtual int readEvents(sensors_event_t* data, int count);
     virtual bool hasPendingEvents() const;
     virtual int enable(int32_t handle, int enabled);
-    virtual int setDelay(int32_t handle, int64_t ns);
 };
 
-/*****************************************************************************/
-
-#endif  // ANDROID_PRESSURE_SENSOR_H
+#endif  // ANDROID_PROXIMITY_SENSOR_H

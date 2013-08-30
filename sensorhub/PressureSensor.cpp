@@ -39,6 +39,17 @@ PressureSensor::PressureSensor()
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }
 
+PressureSensor::PressureSensor(int handle)
+    : SensorBase("pressure", handle),
+      mEnabled(0),
+      mHasPendingEvent(false)
+{
+    mPendingEvent.version = sizeof(sensors_event_t);
+    mPendingEvent.sensor = idHandle;
+    mPendingEvent.type = SENSOR_TYPE_PRESSURE;
+    memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+}
+
 PressureSensor::~PressureSensor() {
     if (mEnabled)
         enable(0, 0);

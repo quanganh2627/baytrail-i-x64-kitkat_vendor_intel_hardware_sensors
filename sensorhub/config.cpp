@@ -47,11 +47,11 @@ void (* sensor_platform_finalize)();
 
 static int sensor_config_init_xml();
 static int sensor_config_init_sensors(xmlNodePtr node);
-static int sensor_config_get_sensor(xmlNodePtr node, struct sensor_t *sensor_item, const xmlChar *type);
-static int sensor_config_get_handle(const char *type);
+static int sensor_config_get_sensor(xmlNodePtr node, struct sensor_t *sensor_item);
+static int sensor_config_get_handle(const char *type, unsigned int instanceNumber);
 static int sensor_config_get_type(const char *type);
 static float sensor_config_get_unit(char *unit_name);
-static int sensor_config_detect_sensor(int type);
+static int sensor_config_detect_sensor(int type, unsigned int instanceNumber);
 static void sensor_config_finalize();
 static char *generate_string(xmlChar *str);
 static void dump();
@@ -83,22 +83,28 @@ SensorBase **get_platform_sensors()
         int handle = sensor_list[i].handle;
         switch (handle) {
         case SENSORS_HANDLE_LIGHT:
-            platform_sensors[handle] = new LightSensor();
+        case SENSORS_HANDLE_LIGHT_SEC:
+            platform_sensors[handle] = new LightSensor(handle);
             break;
         case SENSORS_HANDLE_PROXIMITY:
-            platform_sensors[handle] = new ProximitySensor();
+        case SENSORS_HANDLE_PROXIMITY_SEC:
+            platform_sensors[handle] = new ProximitySensor(handle);
             break;
         case SENSORS_HANDLE_ACCELEROMETER:
-            platform_sensors[handle] = new AccelSensor();
+        case SENSORS_HANDLE_ACCELEROMETER_SEC:
+            platform_sensors[handle] = new AccelSensor(handle);
             break;
         case SENSORS_HANDLE_MAGNETIC_FIELD:
-            platform_sensors[handle] = new MagneticSensor();
+        case SENSORS_HANDLE_MAGNETIC_FIELD_SEC:
+            platform_sensors[handle] = new MagneticSensor(handle);
             break;
         case SENSORS_HANDLE_GYROSCOPE:
-            platform_sensors[handle] = new GyroSensor();
+        case SENSORS_HANDLE_GYROSCOPE_SEC:
+            platform_sensors[handle] = new GyroSensor(handle);
             break;
         case SENSORS_HANDLE_PRESSURE:
-            platform_sensors[handle] = new PressureSensor();
+        case SENSORS_HANDLE_PRESSURE_SEC:
+            platform_sensors[handle] = new PressureSensor(handle);
             break;
         case SENSORS_HANDLE_GRAVITY:
             platform_sensors[handle] = new GravitySensor();
@@ -184,11 +190,21 @@ static int sensor_config_init_sensors(xmlNodePtr node) {
     int count = 0;
     int i = 0;
     int type;
+    unsigned int instanceNumber = 0;
     xmlChar *str = NULL;
+    xmlChar *attr = NULL;
 
     while (p != NULL) {
+        attr = xmlGetProp(p, (const xmlChar*)"instance_number");
+        if (attr) {
+            instanceNumber = atoi((char *)attr);
+            xmlFree(attr);
+        }
+        else
+            instanceNumber = 0;
+
         type = sensor_config_get_type((const char*)p->name);
-        if (sensor_config_detect_sensor(type))
+        if (sensor_config_detect_sensor(type, instanceNumber))
             count++;
         p = p->next;
     }
@@ -205,15 +221,28 @@ static int sensor_config_init_sensors(xmlNodePtr node) {
 
     while (node != NULL) {
         D("node name: %s\n", node->name);
+        attr = xmlGetProp(node, (const xmlChar*)"instance_number");
+        if (attr) {
+            instanceNumber = atoi((char *)attr);
+            xmlFree(attr);
+        }
+        else
+            instanceNumber = 0;
+
         type = sensor_config_get_type((const char*)node->name);
-        if (!sensor_config_detect_sensor(type)) {
+        if (!sensor_config_detect_sensor(type, instanceNumber)) {
             node = node->next;
             continue;
         }
+
         p = node->xmlChildrenNode;
+        if (p != NULL) {
+            (sensor_list + i)->handle = sensor_config_get_handle((const char *)node->name, instanceNumber);
+            (sensor_list + i)->type = type;
+        }
         while (p != NULL) {
             if ((!xmlStrcmp(p->name, (const xmlChar *)"sensor")))
-                sensor_config_get_sensor(p->xmlChildrenNode, sensor_list + i, node->name);
+                sensor_config_get_sensor(p->xmlChildrenNode, sensor_list + i);
             p = p->next;
         }
         i++;
@@ -224,16 +253,11 @@ static int sensor_config_init_sensors(xmlNodePtr node) {
     return 0;
 }
 
-static int sensor_config_get_sensor(xmlNodePtr node, struct sensor_t *sensor_item, const xmlChar *type) {
+static int sensor_config_get_sensor(xmlNodePtr node, struct sensor_t *sensor_item) {
     xmlChar *str = NULL;
     xmlChar *attr = NULL;
     float value = 0;
     xmlNodePtr p = node;
-
-    if (p != NULL) {
-        sensor_item->handle = sensor_config_get_handle((const char *)type);
-        sensor_item->type = sensor_config_get_type((const char *)type);
-    }
 
     while (p != NULL) {
         str = xmlNodeGetContent(p);
@@ -276,21 +300,45 @@ static int sensor_config_get_sensor(xmlNodePtr node, struct sensor_t *sensor_ite
     return 0;
 }
 
-static int sensor_config_get_handle(const char *type) {
+static int sensor_config_get_handle(const char *type, unsigned int instanceNumber) {
     if (!type)
         return -1;
-    if (!strcmp(type, "light"))
-        return SENSORS_HANDLE_LIGHT;
-    else if (!strcmp(type, "proximity"))
-        return SENSORS_HANDLE_PROXIMITY;
-    else if (!strcmp(type, "accelerometer"))
-        return SENSORS_HANDLE_ACCELEROMETER;
-    else if (!strcmp(type, "compass"))
-        return SENSORS_HANDLE_MAGNETIC_FIELD;
-    else if (!strcmp(type, "gyroscope"))
-        return SENSORS_HANDLE_GYROSCOPE;
-    else if (!strcmp(type, "pressure"))
-        return SENSORS_HANDLE_PRESSURE;
+    if (!strcmp(type, "light")) {
+        if (instanceNumber == 2)
+            return SENSORS_HANDLE_LIGHT_SEC;
+        else
+            return SENSORS_HANDLE_LIGHT;
+    }
+    else if (!strcmp(type, "proximity")) {
+        if (instanceNumber == 2)
+            return SENSORS_HANDLE_PROXIMITY_SEC;
+        else
+            return SENSORS_HANDLE_PROXIMITY;
+    }
+    else if (!strcmp(type, "accelerometer")) {
+        if (instanceNumber == 2)
+            return SENSORS_HANDLE_ACCELEROMETER_SEC;
+        else
+            return SENSORS_HANDLE_ACCELEROMETER;
+    }
+    else if (!strcmp(type, "compass")) {
+        if (instanceNumber == 2)
+            return SENSORS_HANDLE_MAGNETIC_FIELD_SEC;
+        else
+            return SENSORS_HANDLE_MAGNETIC_FIELD;
+    }
+    else if (!strcmp(type, "gyroscope")) {
+        if (instanceNumber == 2)
+            return SENSORS_HANDLE_GYROSCOPE_SEC;
+        else
+            return SENSORS_HANDLE_GYROSCOPE;
+    }
+    else if (!strcmp(type, "pressure")) {
+        if (instanceNumber == 2)
+            return SENSORS_HANDLE_PRESSURE_SEC;
+        else
+            return SENSORS_HANDLE_PRESSURE;
+    }
     else if (!strcmp(type, "ambient_temperature"))
         return SENSORS_HANDLE_AMBIENT_TEMPERATURE;
     else if (!strcmp(type, "gravity"))
@@ -373,7 +421,7 @@ static float sensor_config_get_unit(char *unit_name) {
     return 1.0;
 }
 
-static int sensor_config_detect_sensor(int type) {
+static int sensor_config_detect_sensor(int type, unsigned int instanceNumber) {
     psh_sensor_t psh_sensor_type;
     handle_t handle;
 
@@ -382,22 +430,40 @@ static int sensor_config_detect_sensor(int type) {
 
     switch (type) {
     case SENSOR_TYPE_LIGHT:
-        psh_sensor_type = SENSOR_ALS;
+        if (instanceNumber == 2)
+            psh_sensor_type = SENSOR_ALS_SEC;
+        else
+            psh_sensor_type = SENSOR_ALS;
         break;
     case SENSOR_TYPE_PROXIMITY:
-        psh_sensor_type = SENSOR_PROXIMITY;
+        if (instanceNumber == 2)
+            psh_sensor_type = SENSOR_PROXIMITY_SEC;
+        else
+            psh_sensor_type = SENSOR_PROXIMITY;
         break;
     case SENSOR_TYPE_ACCELEROMETER:
-        psh_sensor_type = SENSOR_ACCELEROMETER;
+        if (instanceNumber == 2)
+            psh_sensor_type = SENSOR_ACCELEROMETER_SEC;
+        else
+            psh_sensor_type = SENSOR_ACCELEROMETER;
         break;
     case SENSOR_TYPE_MAGNETIC_FIELD:
-        psh_sensor_type = SENSOR_COMP;
+        if (instanceNumber == 2)
+            psh_sensor_type = SENSOR_COMP_SEC;
+        else
+            psh_sensor_type = SENSOR_COMP;
         break;
     case SENSOR_TYPE_GYROSCOPE:
-        psh_sensor_type = SENSOR_GYRO;
+        if (instanceNumber == 2)
+            psh_sensor_type = SENSOR_GYRO_SEC;
+        else
+            psh_sensor_type = SENSOR_GYRO;
         break;
     case SENSOR_TYPE_PRESSURE:
-        psh_sensor_type = SENSOR_BARO;
+        if (instanceNumber == 2)
+            psh_sensor_type = SENSOR_BARO_SEC;
+        else
+            psh_sensor_type = SENSOR_BARO;
         break;
     case SENSOR_TYPE_GRAVITY:
         psh_sensor_type = SENSOR_GRAVITY;
@@ -437,8 +503,10 @@ static int sensor_config_detect_sensor(int type) {
     }
 
     handle = psh_open_session(psh_sensor_type);
-    if (handle == NULL)
+    if (handle == NULL) {
+        LOGE("%s psh_sensor_type %d", __FUNCTION__, psh_sensor_type);
         return 0;
+    }
 
     psh_close_session(handle);
 

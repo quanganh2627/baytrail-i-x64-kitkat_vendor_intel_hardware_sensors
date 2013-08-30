@@ -29,6 +29,7 @@
 class AccelSensor : public SensorBase {
 public:
     AccelSensor();
+    AccelSensor(int handle);
     virtual ~AccelSensor();
 
     virtual int setDelay(int32_t handle, int64_t ns);

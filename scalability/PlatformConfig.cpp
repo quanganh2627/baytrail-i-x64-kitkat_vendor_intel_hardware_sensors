@@ -325,6 +325,8 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_PHYSICAL_ACTIVITY;
         else if (type.compare(0, 7, "gesture")==0)
                 return SENSOR_TYPE_GESTURE;
+        else if (type.compare(0, 16, "audio_classifier")==0)
+                return SENSOR_TYPE_AUDIO_CLASSIFICATION;
         LOGW("%s: unsupported sensor: %s", __FUNCTION__, type.c_str());
         return 0;
 }

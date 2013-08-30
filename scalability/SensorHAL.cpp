@@ -6,6 +6,7 @@
 #include "PedometerSensor.hpp"
 #include "PhysicalActivitySensor.hpp"
 #include "GestureSensor.hpp"
+#include "AudioClassifierSensor.hpp"
 #include <poll.h>
 
 static int open(const struct hw_module_t* module, const char* id,
@@ -92,6 +93,9 @@ static bool initSensors()
                         case SENSOR_TYPE_GESTURE:
                                 mSensor = new GestureSensor(mDevice);
                                 break;
+                        case SENSOR_TYPE_AUDIO_CLASSIFICATION:
+                                mSensor = new AudioClassifierSensor(mDevice);
+                                break;
                         default:
                                 LOGE("%s Unsupported sensor type: %d\n", __FUNCTION__, mDevice.getType());
                                 return false;
@@ -139,7 +143,7 @@ static bool initSensors()
         mModule.count = mModule.sensors.size();
         mModule.list = new sensor_t[mModule.count];
 
-        for (unsigned int i = 0; i < mModule.count; i++) {
+        for (int i = 0; i < mModule.count; i++) {
                 mModule.sensors[i]->getDevice().copyItem(mModule.list + i);
         }
 
@@ -181,7 +185,7 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
 {
         static std::queue<sensors_event_t> eventQue;
         int eventNum = 0;
-        int num;
+        int num, err;
 
         while (true) {
                 while (eventQue.size() > 0 && eventNum <= count) {
@@ -195,8 +199,9 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
 
                 num = poll(mModule.pollfds, mModule.count, -1);
                 if (num <= 0) {
-                        LOGE("%s: line: %d poll error: %d", __FUNCTION__, __LINE__, num);
-                        return -1;
+                        err = errno;
+                        LOGE("%s: line: %d poll error: %d %s", __FUNCTION__, __LINE__, err, strerror(err));
+                        return -err;
                 }
                 for (int i = 0; i < mModule.count; i++) {
                         if (mModule.pollfds[i].revents & POLLIN)
