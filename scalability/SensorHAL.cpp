@@ -82,6 +82,7 @@ static bool initSensors()
                         case SENSOR_TYPE_TERMINAL:
                         case SENSOR_TYPE_SHAKE:
                         case SENSOR_TYPE_SIMPLE_TAPPING:
+                        case SENSOR_TYPE_MOVE_DETECT:
                                 mSensor = new PSHCommonSensor(mDevice);
                                 break;
                         case SENSOR_TYPE_PEDOMETER:
