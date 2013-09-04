@@ -35,7 +35,18 @@ MagneticSensor::MagneticSensor()
 {
     D("add: magnetic Sensor");
     mMagneticEvent.version = sizeof(sensors_event_t);
-    mMagneticEvent.sensor = SENSORS_HANDLE_MAGNETIC_FIELD;
+    mMagneticEvent.sensor = idHandle;
+    mMagneticEvent.type = SENSOR_TYPE_MAGNETIC_FIELD;
+    mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;
+}
+
+MagneticSensor::MagneticSensor(int handle)
+: SensorBase(HMC_SENSOR_DATA_NAME, handle),
+      mEnabled(0)
+{
+    D("add: magnetic Sensor");
+    mMagneticEvent.version = sizeof(sensors_event_t);
+    mMagneticEvent.sensor = idHandle;
     mMagneticEvent.type = SENSOR_TYPE_MAGNETIC_FIELD;
     mMagneticEvent.magnetic.status = SENSOR_STATUS_ACCURACY_LOW;
 }

@@ -57,15 +57,17 @@ int SensorBase::openInputDev(const char* inputName)
     int fd = -1, clkid = CLOCK_MONOTONIC;
     const char *sys_dirname = "/sys/class/input";
     const char *dirname = "/dev/input";
-    char devname[PATH_MAX];
+    char devname[PATH_MAX] = { 0 };
     char *filename;
     DIR *dir;
     struct dirent *de;
     int len;
     dir = opendir(sys_dirname);
 
-    if(dir == NULL)
+    if (dir == NULL) {
+        LOGE("%s: opendir failed", __func__);
         return -1;
+    }
 
     /*scan the /sys/class instead of /dev to get the
       device path, this is to avoid close delay of files
@@ -78,20 +80,26 @@ int SensorBase::openInputDev(const char* inputName)
             continue;
         strcpy(filename, de->d_name);
         filename += strlen(de->d_name);
-	strcpy(filename, "/device/name");
-	filename -= strlen(de->d_name);
+        strcpy(filename, "/device/name");
+        filename -= strlen(de->d_name);
         fd = open(devname, O_RDONLY);
         if (fd >= 0) {
             char name[80];
-            len=read(fd, &name, sizeof(name) - 1);
+            len = read(fd, &name, sizeof(name) - 1);
             if (len < 1)
                 name[0] = '\0';
-	    else
+            else
                 name[len-1] = '\0';
             if (!strcmp(name, inputName)) {
-		close(fd);
+                close(fd);
+
+                /* save the /dev/input/eventX path before closedir()*/
+                strcpy(devname, dirname);
+                filename = devname + strlen(devname);
+                *filename++ = '/';
+                strcpy(filename, de->d_name);
                 break;
-	    }
+            }
             close(fd);
             fd = -1;
         }
@@ -99,12 +107,8 @@ int SensorBase::openInputDev(const char* inputName)
     closedir(dir);
 
     if (fd < 0)
-	return fd;
+        return fd;
 
-    strcpy(devname, dirname);
-    filename = devname + strlen(devname);
-    *filename++ = '/';
-    strcpy(filename, de->d_name);
     fd = open(devname, O_RDONLY);
     if (fd >= 0)
         ioctl(fd, EVIOCSCLOCKID, &clkid);

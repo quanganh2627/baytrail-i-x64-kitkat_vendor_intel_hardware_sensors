@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifneq ($(filter redhookbay victoriabay,$(REF_DEVICE_NAME)),)
+ifneq ($(filter victoriabay,$(REF_DEVICE_NAME)),)
 
 LOCAL_PATH := $(call my-dir)
 
@@ -41,8 +41,8 @@ LOCAL_SRC_FILES +=  ../AccelSensor.cpp          \
                     ../PressureSensor.cpp
 
 LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
-                    external/icu4c/common \
-                    external/libxml2/include
+                    $(call include-path-for, icu4c-common) \
+                    $(call include-path-for, libxml2)
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc
 LOCAL_STATIC_LIBRARIES := libxml2
 

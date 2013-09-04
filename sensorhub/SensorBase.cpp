@@ -45,6 +45,19 @@ SensorBase::SensorBase(
         data_fd = psh_get_fd(mHandle);
 }
 
+SensorBase::SensorBase(const char* data_name, int handle)
+    : data_name(data_name),
+      data_fd(-1),
+      idHandle(handle),
+      mHandle(NULL)
+{
+    if (data_name)
+        openSession(data_name);
+
+    if (mHandle)
+        data_fd = psh_get_fd(mHandle);
+}
+
 SensorBase::~SensorBase() {
     if (mHandle)
         psh_close_session(mHandle);
@@ -74,22 +87,40 @@ int64_t SensorBase::getTimestamp() {
 void SensorBase::openSession(const char* inputName) {
 
     if(!strcmp(inputName, "accel")){
-        mHandle = psh_open_session(SENSOR_ACCELEROMETER);
+        if (idHandle == SENSORS_HANDLE_ACCELEROMETER)
+            mHandle = psh_open_session(SENSOR_ACCELEROMETER);
+        else
+            mHandle = psh_open_session(SENSOR_ACCELEROMETER_SEC);
     }
     if(!strcmp(inputName, "pressure")){
-        mHandle = psh_open_session(SENSOR_BARO);
+        if (idHandle == SENSORS_HANDLE_PRESSURE)
+            mHandle = psh_open_session(SENSOR_BARO);
+        else
+            mHandle = psh_open_session(SENSOR_BARO_SEC);
     }
     if(!strcmp(inputName, "compass")){
-        mHandle = psh_open_session(SENSOR_COMP);
+        if (idHandle == SENSORS_HANDLE_MAGNETIC_FIELD)
+            mHandle = psh_open_session(SENSOR_COMP);
+        else
+            mHandle = psh_open_session(SENSOR_COMP_SEC);
     }
     if(!strcmp(inputName, "gyro")){
-        mHandle = psh_open_session(SENSOR_GYRO);
+        if (idHandle == SENSORS_HANDLE_GYROSCOPE)
+            mHandle = psh_open_session(SENSOR_GYRO);
+        else
+            mHandle = psh_open_session(SENSOR_GYRO_SEC);
     }
     if(!strcmp(inputName, "light")){
-        mHandle = psh_open_session(SENSOR_ALS);
+        if (idHandle == SENSORS_HANDLE_LIGHT)
+            mHandle = psh_open_session(SENSOR_ALS);
+        else
+            mHandle = psh_open_session(SENSOR_ALS_SEC);
     }
     if(!strcmp(inputName, "proximity")){
-        mHandle = psh_open_session(SENSOR_PROXIMITY);
+        if (idHandle == SENSORS_HANDLE_PROXIMITY)
+            mHandle = psh_open_session(SENSOR_PROXIMITY);
+        else
+            mHandle = psh_open_session(SENSOR_PROXIMITY_SEC);
     }
     if(!strcmp(inputName, "gravity")){
         mHandle = psh_open_session(SENSOR_GRAVITY);

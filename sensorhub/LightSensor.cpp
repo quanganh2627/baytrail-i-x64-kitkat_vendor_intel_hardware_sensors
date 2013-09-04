@@ -33,7 +33,18 @@ LightSensor::LightSensor()
       mHasPendingEvent(false)
 {
     mPendingEvent.version = sizeof(sensors_event_t);
-    mPendingEvent.sensor = SENSORS_HANDLE_LIGHT;
+    mPendingEvent.sensor = idHandle;
+    mPendingEvent.type = SENSOR_TYPE_LIGHT;
+    memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
+}
+
+LightSensor::LightSensor(int handle)
+    : SensorBase("light", handle),
+      mEnabled(0),
+      mHasPendingEvent(false)
+{
+    mPendingEvent.version = sizeof(sensors_event_t);
+    mPendingEvent.sensor = idHandle;
     mPendingEvent.type = SENSOR_TYPE_LIGHT;
     memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
 }
