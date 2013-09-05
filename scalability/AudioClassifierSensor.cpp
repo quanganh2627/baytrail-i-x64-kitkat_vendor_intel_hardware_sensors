@@ -238,7 +238,7 @@ bool AudioClassifierSensor::AudioHAL::audioHalInit() {
     if (result == 0) {
         result = aware_hw_device_open(module, &device);
         LOGD("device open result %d\n", result);
-        if (result != 0) {
+        if (result != 0 || device == NULL) {
             return false;
         }
         LOGD("device version %d\n", device->common.version);
@@ -280,12 +280,14 @@ void AudioClassifierSensor::AudioHAL::audioHalActivate() {
     aware_classifier->thresholdNonspeech = -1;
     aware_classifier->dB_offset = 21;
     aware_classifier->alpha = 0.95 * (1 << ALPHA_QFACTOR);
-
-    LOGD("activating aware... %x\n", device);
-    if (device->activate_aware_session((hw_device_t*) device, aware_classifier) == 0)
-        LOGD("activated aware successful...\n");
-    else
-        LOGE("activated aware failed\n");
+    if (device != NULL) {
+        LOGD("activating aware... %x\n", device);
+        if (device->activate_aware_session((hw_device_t*) device,
+                aware_classifier) == 0)
+            LOGD("activated aware successful...\n");
+        else
+            LOGE("activated aware failed\n");
+    }
     // free aware_classifier_param_t
     if(aware_classifier != NULL)
         free(aware_classifier);
@@ -299,12 +301,12 @@ void AudioClassifierSensor::AudioHAL::audioHalDeActivate() {
         return;
     }
     LOGD("deactivating aware session...");
-    if (device->deactivate_aware_session((hw_device_t*) device) == 0)
-        LOGD("deactivated aware session successful... \n");
-    else
-        LOGE("deactivated aware session failed \n");
-
     if (device != NULL) {
+        if (device->deactivate_aware_session((hw_device_t*) device) == 0)
+            LOGD("deactivated aware session successful... \n");
+        else
+            LOGE("deactivated aware session failed \n");
+
         aware_hw_device_close(device);
         device = NULL;
     }

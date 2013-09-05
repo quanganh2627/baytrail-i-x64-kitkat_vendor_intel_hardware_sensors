@@ -43,6 +43,8 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 return SENSOR_SHAKING;
         case SENSOR_TYPE_SIMPLE_TAPPING:
                 return SENSOR_STAP;
+        case SENSOR_TYPE_MOVE_DETECT:
+                return SENSOR_MOVE_DETECT;
         case SENSOR_TYPE_GESTURE:
         case SENSOR_TYPE_PHYSICAL_ACTIVITY:
         case SENSOR_TYPE_PEDOMETER:
@@ -173,6 +175,20 @@ int SensorHubHelper::getSimpleTappingEvent(struct stap_data data)
         return INVALID_EVENT;
 }
 
+int SensorHubHelper::getMoveDetectEvent(struct md_data data)
+{
+        switch (data.state) {
+        case MD_MOVE:
+                return SENSOR_EVENT_TYPE_MOVE_DETECT_MOVE;
+        case MD_SLIGHT:
+                return SENSOR_EVENT_TYPE_MOVE_DETECT_SLIGHT;
+        case MD_STILL:
+                return SENSOR_EVENT_TYPE_MOVE_DETECT_STILL;
+        default:
+                return INVALID_EVENT;
+        }
+}
+
 size_t SensorHubHelper::getUnitSize(int sensorType)
 {
         switch (sensorType) {
@@ -210,6 +226,8 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct shaking_data);
         case SENSOR_TYPE_SIMPLE_TAPPING:
                 return sizeof(struct stap_data);
+        case SENSOR_TYPE_MOVE_DETECT:
+                return sizeof(struct md_data);
         case SENSOR_TYPE_TEMPERATURE:
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
@@ -356,6 +374,12 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         case SENSOR_TYPE_SIMPLE_TAPPING:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = getSimpleTappingEvent((reinterpret_cast<struct stap_data*>(stream))[i]);
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
+                }
+                break;
+        case SENSOR_TYPE_MOVE_DETECT:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = getMoveDetectEvent((reinterpret_cast<struct md_data*>(stream))[i]);
                         events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;

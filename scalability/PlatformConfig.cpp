@@ -321,6 +321,8 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_SHAKE;
         else if (type.compare(0, 14, "simple_tapping")==0)
                 return SENSOR_TYPE_SIMPLE_TAPPING;
+        else if (type.compare(0, 11, "move_detect")==0)
+                return SENSOR_TYPE_MOVE_DETECT;
         else if (type.compare(0, 9, "pedometer")==0)
                 return SENSOR_TYPE_PEDOMETER;
         else if (type.compare(0, 17, "physical_activity")==0)
