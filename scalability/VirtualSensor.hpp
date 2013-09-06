@@ -11,6 +11,7 @@
 #define SENSOR_TYPE_PEDOMETER               105
 #define SENSOR_TYPE_SHAKE                   106
 #define SENSOR_TYPE_SIMPLE_TAPPING          108
+#define SENSOR_TYPE_MOVE_DETECT             109
 
 // Sensor event types
 #define SHIFT_GESTURE_FLICK         4
@@ -20,6 +21,7 @@
 #define SHIFT_AUDIO_CLASSIFICATION  8
 #define SHIFT_SHAKE_TITLT           9
 #define SHIFT_SIMPLE_TAPPING        10
+#define SHIFT_MOVE_DETECT           11
 
 #define SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK        (1 << SHIFT_GESTURE_FLICK | 1)
 #define SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK       (1 << SHIFT_GESTURE_FLICK | 2)
@@ -68,6 +70,10 @@
 
 #define SENSOR_EVENT_TYPE_SHAKE         (1 << SHIFT_SHAKE_TITLT | 1)
 #define SENSOR_EVENT_TYPE_SIMPLE_TAPPING_DOUBLE_TAPPING         (1 << SHIFT_SIMPLE_TAPPING | 1)
+
+#define SENSOR_EVENT_TYPE_MOVE_DETECT_STILL             (1 << SHIFT_MOVE_DETECT | 1)
+#define SENSOR_EVENT_TYPE_MOVE_DETECT_SLIGHT            (1 << SHIFT_MOVE_DETECT | 2)
+#define SENSOR_EVENT_TYPE_MOVE_DETECT_MOVE              (1 << SHIFT_MOVE_DETECT | 3)
 
 // Sensor delay types
 #define SENSOR_DELAY_TYPE_PHYSICAL_ACTIVITY_INSTANT     (((1 << 3) + 1) * 1000)
@@ -151,6 +157,12 @@ typedef enum { /* definition flick gestures value */
 #define STAP_DEFAULT_LEVEL       0
 #define DOUBLE_TAPPING 2
 #define INVALID_EVENT -1
+
+// move detect sensor
+#define MD_UNKNOW 0
+#define MD_MOVE 1
+#define MD_SLIGHT 2
+#define MD_STILL 3
 
 // terminal sensor
 #define TERM_RATE 20

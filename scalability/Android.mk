@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifeq ($(ENABLE_SENSOR_HUB),true)
-
-ifeq ($(REF_DEVICE_NAME), saltbay)
+ifeq ($(ENABLE_SCALABLE_SENSOR_HAL),true)
 
 LOCAL_PATH := $(call my-dir)
 
@@ -95,7 +93,5 @@ LOCAL_SRC_FILES := sensorcalibration/CompassGenericCalibration/CompassGenericCal
 include $(BUILD_STATIC_LIBRARY)
 
 endif # !TARGET_SIMULATOR
-
-endif # saltbay
 
 endif

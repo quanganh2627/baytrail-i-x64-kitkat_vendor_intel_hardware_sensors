@@ -10,7 +10,7 @@ int PSHCommonSensor::getPollfd()
                 return -1;
         }
 
-        psh_sensor_t PSHType = SensorHubHelper::getType(device.getType());
+        psh_sensor_t PSHType = SensorHubHelper::getType(device.getType(), device.getSubname());
         sensorHandle = methods.psh_open_session(PSHType);
         if (sensorHandle == NULL) {
                 LOGE("psh_open_session error!");

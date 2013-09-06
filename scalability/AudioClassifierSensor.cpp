@@ -238,7 +238,7 @@ bool AudioClassifierSensor::AudioHAL::audioHalInit() {
     if (result == 0) {
         result = aware_hw_device_open(module, &device);
         LOGD("device open result %d\n", result);
-        if (result != 0) {
+        if (result != 0 || device == NULL) {
             return false;
         }
         LOGD("device version %d\n", device->common.version);
@@ -260,6 +260,10 @@ void AudioClassifierSensor::AudioHAL::audioHalActivate() {
     aware_classifier_param_t * aware_classifier =
             (aware_classifier_param_t *) malloc(
                     sizeof(aware_classifier_param_t));
+    if (aware_classifier == NULL) {
+        LOGE("malloc failed");
+        return;
+    }
     aware_classifier->framesize = 128;
     aware_classifier->fborder = 24;
     aware_classifier->mfccorder = 12;
@@ -276,12 +280,14 @@ void AudioClassifierSensor::AudioHAL::audioHalActivate() {
     aware_classifier->thresholdNonspeech = -1;
     aware_classifier->dB_offset = 21;
     aware_classifier->alpha = 0.95 * (1 << ALPHA_QFACTOR);
-
-    LOGD("activating aware... %x\n", device);
-    if (device->activate_aware_session((hw_device_t*) device, aware_classifier) == 0)
-        LOGD("activated aware successful...\n");
-    else
-        LOGE("activated aware failed\n");
+    if (device != NULL) {
+        LOGD("activating aware... %x\n", device);
+        if (device->activate_aware_session((hw_device_t*) device,
+                aware_classifier) == 0)
+            LOGD("activated aware successful...\n");
+        else
+            LOGE("activated aware failed\n");
+    }
     // free aware_classifier_param_t
     if(aware_classifier != NULL)
         free(aware_classifier);
@@ -295,10 +301,15 @@ void AudioClassifierSensor::AudioHAL::audioHalDeActivate() {
         return;
     }
     LOGD("deactivating aware session...");
-    if (device->deactivate_aware_session((hw_device_t*) device) == 0)
-        LOGD("deactivated aware session successful... \n");
-    else
-        LOGE("deactivated aware session failed \n");
+    if (device != NULL) {
+        if (device->deactivate_aware_session((hw_device_t*) device) == 0)
+            LOGD("deactivated aware session successful... \n");
+        else
+            LOGE("deactivated aware session failed \n");
+
+        aware_hw_device_close(device);
+        device = NULL;
+    }
 }
 
 int AudioClassifierSensor::activate(int32_t handle, int en) {
@@ -398,7 +409,7 @@ void AudioClassifierSensor::stopWorker() {
         LOGE("isThreadWakeupPipeSetup = false");
     }
     // notify thread to exit
-    pthreadStopWait();
+    condEventStopWait();
     write(mWakeFDs[1], "a", 1);
     while(true){
         {
@@ -440,7 +451,38 @@ int AudioClassifierSensor::getData(std::queue<sensors_event_t> &eventQue) {
 
     while (size > 0) {
         p_audio_data = (int *) p;
-        event.data[0] = (static_cast<float>(*p_audio_data));
+        int nClsResult = -1;
+        int ndBResult = -1;
+        switch ((*p_audio_data) & FOR_CLASSIFIER_MASK) {
+            case 0:
+                nClsResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_CROWD;
+                break;
+            case 1:
+                nClsResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SOFT_MUSIC;
+                break;
+            case 2:
+                nClsResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MECHANICAL;
+                break;
+            case 3:
+                nClsResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MOTION;
+                break;
+            case 4:
+                nClsResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MALE_SPEECH;
+                break;
+            case 5:
+                nClsResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_FEMALE_SPEECH;
+                break;
+            case 6:
+                nClsResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SILENT;
+                break;
+            default:
+                nClsResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_UNKNOWN;
+                break;
+        }
+        ndBResult = ((*p_audio_data) & FOR_DB_MASK) >> 16;
+        event.data[0] = (static_cast<float>(nClsResult));
+        event.data[1] = (static_cast<float>(ndBResult));
+        event.timestamp = getTimestamp();
         LOGI("Event value is %d", *p_audio_data);
         eventQue.push(event);
         numEventReceived++;
@@ -456,6 +498,11 @@ int AudioClassifierSensor::workerThread(void *data) {
     AudioClassifierSensor *src = (AudioClassifierSensor*) data;
     int psh_fd = -1;
     struct lpe_phy_data audioData;
+    // for klocwork issue
+    if (src == NULL || src->mAudioHal == NULL) {
+        LOGE("null pointer issue");
+        return NULL;
+    }
     // Get current delay
     int64_t delay;
     {
@@ -464,7 +511,7 @@ int AudioClassifierSensor::workerThread(void *data) {
     }
     // start streaming and get read fd
     int nTimeDelay = TIME_DELAY_FOR_PSH;
-    src->pthreadWait(
+    src->condEventWait(
             src->getAudioDelay(src->mCurrentDelay) - TIME_DELAY_FOR_PSH / 1000);
     src->mAudioHal->audioHalActivate();
     src->connectToPSH();
@@ -501,41 +548,14 @@ int AudioClassifierSensor::workerThread(void *data) {
             LOGE("Read End Unexpectedly, Size: %d", size);
             break;
         }
-        int finalResult = -1;
-        switch (audioData.lpe_msg & FOR_CLASSIFIER_MASK) {
-            case 0:
-                finalResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_CROWD;
-                break;
-            case 1:
-                finalResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SOFT_MUSIC;
-                break;
-            case 2:
-                finalResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MECHANICAL;
-                break;
-            case 3:
-                finalResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MOTION;
-                break;
-            case 4:
-                finalResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MALE_SPEECH;
-                break;
-            case 5:
-                finalResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_FEMALE_SPEECH;
-                break;
-            case 6:
-                finalResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SILENT;
-                break;
-            default:
-                finalResult = SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_UNKNOWN;
-                break;
-        }
         LOGI("Update classifier %d dB %d",
                 audioData.lpe_msg & FOR_CLASSIFIER_MASK,
                 (audioData.lpe_msg & FOR_DB_MASK) >> 16);
         // write to result pipe
-        write(src->mResultPipe[1], &finalResult, sizeof(finalResult));
+        write(src->mResultPipe[1], &(audioData.lpe_msg), sizeof(audioData.lpe_msg));
         src->mAudioHal->audioHalDeActivate();
         //wait
-        src->pthreadWait(
+        src->condEventWait(
                 src->getAudioDelay(src->mCurrentDelay)
                         - TIME_DELAY_FOR_PSH / 1000);
         //wait end
@@ -568,7 +588,7 @@ err_handle_start:
  @Return      : void
  @Note        :
  */
-void AudioClassifierSensor::pthreadWait(int timeout) {
+void AudioClassifierSensor::condEventWait(int timeout) {
     LOGD("PthreadWait start");
     if (timeout < 0)
         timeout = 0;
@@ -583,7 +603,7 @@ void AudioClassifierSensor::pthreadWait(int timeout) {
     LOGD("PthreadWait stop");
 }
 
-void AudioClassifierSensor::pthreadStopWait() {
+void AudioClassifierSensor::condEventStopWait() {
     LOGD("PthreadStopWait");
     pthread_mutex_lock(&mMutexTimeOut);
     pthread_cond_signal(&mCondTimeOut);
