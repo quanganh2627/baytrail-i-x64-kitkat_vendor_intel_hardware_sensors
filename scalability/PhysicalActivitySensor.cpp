@@ -452,10 +452,10 @@ void* PhysicalActivitySensor::workerThread(void *data)
                         LOGE("psh_set_property n failed.");
                         return NULL;
                 }
-                if (methods.psh_start_streaming(src->mPAHandle, 1, 0) != ERROR_NONE) {
+                if (methods.psh_start_streaming_with_flag(src->mPAHandle, 1, 0, (streaming_flag)1) != ERROR_NONE) {
                         LOGE("psh_start_streaming failed.");
                         usleep(SLEEP_ON_FAIL_USEC);
-                        if (methods.psh_start_streaming(src->mPAHandle, 1, 0) != ERROR_NONE) {
+                        if (methods.psh_start_streaming_with_flag(src->mPAHandle, 1, 0, (streaming_flag)1) != ERROR_NONE) {
                                 LOGE("psh_start_streaming failed.");
                                 return NULL;
                         }
