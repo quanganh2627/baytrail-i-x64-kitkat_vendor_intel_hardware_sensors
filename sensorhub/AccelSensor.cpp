@@ -134,6 +134,9 @@ int AccelSensor::readEvents(sensors_event_t* data, int count)
     size = read(data_fd, buf, size);
     count = size / unit_size;
 
+    if (count == 0)
+        return 0;
+
     D("AccelSensor::readEvents read size is %d", size);
 
     current_timestamp = getTimestamp();

@@ -151,6 +151,8 @@ int GestureFlickSensor::readEvents(sensors_event_t* data, int count)
         size = (512 / unit_size) * unit_size;
 
     size = read(data_fd, buf, size);
+    if (size == 0)
+        return 0;
 
     char *p = buf;
     struct gesture_flick_data *p_gesture_data;

@@ -133,6 +133,9 @@ int LinearAccelSensor::readEvents(sensors_event_t* data, int count)
 
     current_timestamp = getTimestamp();
 
+    if (count == 0)
+        return 0;
+
     step = (current_timestamp - last_timestamp) / count;
 
     char *p = buf;
