@@ -28,7 +28,7 @@ LOCAL_MODULE := sensors.$(TARGET_DEVICE)
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_MODULE_TAGS := optional
 
-LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
+LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\" -DENABLE_ACCEL_ZCAL
 LOCAL_SRC_FILES := config.cpp                   \
                    ../InputEventReader.cpp      \
                    ../sensors.cpp               \
@@ -46,9 +46,33 @@ LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
                     external/icu4c/common \
                     external/libxml2/include
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc
-LOCAL_STATIC_LIBRARIES := libxml2
+LOCAL_STATIC_LIBRARIES := libxml2 libaccelerometersimplecalibration
 
 LOCAL_PRELINK_MODULE := false
+
+include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := libaccelerometersimplecalibration
+LOCAL_MODULE_PATH := $(TARGET_OUT_STATIC_LIBRARIES)
+LOCAL_MODULE_TAGS := optional
+LOCAL_CFLAGS := -DLOG_TAG=\"AccelerometerSimpleCalibration\"
+LOCAL_SHARED_LIBRARIES := liblog libcutils
+LOCAL_SRC_FILES := ../scalability/sensorcalibration/AccelerometerSimpleCalibration/accelerometer_simple_calibration.c \
+		   ../scalability/sensorcalibration/AccelerometerSimpleCalibration/accelerometer_simple_zcalibration.c
+
+include $(BUILD_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := libaccelerometersimplecalibration
+LOCAL_MODULE_PATH := $(TARGET_OUT_STATIC_LIBRARIES)
+LOCAL_MODULE_TAGS := optional
+LOCAL_CFLAGS := -DLOG_TAG=\"AccelerometerSimpleCalibration\"
+LOCAL_SHARED_LIBRARIES := liblog libcutils
+LOCAL_SRC_FILES := ../scalability/sensorcalibration/AccelerometerSimpleCalibration/accelerometer_simple_calibration.c \
+		   ../scalability/sensorcalibration/AccelerometerSimpleCalibration/accelerometer_simple_zcalibration.c
 
 include $(BUILD_SHARED_LIBRARY)
 
