@@ -16,6 +16,10 @@
 
 #include "AccelSensor.h"
 
+#ifdef ENABLE_ACCEL_ZCAL
+#include "../scalability/sensorcalibration/AccelerometerSimpleCalibration/accelerometer_simple_calibration.h"
+#endif
+
 #define SENSOR_NOPOLL   0x7fffffff
 #define CONVERT_AXIS(a, b)   (((float)a/1000) * GRAVITY * b)
 
@@ -132,6 +136,15 @@ int AccelSensor::readEvents(sensors_event_t* data, int count)
                 inputDataOverrun = 0;
             } else {
                 mPendingEvent.timestamp = timevalToNano(event->time);
+#ifdef ENABLE_ACCEL_ZCAL
+                struct accelerometer_simple_calibration_event_t cal_event;
+                for (int i = 0; i < ACCEL_AXIS_MAX; i++)
+                        cal_event.data[i] = mPendingEvent.data[i];
+                int ret = accel_simp_zcal_calibration(&cal_event);
+                if (!ret)
+                        for (int i = 0; i < ACCEL_AXIS_MAX; i++)
+                                mPendingEvent.data[i] = cal_event.data[i];
+#endif
                 if (mEnabled) {
                     *data++ = mPendingEvent;
                     count--;
