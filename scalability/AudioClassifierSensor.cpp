@@ -26,7 +26,7 @@
 #include "AudioClassifierSensor.hpp"
 #define PSH_SESSION_NOT_OPENED       NULL
 #define SLEEP_ON_FAIL_USEC           500000
-#define AUDIO_FLAG                   NO_STOP_NO_REPORT_WHEN_SCREEN_OFF
+#define AUDIO_FLAG                   NO_STOP_WHEN_SCREEN_OFF
 #define TIME_DELAY_FOR_PSH           5000
 #define FILT_COEFF_QFACTOR           15
 #define ALPHA_QFACTOR                14
