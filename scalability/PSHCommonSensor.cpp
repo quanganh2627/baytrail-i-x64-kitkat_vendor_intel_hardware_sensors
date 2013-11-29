@@ -105,12 +105,16 @@ int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
 
         count = SensorHubHelper::readSensorhubEvents(pollfd, sensorhubEvent, count, device.getType(), last_timestamp);
         for (int i = 0; i < count; i++) {
-                event.data[device.getMapper(AXIS_X)] = sensorhubEvent[i].data[0] * device.getScale(AXIS_X);
-                event.data[device.getMapper(AXIS_Y)] = sensorhubEvent[i].data[1] * device.getScale(AXIS_Y);
-                event.data[device.getMapper(AXIS_Z)] = sensorhubEvent[i].data[2] * device.getScale(AXIS_Z);
-                event.data[device.getMapper(AXIS_W)] = sensorhubEvent[i].data[3] * device.getScale(AXIS_W);
-                if (sensorhubEvent[i].accuracy != 0)
-                        event.acceleration.status = sensorhubEvent[i].accuracy;
+                if (device.getType() == SENSOR_TYPE_STEP_COUNTER) {
+                        event.u64.step_counter = sensorhubEvent[i].step_counter;
+                } else {
+                        event.data[device.getMapper(AXIS_X)] = sensorhubEvent[i].data[0] * device.getScale(AXIS_X);
+                        event.data[device.getMapper(AXIS_Y)] = sensorhubEvent[i].data[1] * device.getScale(AXIS_Y);
+                        event.data[device.getMapper(AXIS_Z)] = sensorhubEvent[i].data[2] * device.getScale(AXIS_Z);
+                        event.data[device.getMapper(AXIS_W)] = sensorhubEvent[i].data[3] * device.getScale(AXIS_W);
+                        if (sensorhubEvent[i].accuracy != 0)
+                                event.acceleration.status = sensorhubEvent[i].accuracy;
+                }
                 event.timestamp = sensorhubEvent[i].timestamp;
                 eventQue.push(event);
         }
