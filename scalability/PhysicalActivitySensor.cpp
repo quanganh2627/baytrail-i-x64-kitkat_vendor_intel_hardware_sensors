@@ -481,6 +481,7 @@ void* PhysicalActivitySensor::workerThread(void *data)
         if (instantMode) {
                 (*src->mActivityInstantInit)(ActCB, data);
         }
+        src->last_timestamp = getTimestamp();
 
         // let's poll
         while (poll(polls, 2, -1) > 0) {
@@ -559,6 +560,9 @@ int PhysicalActivitySensor::getPollfd()
 
 int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
 {
+        int64_t current_timestamp, timestamp_step;
+        int i;
+
         int size, numEventReceived = 0;
         char buf[512];
         int *p_activity_data;
@@ -577,10 +581,15 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
         LOGI("Actually read %d", size);
 
         char *p = buf;
+        current_timestamp = getTimestamp();
+        int count = size / unit_size;
+        timestamp_step = (current_timestamp - last_timestamp) / count;
 
+        i = 0;
         while (size > 0) {
                 p_activity_data = (int *)p;
                 event.data[0] = ((*p_activity_data));
+                event.timestamp = last_timestamp + timestamp_step * (i + 1);
                 LOGI("Event value is %d", *p_activity_data);
                 eventQue.push(event);
                 numEventReceived++;
@@ -588,6 +597,7 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
                 size = size - unit_size;
                 p = p + unit_size;
         }
+        last_timestamp = current_timestamp;
 
         LOGI("PhysicalActivitySensor - read %d events", numEventReceived);
         return numEventReceived;
