@@ -18,6 +18,7 @@ public:
         Sensor(SensorDevice &device);
         virtual ~Sensor() {}
         SensorDevice& getDevice() { return device; }
+        void resetEventHandle();
         virtual int getPollfd() = 0;
         virtual int activate(int handle, int enabled) { return 0; }
         virtual int setDelay(int handle, int64_t ns) { return 0; }

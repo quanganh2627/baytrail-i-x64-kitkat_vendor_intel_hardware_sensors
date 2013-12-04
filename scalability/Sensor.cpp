@@ -16,3 +16,8 @@ Sensor::Sensor(SensorDevice &mDevice)
         event.sensor = device.getHandle();
         event.type = device.getType();
 }
+
+void Sensor::resetEventHandle()
+{
+        event.sensor = device.getHandle();
+}
