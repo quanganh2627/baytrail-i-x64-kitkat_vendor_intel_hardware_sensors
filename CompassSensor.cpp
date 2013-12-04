@@ -80,9 +80,20 @@ void CompassSensor::storeCalibrationData()
 int CompassSensor::enable(int32_t handle, int en)
 {
     unsigned int flags = en ? 1 : 0;
+    int fd, ret = 0;
+    char buf[50];
 
     D("CompassSensor - %s, flags = %d, mEnabled = %d",
          __func__, flags, mEnabled);
+
+    if (flags == mEnabled)
+        return 0;
+
+    if ((fd = SensorBase::openFile(mConfig->activate_path, O_RDWR)) < 0) {
+        E("CompassSensor: Open device file failed, possible path: %s!",
+                                                mConfig->activate_path);
+        return -1;
+    }
 
     if (flags == 1 && mEnabled == 0) {
         mCalDataFile = open(mConfig->config_path, O_RDWR | O_CREAT, S_IRWXU);
@@ -113,50 +124,37 @@ int CompassSensor::enable(int32_t handle, int en)
         }
     }
 
-    if (flags != mEnabled) {
-        int fd;
-        fd = open(mConfig->activate_path, O_RDWR);
-        if (fd >= 0) {
-            char buf[2];
-
-            buf[1] = 0;
-            if (flags) {
-                buf[0] = '1';
-            } else {
-                buf[0] = '0';
-            }
-            int ret = write(fd, buf, sizeof(buf));
-            close(fd);
-            if (ret == sizeof(buf)) {
-                mEnabled = flags;
-                return 0;
-            }
-        }
-        D("CompassSensor - %s, errno = %d", __func__, errno);
-        return -1;
+    buf[1] = 0;
+    buf[0] = flags ? '1' : '0';
+    ret = write(fd, buf, sizeof(buf));
+    if (ret > 0) {
+        mEnabled = flags;
+        ret = 0;
     }
+    close(fd);
 
-    return 0;
+    return ret;
 }
 
 int CompassSensor::setDelay(int32_t handle, int64_t ns)
 {
+    int fd;
+    unsigned long delay_ms;
+    char buf[10] = { 0 };
+
     D("%s setDelay ns = %lld\n", __func__, ns);
 
-    int fd;
-    fd = open(mConfig->poll_path, O_RDWR);
-    if (fd >= 0) {
-        char buf[80];
-        int ms = ns / 1000 / 1000;
-
-        sprintf(buf, "%d", ms);
-        write(fd, buf, strlen(buf)+1);
-        close(fd);
-        return 0;
+    if ((fd = SensorBase::openFile(mConfig->poll_path, O_RDWR)) < 0) {
+        E("CompassSensor: Open device file failed, possible path: %s!",
+                                                mConfig->poll_path);
+        return -1;
     }
 
-    E("%s, errno = %d", __func__, errno);
-    return -1;
+    delay_ms = ns / 1000 / 1000;
+    snprintf(buf, sizeof(buf), "%ld", delay_ms);
+    write(fd, buf, sizeof(buf));
+    close(fd);
+    return 0;
 }
 
 void CompassSensor::filter()

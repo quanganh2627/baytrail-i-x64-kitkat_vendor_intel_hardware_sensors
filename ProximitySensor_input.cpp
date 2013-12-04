@@ -226,7 +226,7 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
 
         if (type == EV_ABS && !inputDataOverrun) {
             int val = event->value;
-	    mPendingEvent.distance = (float)(val >= thresh ? 0 : 6);
+	    mPendingEvent.distance = (float)(val > 0? 6 : 0);
         } else if (type == EV_SYN) {
             mPendingEvent.timestamp = timevalToNano(event->time);
             if (event->code == SYN_DROPPED) {
