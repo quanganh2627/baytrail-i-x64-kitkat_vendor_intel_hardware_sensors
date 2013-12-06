@@ -8,7 +8,10 @@
 typedef unsigned char byte;
 
 struct sensorhub_event_t {
-        int data[4];
+        union {
+                int data[4];
+                uint64_t step_counter;
+        };
         int accuracy;
         int64_t timestamp;
 };

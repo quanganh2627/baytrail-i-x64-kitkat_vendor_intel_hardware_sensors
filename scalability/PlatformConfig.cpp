@@ -313,6 +313,12 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_ROTATION_VECTOR;
         else if (type.compare(0, 11, "orientation")==0)
                 return SENSOR_TYPE_ORIENTATION;
+        else if (type.compare(0,13,"step_detector")==0)
+                return SENSOR_TYPE_STEP_DETECTOR;
+        else if (type.compare(0,12,"step_counter")==0)
+                return SENSOR_TYPE_STEP_COUNTER;
+        else if (type.compare(0,18,"significant_motion")==0)
+                return SENSOR_TYPE_SIGNIFICANT_MOTION;
         else if (type.compare(0, 13, "gesture_flick")==0)
                 return SENSOR_TYPE_GESTURE_FLICK;
         else if (type.compare(0, 8, "terminal")==0)

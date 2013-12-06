@@ -45,6 +45,12 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 return SENSOR_STAP;
         case SENSOR_TYPE_MOVE_DETECT:
                 return SENSOR_MOVE_DETECT;
+        case SENSOR_TYPE_STEP_DETECTOR:
+                return SENSOR_STEPDETECTOR;
+        case SENSOR_TYPE_STEP_COUNTER:
+                return SENSOR_STEPCOUNTER;
+        case SENSOR_TYPE_SIGNIFICANT_MOTION:
+                return SENSOR_SIGNIFICANT_MOTION;
         case SENSOR_TYPE_GESTURE:
         case SENSOR_TYPE_PHYSICAL_ACTIVITY:
         case SENSOR_TYPE_PEDOMETER:
@@ -228,6 +234,12 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct stap_data);
         case SENSOR_TYPE_MOVE_DETECT:
                 return sizeof(struct md_data);
+        case SENSOR_TYPE_STEP_DETECTOR:
+                return sizeof(struct stepdetector_data);
+        case SENSOR_TYPE_STEP_COUNTER:
+                return sizeof(struct stepcounter_data);
+        case SENSOR_TYPE_SIGNIFICANT_MOTION:
+                return sizeof(struct sm_data);
         case SENSOR_TYPE_TEMPERATURE:
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
@@ -380,6 +392,24 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         case SENSOR_TYPE_MOVE_DETECT:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = getMoveDetectEvent((reinterpret_cast<struct md_data*>(stream))[i]);
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
+                }
+                break;
+        case SENSOR_TYPE_STEP_DETECTOR:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = ((reinterpret_cast<struct stepdetector_data*>(stream))[i]).state;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
+                }
+                break;
+        case SENSOR_TYPE_STEP_COUNTER:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].step_counter = ((reinterpret_cast<struct stepcounter_data*>(stream))[i]).num;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
+                }
+                break;
+        case SENSOR_TYPE_SIGNIFICANT_MOTION:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = ((reinterpret_cast<struct sm_data*>(stream))[i]).state;
                         events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
