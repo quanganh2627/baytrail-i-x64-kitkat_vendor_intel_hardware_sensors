@@ -16,6 +16,7 @@ public:
         int setDelay(int handle, int64_t ns);
         int getData(std::queue<sensors_event_t> &eventQue);
         bool selftest();
+        int hardwareSet(bool activated);
 };
 
 #endif

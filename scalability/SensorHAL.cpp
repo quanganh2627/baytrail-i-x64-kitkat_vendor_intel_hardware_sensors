@@ -34,8 +34,8 @@ static int get_sensors_list(struct sensors_module_t* module, struct sensor_t con
 struct sensors_module_t HAL_MODULE_INFO_SYM = {
 common: {
         tag: HARDWARE_MODULE_TAG,
-        version_major: 1,
-        version_minor: 0,
+        module_api_version: SENSORS_MODULE_API_VERSION_0_1,
+        hal_api_version: 0,
         id: SENSORS_HARDWARE_MODULE_ID,
         name: "Intel Sensor module",
         author: "Han, He <he.han@intel.com>, Intel Inc.",
@@ -176,7 +176,7 @@ int sensorActivate(struct sensors_poll_device_t *dev, int handle, int enabled)
         return mModule.sensors[id]->activate(handle, enabled);
 }
 
-int sensorSetDelay(struct sensors_poll_device_t *dev, int handle, int64_t ns)
+int sensorSetDelay(struct sensors_poll_device_t *dev, int handle, int64_t period_ns)
 {
         int id = SensorDevice::handleToId(handle);
         if (id < 0) {
@@ -184,8 +184,33 @@ int sensorSetDelay(struct sensors_poll_device_t *dev, int handle, int64_t ns)
                      __FUNCTION__, __LINE__, handle, id);
                 return -1;
         }
-        return mModule.sensors[id]->setDelay(handle, ns);
+        return mModule.sensors[id]->setDelay(handle, period_ns);
 
+}
+
+int sensorBatch(struct sensors_poll_device_1* dev,
+                int handle, int flags, int64_t period_ns, int64_t timeout)
+{
+        int id = SensorDevice::handleToId(handle);
+        if (id < 0) {
+                LOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
+                     __FUNCTION__, __LINE__, handle, id);
+                return -1;
+        }
+
+        return mModule.sensors[id]->batch(handle, flags, period_ns, timeout);
+}
+
+int sensorFlush(struct sensors_poll_device_1* dev, int handle)
+{
+        int id = SensorDevice::handleToId(handle);
+        if (id < 0) {
+                LOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
+                     __FUNCTION__, __LINE__, handle, id);
+                return -1;
+        }
+
+        return mModule.sensors[id]->flush(handle);
 }
 
 int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int count)
@@ -240,15 +265,17 @@ int close(struct hw_device_t* device)
 static int open(const struct hw_module_t* module, const char* id,
                 struct hw_device_t** device)
 {
-        static struct sensors_poll_device_t dev;
+        static struct sensors_poll_device_1 dev;
 
         dev.common.tag = HARDWARE_DEVICE_TAG;
-        dev.common.version = 0;
+        dev.common.version = SENSORS_DEVICE_API_VERSION_1_1;
         dev.common.module  = const_cast<hw_module_t*>(module);
         dev.common.close   = close;
         dev.activate       = sensorActivate;
         dev.setDelay       = sensorSetDelay;
         dev.poll           = sensorPoll;
+        dev.batch          = sensorBatch;
+        dev.flush          = sensorFlush;
 
         *device = &dev.common;
 

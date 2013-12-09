@@ -6,14 +6,12 @@ struct sensor_hub_methods PSHSensor::methods;
 PSHSensor::PSHSensor()
 {
         SensorHubMethodsInitialize();
-        activated = false;
 }
 
 PSHSensor::PSHSensor(SensorDevice &mDevice)
         :Sensor(mDevice)
 {
         SensorHubMethodsInitialize();
-        activated = false;
 }
 
 PSHSensor::~PSHSensor()
@@ -101,6 +99,15 @@ bool PSHSensor::SensorHubMethodsInitialize()
                 }
         }
 
+        if (methods.psh_flush_streaming == NULL) {
+                methods.psh_flush_streaming = reinterpret_cast<error_t (*)(handle_t, unsigned int)>(dlsym(methodsHandle, "psh_flush_streaming"));
+                if (methods.psh_flush_streaming == NULL) {
+                        LOGE("dlsym: psh_flush_streaming error!");
+                        SensorHubMethodsFinallize();
+                        return false;
+                }
+        }
+
         return true;
 }
 
@@ -114,4 +121,29 @@ bool PSHSensor::SensorHubMethodsFinallize()
                 }
         }
         return true;
+}
+
+int PSHSensor::flush(int handle)
+{
+        error_t err;
+
+        if (handle != device.getHandle()) {
+                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                     __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
+                return -EINVAL;
+        }
+
+        if (!state.getActivated()) {
+                LOGW("%s line: %d %s not activated", __FUNCTION__, __LINE__, device.getName());
+                return -EINVAL;
+        }
+
+        if (methods.psh_flush_streaming == NULL) {
+                LOGE("psh_flush_streaming not initialized!");
+                return -EINVAL;
+        }
+
+        err = methods.psh_flush_streaming(sensorHandle, SensorHubHelper::getUnitSize(device.getType()));
+
+        return err == ERROR_NONE ? 0 : -EINVAL;
 }

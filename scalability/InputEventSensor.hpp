@@ -5,7 +5,7 @@
 
 class InputEventSensor : public DirectSensor {
         int openFile(std::string &pathset);
-        int writeToFile(std::string &pathset, int handle, int64_t value);
+        int writeToFile(std::string &pathset, int64_t value);
         bool inputDataOverrun;
 public:
         InputEventSensor(SensorDevice &mDevice, struct PlatformData &mData);
@@ -19,6 +19,7 @@ public:
         int setDelay(int handle, int64_t ns);
         int getData(std::queue<sensors_event_t> &eventQue);
         bool selftest();
+        int hardwareSet(bool activated);
 };
 
 #endif

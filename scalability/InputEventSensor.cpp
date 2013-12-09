@@ -67,55 +67,80 @@ int InputEventSensor::getPollfd()
         return pollfd;
 }
 
-int InputEventSensor::activate(int handle, int enabled) {
-        static int activated = 0;
-        int result;
+int InputEventSensor::hardwareSet(bool activated)
+{
+        int result = 0;
 
+        /* activate sensor */
+        if (activated) {
+                /* hardware is inactive now */
+                if (!state.getActivated()) {
+                        if (Calibration != NULL)
+                                Calibration(&event, READ_DATA, data.calibrationFile.c_str());
+                        result = writeToFile(data.activateInterface, static_cast<int64_t>(1));
+                        if (result) {
+                                LOGE("%s line:%d %s real active hardware sensor error! %d",
+                                     __FUNCTION__, __LINE__, device.getName(), result);
+                                return result;
+                        }
+                        state.setActivated(true);
+                        if (DriverCalibration != NULL)
+                                DriverCalibration(&event, CALIBRATION_DATA, data.driverCalibrationFile.c_str(), data.driverCalibrationInterface.c_str());
+                }
+
+                /* only change the delay */
+                /* If the sensor is interrupt mode */
+                if (device.getMinDelay() != 0 && data.setDelayInterface.length() != 0) {
+                        return writeToFile(data.setDelayInterface, static_cast<int64_t>(state.getDelay()));
+                }
+                return 0;
+        }
+
+        state.setActivated(false);
+        if (Calibration != NULL)
+                Calibration(&event, STORE_DATA, data.calibrationFile.c_str());
+
+        return writeToFile(data.activateInterface, static_cast<int64_t>(0));
+}
+
+int InputEventSensor::activate(int handle, int enabled) {
         if (handle != device.getHandle()) {
                 LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
                      __FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
                 return -1;
         }
 
-        enabled = enabled == 0 ? 0 : 1;
-
-        if (Calibration != NULL) {
-                if (enabled && !activated)
-                        Calibration(&event, READ_DATA, data.calibrationFile.c_str());
-                else if (!enabled && activated)
-                        Calibration(&event, STORE_DATA, data.calibrationFile.c_str());
-        }
-        result =writeToFile(data.activateInterface, handle, static_cast<int64_t>(enabled));
-
-        if (DriverCalibration != NULL && enabled != 0 && result == 0 && activated == 0)
-                DriverCalibration(&event, CALIBRATION_DATA, data.driverCalibrationFile.c_str(), data.driverCalibrationInterface.c_str());
-
-        activated = enabled;
-
-        return result;
+        return hardwareSet(enabled == 0 ? false : true);
 }
 
-int InputEventSensor::setDelay(int handle, int64_t ns) {
-        int64_t delay;
+int InputEventSensor::setDelay(int handle, int64_t period_ns) {
+        int delay;
         int minDelay = device.getMinDelay() / US_TO_MS;
 
-        delay = ns / NS_TO_MS;
+        delay = period_ns / NS_TO_MS;
         if (delay < minDelay)
                 delay = minDelay;
 
-        if (ns / 1000 == SENSOR_NOPOLL)
+        if (period_ns / 1000 == SENSOR_NOPOLL)
                 delay = 0;
 
-        /* If the sensor is interrupt mode */
-        if (minDelay == 0 || data.setDelayInterface.length() == 0)
-                return 0;
+        if (state.getActivated() && delay != state.getDelay()) {
+                state.setDelay(delay);
+                return hardwareSet(true);
+        }
+        state.setDelay(delay);
 
-        return writeToFile(data.setDelayInterface, handle, delay);
+        return 0;
 }
 
 int InputEventSensor::getData(std::queue<sensors_event_t> &eventQue) {
         struct input_event inputEvent[32];
         int count, ret;
+
+        if (state.getFlushSuccess() == true) {
+                eventQue.push(metaEvent);
+                state.setFlushSuccess(false);
+        }
 
         ret = read(pollfd, inputEvent, 32 * sizeof(struct input_event));
         if (ret < 0 || ret % sizeof(struct input_event)) {
@@ -142,17 +167,20 @@ int InputEventSensor::getData(std::queue<sensors_event_t> &eventQue) {
                         if (inputEvent[i].code == SYN_DROPPED) {
                                 LOGE("input event overrun");
                                 inputDataOverrun = true;
-                        }
-                        else if (inputDataOverrun) {
+                        } else if (inputDataOverrun) {
                                 inputDataOverrun = false;
-                        }
-                        else {
+                        } else if (inputEvent[i].code == SYN_CONFIG || state.getFlushSuccess() == true) { //if support batch mode, use SYN_CONFIG to mark flush succeed.
+                                eventQue.push(metaEvent);
+                                state.setFlushSuccess(false);
+                        } else if (inputEvent[i].code == SYN_REPORT) {
                                 event.timestamp = timevalToNano(inputEvent[i].time);
                                 if (Calibration != NULL)
                                         Calibration(&event, CALIBRATION_DATA, data.calibrationFile.c_str());
                                 else if (device.getEventProperty() == VECTOR)
                                         event.acceleration.status = SENSOR_STATUS_ACCURACY_MEDIUM;
                                 eventQue.push(event);
+                        } else {
+                                LOGE("%s line:%d Unknow event sync code %u", __FUNCTION__, __LINE__, inputEvent[i].code);
                         }
                 }
         }
@@ -193,15 +221,9 @@ int InputEventSensor::openFile(std::string &pathset) {
         return fd;
 }
 
-int InputEventSensor::writeToFile(std::string &pathset, int handle, int64_t value) {
+int InputEventSensor::writeToFile(std::string &pathset, int64_t value) {
         int fd, ret;
         std::ostringstream ss;
-
-        if (handle != device.getHandle()) {
-                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
-                     __FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
-                return -1;
-        }
 
         fd = openFile(pathset);
         if (fd < 0) {

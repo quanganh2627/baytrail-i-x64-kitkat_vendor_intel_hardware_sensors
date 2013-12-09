@@ -5,6 +5,12 @@ Sensor::Sensor()
         pollfd = -1;
         memset(&event, 0, sizeof(sensors_event_t));
         event.version = sizeof(sensors_event_t);
+
+        memset(&metaEvent, 0, sizeof(metaEvent));
+        metaEvent.version = META_DATA_VERSION;
+        metaEvent.type = SENSOR_TYPE_META_DATA;
+        metaEvent.meta_data.sensor = device.getHandle();
+        metaEvent.meta_data.what = META_DATA_FLUSH_COMPLETE;
 }
 
 Sensor::Sensor(SensorDevice &mDevice)
@@ -15,9 +21,56 @@ Sensor::Sensor(SensorDevice &mDevice)
         event.version = sizeof(sensors_event_t);
         event.sensor = device.getHandle();
         event.type = device.getType();
+
+        memset(&metaEvent, 0, sizeof(metaEvent));
+        metaEvent.version = META_DATA_VERSION;
+        metaEvent.type = SENSOR_TYPE_META_DATA;
+        metaEvent.meta_data.sensor = device.getHandle();
+        metaEvent.meta_data.what = META_DATA_FLUSH_COMPLETE;
+}
+
+int Sensor::batch(int handle, int flags, int64_t period_ns, int64_t timeout)
+{
+        if (handle != device.getHandle()) {
+                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                     __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
+                return -EINVAL;
+        }
+
+        if (timeout == 0) {
+                if (flags != SENSORS_BATCH_DRY_RUN)
+                        setDelay(handle, period_ns);
+                return 0;
+        }
+
+        return -EINVAL;
+}
+
+int Sensor::flush(int handle)
+{
+        if (handle != device.getHandle()) {
+                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                     __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
+                return -EINVAL;
+        }
+
+
+        if (!state.getActivated()) {
+                LOGW("%s line: %d %s not activated", __FUNCTION__, __LINE__, device.getName());
+                return -EINVAL;
+        }
+
+        if (!state.getBatchModeEnabled()) {
+                LOGW("%s line: %d %s batch not enabled", __FUNCTION__, __LINE__, device.getName());
+                state.setFlushSuccess(true);
+                return 0;
+        }
+
+        return -EINVAL;
 }
 
 void Sensor::resetEventHandle()
 {
         event.sensor = device.getHandle();
+        metaEvent.meta_data.sensor = device.getHandle();
 }

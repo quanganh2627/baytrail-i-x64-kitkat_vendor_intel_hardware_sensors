@@ -10,6 +10,7 @@
 typedef struct {
         union {
                 int value;
+                uint64_t config;
                 int64_t timestamp;
         };
         axis_t axis;
@@ -27,17 +28,9 @@ int MiscSensor::getPollfd()
         return pollfd;
 }
 
-int MiscSensor::activate(int handle, int enabled) {
-        static int activated = 0;
+int MiscSensor::hardwareSet(bool activated)
+{
         int fd, ret;
-
-        if (handle != device.getHandle()) {
-                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
-                     __FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
-                return -1;
-        }
-
-        enabled = enabled == 0 ? 0 : 1;
 
         fd = getPollfd();
         if (fd < 0) {
@@ -45,30 +38,60 @@ int MiscSensor::activate(int handle, int enabled) {
                 return -1;
         }
 
-        if (Calibration != NULL) {
-                if (enabled && !activated)
-                        Calibration(&event, READ_DATA, data.calibrationFile.c_str());
-                else if (!enabled && activated)
-                        Calibration(&event, STORE_DATA, data.calibrationFile.c_str());
+        /* activate sensor */
+        if (activated) {
+                /* hardware is inactive now */
+                if (!state.getActivated()) {
+                        if (Calibration != NULL)
+                                Calibration(&event, READ_DATA, data.calibrationFile.c_str());
+                        ret = ioctl(fd, IO_CMD_ACTIVATE, 1);
+                        if (ret) {
+                                LOGE("%s line:%d %s real active hardware sensor error! %d",
+                                     __FUNCTION__, __LINE__, device.getName(), ret);
+                                return -1;
+                        }
+                        state.setActivated(true);
+                        if (DriverCalibration != NULL)
+                                DriverCalibration(&event, CALIBRATION_DATA, data.driverCalibrationFile.c_str(), data.driverCalibrationInterface.c_str());
+                }
+
+                /* only change the delay */
+                /* If the sensor is interrupt mode */
+                if (device.getMinDelay() != 0 && data.setDelayInterface.length() != 0) {
+                        ret = ioctl(fd, IO_CMD_SETDELAY, state.getDelay());
+                        if (ret) {
+                                LOGE("%s: line: %d: %s set delay error! delay: %d", __FUNCTION__, __LINE__, data.name.c_str(), state.getDelay());
+                                return -1;
+                        }
+                }
+                return 0;
         }
 
-        ret = ioctl(fd, IO_CMD_ACTIVATE, enabled);
+        state.setActivated(false);
+        if (Calibration != NULL)
+                Calibration(&event, STORE_DATA, data.calibrationFile.c_str());
+
+        ret = ioctl(fd, IO_CMD_ACTIVATE, 0);
         if (ret) {
-                LOGE("%s: line: %d: %s enable error! arg: %d", __FUNCTION__, __LINE__, data.name.c_str(), enabled);
+                LOGE("%s line:%d %s real deactive hardware sensor error! %d",
+                     __FUNCTION__, __LINE__, device.getName(), ret);
                 return -1;
         }
-
-        if (DriverCalibration != NULL && enabled != 0 && activated == 0)
-                DriverCalibration(&event, CALIBRATION_DATA, data.driverCalibrationFile.c_str(), data.driverCalibrationInterface.c_str());
-
-        activated = enabled;
-
         return 0;
 }
 
-int MiscSensor::setDelay(int handle, int64_t ns)
+int MiscSensor::activate(int handle, int enabled) {
+        if (handle != device.getHandle()) {
+                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                     __FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
+                return -1;
+        }
+
+        return hardwareSet(enabled == 0 ? false : true);
+}
+
+int MiscSensor::setDelay(int handle, int64_t period_ns)
 {
-        int fd, ret;
         int64_t delay;
         int minDelay = device.getMinDelay() / US_TO_MS;
 
@@ -78,29 +101,19 @@ int MiscSensor::setDelay(int handle, int64_t ns)
                 return -1;
         }
 
-        fd = getPollfd();
-        if (fd < 0) {
-                LOGE("%s: line: %d: %s getPollfd error!", __FUNCTION__, __LINE__, data.name.c_str());
-                return -1;
-        }
-
-        if (ns / 1000 == SENSOR_NOPOLL)
+        if (period_ns / 1000 == SENSOR_NOPOLL)
                 delay = 0;
         else
-                delay = ns / NS_TO_MS;
+                delay = period_ns / NS_TO_MS;
 
         if (delay < minDelay)
                 delay = minDelay;
 
-        /* If the sensor is interrupt mode */
-        if (minDelay == 0 || data.setDelayInterface.length() == 0)
-                return 0;
-
-        ret = ioctl(fd, IO_CMD_SETDELAY, delay);
-        if (ret) {
-                LOGE("%s: line: %d: %s set delay error! arg: %lld", __FUNCTION__, __LINE__, data.name.c_str(), ns);
-                return -1;
+        if (state.getActivated() && delay != state.getDelay()) {
+                state.setDelay(delay);
+                return hardwareSet(true);
         }
+        state.setDelay(delay);
 
         return 0;
 }
@@ -108,6 +121,11 @@ int MiscSensor::setDelay(int handle, int64_t ns)
 int MiscSensor::getData(std::queue<sensors_event_t> &eventQue) {
         int count, ret;
         sensors_misc_event_t miscEvent[32];
+
+        if (state.getFlushSuccess() == true) {
+                eventQue.push(metaEvent);
+                state.setFlushSuccess(false);
+        }
 
         ret = read(pollfd, miscEvent, sizeof(miscEvent));
 
@@ -117,6 +135,10 @@ int MiscSensor::getData(std::queue<sensors_event_t> &eventQue) {
                 if (Calibration != NULL)
                         Calibration(&event, CALIBRATION_DATA, NULL);
                 eventQue.push(event);
+                if (state.getFlushSuccess() == true) {
+                        eventQue.push(metaEvent);
+                        state.setFlushSuccess(false);
+                }
                 return 0;
         } else if (ret < 0 || ret % sizeof(sensors_misc_event_t) != 0) {
                 LOGE("%s line: %d, name: %s ret: %d",
@@ -138,12 +160,17 @@ int MiscSensor::getData(std::queue<sensors_event_t> &eventQue) {
                         event.data[device.getMapper(AXIS_Z)] = value * device.getScale(AXIS_Z);
                         break;
                 case AXIS_OTHER:
-                        event.timestamp = miscEvent[i].timestamp;
-                        if (Calibration != NULL)
-                                Calibration(&event, CALIBRATION_DATA, NULL);
-                        else if (device.getEventProperty() == VECTOR)
-                                event.acceleration.status = SENSOR_STATUS_ACCURACY_MEDIUM;
-                        eventQue.push(event);
+                        if (miscEvent[i].config == SENSOR_BATCH_MODE_FLUSH_DONE || state.getFlushSuccess() == true) {
+                                eventQue.push(metaEvent);
+                                state.setFlushSuccess(false);
+                        } else {
+                                event.timestamp = miscEvent[i].timestamp;
+                                if (Calibration != NULL)
+                                        Calibration(&event, CALIBRATION_DATA, NULL);
+                                else if (device.getEventProperty() == VECTOR)
+                                        event.acceleration.status = SENSOR_STATUS_ACCURACY_MEDIUM;
+                                eventQue.push(event);
+                        }
                 default:
                         LOGW("%s line: %d unknown axis: %d", __FUNCTION__, __LINE__, miscEvent[i].axis);
                         break;
