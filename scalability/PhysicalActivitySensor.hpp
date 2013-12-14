@@ -128,6 +128,7 @@ private:
         pthread_t   mWorkerThread;  // only one thread running at one time
 
         int         mResultPipe[2];
+        int64_t     last_timestamp;
 
         // for instant mode calculation
         short mPSHCn;  // result from lab algorithm

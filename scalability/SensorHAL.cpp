@@ -135,6 +135,7 @@ static bool initSensors()
                                 // Need to reset ids and handles, since some unfunctional sensors are removed
                                 mSensor->getDevice().setId(newId);
                                 mSensor->getDevice().setHandle(SensorDevice::idToHandle(newId));
+                                mSensor->resetEventHandle();
                                 mModule.sensors.push_back(mSensor);
                                 newId++;
                         } else {
