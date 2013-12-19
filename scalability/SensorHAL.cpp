@@ -86,6 +86,8 @@ static bool initSensors()
                         case SENSOR_TYPE_STEP_DETECTOR:
                         case SENSOR_TYPE_STEP_COUNTER:
                         case SENSOR_TYPE_SIGNIFICANT_MOTION:
+                        case SENSOR_TYPE_GAME_ROTATION_VECTOR:
+                        case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
                                 mSensor = new PSHCommonSensor(mDevice);
                                 break;
                         case SENSOR_TYPE_PEDOMETER:
