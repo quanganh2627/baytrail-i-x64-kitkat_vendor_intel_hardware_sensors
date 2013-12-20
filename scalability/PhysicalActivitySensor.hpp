@@ -147,10 +147,11 @@ private:
                 virtual bool accept(short *data, int len) = 0;
                 virtual void reduce(void);
                 virtual void reset(void);
-                virtual void publish(int &result);
+                virtual void publish(int &result, int &score);
 
         public:
                 std::deque<short> mStream;
+                std::deque<short> mScore;
 
                 // number of results inside buffer
                 int N;

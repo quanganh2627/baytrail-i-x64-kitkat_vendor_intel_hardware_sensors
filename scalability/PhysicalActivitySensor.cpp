@@ -34,6 +34,8 @@
 #undef LOG_TAG
 #define LOG_TAG "PhysicalActivitySensor"
 
+#define FULL_SCORE 100
+
 static const char * classNames[] = {
         "none", "biking", "walking", "running",
         "incar", "intrain", "random", "sedentary",
@@ -370,7 +372,9 @@ int PhysicalActivitySensor::ActCB(void *ctx, short *results, int len)
         src->mPSHCn = results[0] & 0xF;
 
         // report out final value
-        int report = getPA(src->mPSHCn);
+        int report[2];
+        report[0] = getPA(src->mPSHCn);
+        report[1] = FULL_SCORE;
         write(src->mResultPipe[1], &report, sizeof(report));
 
         return 0;
@@ -464,7 +468,6 @@ void* PhysicalActivitySensor::workerThread(void *data)
                 // create decorators
                 tmpClient = new NCycleClient(paDelay);
                 client = new ClientSummarizer(tmpClient);
-
                 psh_fd = methods.psh_get_fd(src->mPAHandle);
         }
 
@@ -518,10 +521,10 @@ void* PhysicalActivitySensor::workerThread(void *data)
 
                         // publish result
                         if (client->accept(actData.values, actData.len)) {
-                                int finalResult;
-                                client->publish(finalResult);
+                                int finalData[2];
+                                client->publish(finalData[0], finalData[1]);
                                 // write to result pipe
-                                write(src->mResultPipe[1], &finalResult, sizeof(finalResult));
+                                write(src->mResultPipe[1], &finalData, sizeof(finalData));
                         }
                 }
         }
@@ -566,7 +569,7 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
         int size, numEventReceived = 0;
         char buf[512];
         int *p_activity_data;
-        int unit_size = sizeof(*p_activity_data);
+        int unit_size = 2*sizeof(*p_activity_data);
 
         LOGI("PhysicalActivitySensor - getData");
 
@@ -588,9 +591,10 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
         i = 0;
         while (size > 0) {
                 p_activity_data = (int *)p;
-                event.data[0] = ((*p_activity_data));
+                event.data[0] = (*p_activity_data); // result
+                event.data[1] = (*(p_activity_data+1)); // score
                 event.timestamp = last_timestamp + timestamp_step * (i + 1);
-                LOGI("Event value is %d", *p_activity_data);
+                LOGI("Event value is %f, %f", event.data[0], event.data[1]);
                 eventQue.push(event);
                 numEventReceived++;
 
@@ -625,15 +629,17 @@ PhysicalActivitySensor::Client::~Client()
 {
 }
 
-void PhysicalActivitySensor::Client::publish(int &result)
+void PhysicalActivitySensor::Client::publish(int &result, int &score)
 {
         std::stringstream ss;
         if ((int)mStream.size() < N)
                 return;
         int cn = 0;
+        int sc = 0;
         for (int i = 0; i < N; ++i) {
                 cn = CN(mStream[i]);
-                LOGI("publish %d", cn);
+                sc = mScore[i];
+                LOGI("publish %d, %d", cn, sc);
         }
 
         switch (cn) {
@@ -658,6 +664,7 @@ void PhysicalActivitySensor::Client::publish(int &result)
         default:
                 result = SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_RANDOM;
         }
+        score = sc;
         reduce();
 }
 
@@ -665,16 +672,17 @@ void PhysicalActivitySensor::Client::reduce(void)
 {
         for (int i = 0; i < N; ++i) {
                 mStream.pop_front();
+                mScore.pop_front();
         }
 }
 
 void PhysicalActivitySensor::Client::reset(void)
 {
         mStream.clear();
+        mScore.clear();
 }
 
 ////////////////////////////////////////////////////////////////
-#define SWIP -1
 PhysicalActivitySensor::NCycleClient::NCycleClient(int n)
 {
         N = n;
@@ -683,6 +691,7 @@ PhysicalActivitySensor::NCycleClient::NCycleClient(int n)
 PhysicalActivitySensor::NCycleClient::~NCycleClient()
 {
         mStream.clear();
+        mScore.clear();
 }
 
 bool PhysicalActivitySensor::NCycleClient::accept(short *item, int len)
@@ -693,6 +702,7 @@ bool PhysicalActivitySensor::NCycleClient::accept(short *item, int len)
                 int nextsn = SN(*item);
                 if (nextsn != lastsn + 1) {
                         mStream.clear();
+                        mScore.clear();
                         s = 0;
                 }
         }
@@ -702,6 +712,7 @@ bool PhysicalActivitySensor::NCycleClient::accept(short *item, int len)
         }
         for (int i = 0; i < len; ++i) {
                 mStream.push_back(item[i]);
+                mScore.push_back(1);
         }
         s = mStream.size();
         return s >= N;
@@ -709,15 +720,25 @@ bool PhysicalActivitySensor::NCycleClient::accept(short *item, int len)
 
 
 ////////////////////////////////////////////////////////////////
+#define NORMAL_SWIP (2)
+#define OTHER_SWIP  (-1)
+
 PhysicalActivitySensor::ClientSummarizer::ClientSummarizer(const Client * c)
 {
         N = 1;
         mWeights = new int[c->N];
+
+        int swip;
         int w = INIT_WEIGHT;
-        // mWeight[i] = mWeight[i-1] * 2^-swip
+        if (c->N == getPADelay(PA_NORMAL))
+            swip = NORMAL_SWIP;
+        else
+            swip = OTHER_SWIP;
+
+        // mWeight[i] += mWeight[i-1] * 2^-swip
         for (int i = 0; i < c->N; ++i) {
                 mWeights[i] = w;
-                w += SWIP == -1 ? 0 : (w >> SWIP);
+                w += swip == -1 ? 0 : (w >> swip);
         }
         mClient = const_cast<Client *>(c);
 }
@@ -725,6 +746,7 @@ PhysicalActivitySensor::ClientSummarizer::ClientSummarizer(const Client * c)
 PhysicalActivitySensor::ClientSummarizer::~ClientSummarizer()
 {
         mStream.clear();
+        mScore.clear();
         delete [] mWeights;
         mWeights = NULL;
         delete mClient;
@@ -783,9 +805,11 @@ bool PhysicalActivitySensor::ClientSummarizer::accept(short *item, int len)
         if (scores[ indice[0] ] > sumper) {
                 // upon threshold, then final cn is the one with the greatest score
                 mStream.push_back(SNCN(sn, indice[0]));
+                mScore.push_back(FULL_SCORE * ((float)scores[indice[0]] / sum));
         } else {
                 // below threshold, then final cn is random
                 mStream.push_back(SNCN(sn, RAND));
+                mScore.push_back(FULL_SCORE * ((float)scores[indice[0]] / sum));
         }
         return true;
 }
@@ -793,11 +817,13 @@ bool PhysicalActivitySensor::ClientSummarizer::accept(short *item, int len)
 void PhysicalActivitySensor::ClientSummarizer::reduce(void)
 {
         mStream.clear();
+        mScore.clear();
         mClient->reduce();
 }
 
 void PhysicalActivitySensor::ClientSummarizer::reset(void)
 {
         mStream.clear();
+        mScore.clear();
         mClient->reset();
 }
