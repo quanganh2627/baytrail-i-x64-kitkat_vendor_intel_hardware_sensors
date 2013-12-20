@@ -36,7 +36,7 @@
 
 typedef unsigned char u8;
 typedef unsigned short u16;
-#include "../../../../../linux/modules/drivers/hwmon/sensor_driver_config.h"
+#include "sensor_driver_config.h"
 #include "sensor_parser.h"
 
 #define SENSOR_PARSER_DBG
