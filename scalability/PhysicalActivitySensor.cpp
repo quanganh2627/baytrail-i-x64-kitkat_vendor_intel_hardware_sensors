@@ -34,7 +34,28 @@
 #undef LOG_TAG
 #define LOG_TAG "PhysicalActivitySensor"
 
+// for physical activity virtual sensor
 #define FULL_SCORE 100
+#define OUTPUT_SIZE 10  // class, score, 8 raw class
+
+// for activity summarizer
+// decorator related below
+#define RAND 6
+#define INIT_WEIGHT 1024
+
+// the result coming from psh contains two portions
+// xxxx xxxx xxxx xxxx
+// xxxx xxxx xxxx represents sequence number
+//                         xxxx represents activity type
+
+// get sequence number
+#define SN(a) ((a)>>4)
+
+// get activity type
+#define CN(a) ((a)&0xF)
+
+// put sequence number and activity type together
+#define SNCN(a,b) (((a)<<4)|(b))
 
 static const char * classNames[] = {
         "none", "biking", "walking", "running",
@@ -372,9 +393,11 @@ int PhysicalActivitySensor::ActCB(void *ctx, short *results, int len)
         src->mPSHCn = results[0] & 0xF;
 
         // report out final value
-        int report[2];
+        int report[OUTPUT_SIZE];
         report[0] = getPA(src->mPSHCn);
         report[1] = FULL_SCORE;
+        for (int i = 2; i < OUTPUT_SIZE; i++)
+                report[i] = 0;
         write(src->mResultPipe[1], &report, sizeof(report));
 
         return 0;
@@ -521,8 +544,17 @@ void* PhysicalActivitySensor::workerThread(void *data)
 
                         // publish result
                         if (client->accept(actData.values, actData.len)) {
-                                int finalData[2];
+                                int finalData[OUTPUT_SIZE];
                                 client->publish(finalData[0], finalData[1]);
+                                int ind_step = 0;
+                                if (actData.len == (int)(PA_STATISTIC/PA_INTERVAL) ||
+                                    actData.len == (int)(PA_NORMAL/PA_INTERVAL))
+                                        ind_step = actData.len / (OUTPUT_SIZE - 2);
+                                for (int i = 0; i < OUTPUT_SIZE - 2; i++)
+                                        if (ind_step != 0)
+                                                finalData[2 + i] = client->convertResult(CN(actData.values[(i+1) * ind_step - 1]));
+                                        else
+                                                finalData[2 + i] = 0;
                                 // write to result pipe
                                 write(src->mResultPipe[1], &finalData, sizeof(finalData));
                         }
@@ -569,7 +601,7 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
         int size, numEventReceived = 0;
         char buf[512];
         int *p_activity_data;
-        int unit_size = 2*sizeof(*p_activity_data);
+        int unit_size = OUTPUT_SIZE * sizeof(*p_activity_data);
 
         LOGI("PhysicalActivitySensor - getData");
 
@@ -591,10 +623,13 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
         i = 0;
         while (size > 0) {
                 p_activity_data = (int *)p;
-                event.data[0] = (*p_activity_data); // result
-                event.data[1] = (*(p_activity_data+1)); // score
+                for (int k = 0; k < OUTPUT_SIZE; k++)
+                        event.data[k] = (*(p_activity_data+k));
                 event.timestamp = last_timestamp + timestamp_step * (i + 1);
-                LOGI("Event value is %f, %f", event.data[0], event.data[1]);
+                LOGI("Event value is %f, %f, %f, %f, %f, %f, %f, %f, %f, %f",
+                    event.data[0], event.data[1], event.data[2], event.data[3],
+                    event.data[4], event.data[5], event.data[6], event.data[7],
+                    event.data[8], event.data[9]);
                 eventQue.push(event);
                 numEventReceived++;
 
@@ -607,41 +642,13 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
         return numEventReceived;
 }
 
-// decorator related below
-#define RAND 6
-#define INIT_WEIGHT 1024
-
-// the result coming from psh contains two portions
-// xxxx xxxx xxxx xxxx
-// xxxx xxxx xxxx represents sequence number
-//                         xxxx represents activity type
-
-// get sequence number
-#define SN(a) ((a)>>4)
-
-// get activity type
-#define CN(a) ((a)&0xF)
-
-// put sequence number and activity type together
-#define SNCN(a,b) (((a)<<4)|(b))
-
 PhysicalActivitySensor::Client::~Client()
 {
 }
 
-void PhysicalActivitySensor::Client::publish(int &result, int &score)
+int PhysicalActivitySensor::Client::convertResult(int cn)
 {
-        std::stringstream ss;
-        if ((int)mStream.size() < N)
-                return;
-        int cn = 0;
-        int sc = 0;
-        for (int i = 0; i < N; ++i) {
-                cn = CN(mStream[i]);
-                sc = mScore[i];
-                LOGI("publish %d, %d", cn, sc);
-        }
-
+        int result;
         switch (cn) {
         case BIKING:
                 result = SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_BIKING;
@@ -664,6 +671,23 @@ void PhysicalActivitySensor::Client::publish(int &result, int &score)
         default:
                 result = SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_RANDOM;
         }
+        return result;
+}
+
+void PhysicalActivitySensor::Client::publish(int &result, int &score)
+{
+        std::stringstream ss;
+        if ((int)mStream.size() < N)
+                return;
+        int cn = 0;
+        int sc = 0;
+        for (int i = 0; i < N; ++i) {
+                cn = CN(mStream[i]);
+                sc = mScore[i];
+                LOGI("publish %d, %d", cn, sc);
+        }
+
+        result = convertResult(cn);
         score = sc;
         reduce();
 }
