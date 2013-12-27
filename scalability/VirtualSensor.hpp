@@ -125,8 +125,8 @@ typedef enum { /* definition flick gestures value */
 
 #define PA_INTERVAL (static_cast<float>(5.12))
 #define PA_QUICK (static_cast<float>(5.12))
-#define PA_NORMAL (static_cast<float>(30))
-#define PA_STATISTIC (static_cast<float>(300))
+#define PA_NORMAL (static_cast<float>(40.96))
+#define PA_STATISTIC (static_cast<float>(163.84))
 
 
 // pedometer sensor

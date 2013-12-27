@@ -51,6 +51,10 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 return SENSOR_STEPCOUNTER;
         case SENSOR_TYPE_SIGNIFICANT_MOTION:
                 return SENSOR_SIGNIFICANT_MOTION;
+        case SENSOR_TYPE_GAME_ROTATION_VECTOR:
+                return SENSOR_GAME_ROTATION_VECTOR;
+        case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
+                return SENSOR_GEOMAGNETIC_ROTATION_VECTOR;
         case SENSOR_TYPE_GESTURE:
         case SENSOR_TYPE_PHYSICAL_ACTIVITY:
         case SENSOR_TYPE_PEDOMETER:
@@ -240,6 +244,10 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct stepcounter_data);
         case SENSOR_TYPE_SIGNIFICANT_MOTION:
                 return sizeof(struct sm_data);
+        case SENSOR_TYPE_GAME_ROTATION_VECTOR:
+                return sizeof(struct game_rotation_vector_data);
+        case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
+                return sizeof(struct geomagnetic_rotation_vector_data);
         case SENSOR_TYPE_TEMPERATURE:
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
@@ -410,6 +418,25 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         case SENSOR_TYPE_SIGNIFICANT_MOTION:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = ((reinterpret_cast<struct sm_data*>(stream))[i]).state;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
+                }
+                break;
+        case SENSOR_TYPE_GAME_ROTATION_VECTOR:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = (reinterpret_cast<struct game_rotation_vector_data*>(stream))[i].x;
+                        events[i].data[1] = (reinterpret_cast<struct game_rotation_vector_data*>(stream))[i].y;
+                        events[i].data[2] = (reinterpret_cast<struct game_rotation_vector_data*>(stream))[i].z;
+                        events[i].data[3] = (reinterpret_cast<struct game_rotation_vector_data*>(stream))[i].w;
+                        events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
+                }
+                break;
+        case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
+                for (unsigned int i = 0; i < count; i++) {
+                        LOGI("geomagnetic_rotation_vector event");
+                        events[i].data[0] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].x;
+                        events[i].data[1] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].y;
+                        events[i].data[2] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].z;
+                        events[i].data[3] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].w;
                         events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;

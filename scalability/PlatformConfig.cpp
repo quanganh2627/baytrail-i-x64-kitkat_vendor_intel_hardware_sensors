@@ -337,6 +337,10 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_GESTURE;
         else if (type.compare(0, 16, "audio_classifier")==0)
                 return SENSOR_TYPE_AUDIO_CLASSIFICATION;
+        else if (type.compare(0, 20, "game_rotation_vector") ==0)
+                return SENSOR_TYPE_GAME_ROTATION_VECTOR;
+        else if (type.compare(0, 28, "geo_magnetic_rotation_vector") ==0)
+                return SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR;
         LOGW("%s: unsupported sensor: %s", __FUNCTION__, type.c_str());
         return 0;
 }
