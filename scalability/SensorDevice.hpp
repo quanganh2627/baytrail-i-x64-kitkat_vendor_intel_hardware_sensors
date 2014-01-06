@@ -9,6 +9,7 @@ typedef enum {
         AXIS_Y,
         AXIS_Z,
         AXIS_W,
+        AXIS_MAX,
         AXIS_OTHER = 255
 } axis_t;
 
@@ -43,7 +44,7 @@ public:
                 id = 0;
                 category = LINUX_DRIVER;
                 subname = PRIMARY;
-                for (int i = 0; i < 4; i++) {
+                for (int i = 0; i < AXIS_MAX; i++) {
                         mapper[i] = i;
                         scale[i] = 1.0;
                 }
@@ -68,10 +69,10 @@ public:
         void setEventProperty(const sensors_event_property_t &newEventProperty) { eventProperty = newEventProperty; }
         sensors_subname getSubname() { return subname; }
         void setSubname(const sensors_subname &new_subname) { subname = new_subname; }
-        int getMapper(unsigned int index) { return index < 4 ? mapper[index] : -1; }
-        void setMapper(unsigned int index, int value) { if (index < 4) mapper[index] = value; }
-        float getScale(unsigned int index) { return index < 4 ? scale[index] : 1; }
-        void setScale(unsigned int index, float value) { if (index < 4) scale[index] = value; }
+        int getMapper(unsigned int index) { return index < AXIS_MAX ? mapper[index] : -1; }
+        void setMapper(unsigned int index, int value) { if (index < AXIS_MAX) mapper[index] = value; }
+        float getScale(unsigned int index) { return index < AXIS_MAX ? scale[index] : 1; }
+        void setScale(unsigned int index, float value) { if (index < AXIS_MAX) scale[index] = value; }
         const char* getName() { return dev.name; }
         void setName(const char* name);
         const char* getVendor() { return dev.vendor; }

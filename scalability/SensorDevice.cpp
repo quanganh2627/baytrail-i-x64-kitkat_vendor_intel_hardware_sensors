@@ -28,7 +28,7 @@ SensorDevice::SensorDevice(const SensorDevice &device)
         category = device.category;
         subname = device.subname;
         eventProperty = device.eventProperty;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < AXIS_MAX; i++) {
                 mapper[i] = device.mapper[i];
                 scale[i] = device.scale[i];
         }
@@ -70,7 +70,7 @@ SensorDevice& SensorDevice::operator=(const SensorDevice &device)
         category = device.category;
         subname = device.subname;
         eventProperty = device.eventProperty;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < AXIS_MAX; i++) {
                 mapper[i] = device.mapper[i];
                 scale[i] = device.scale[i];
         }
