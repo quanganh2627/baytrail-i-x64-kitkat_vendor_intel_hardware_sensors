@@ -14,9 +14,6 @@
 
 ifeq ($(ENABLE_SCALABLE_SENSOR_HAL),true)
 
-#disable for PO
-ifneq ($(REF_DEVICE_NAME), byt_t_crv2)
-
 LOCAL_PATH := $(call my-dir)
 
 ifneq ($(TARGET_SIMULATOR),true)
@@ -96,7 +93,5 @@ LOCAL_SRC_FILES := sensorcalibration/CompassGenericCalibration/CompassGenericCal
 include $(BUILD_STATIC_LIBRARY)
 
 endif # !TARGET_SIMULATOR
-
-endif # !REF_DEVICE_NAME
 
 endif
