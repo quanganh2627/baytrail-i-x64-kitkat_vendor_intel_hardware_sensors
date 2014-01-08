@@ -101,11 +101,11 @@ struct im_op_attr im_op_attrs[] = {
 * so can translate immediately like else/endif/sleep
 */
 	{"be16_to_cpu", 11, 1, 200, IM_ENDIAN_BE16, OP_ENDIAN_BE16},
-	{"be16un_to_cpu", 13, 1, 200, IM_ENDIAN_BE16_UN, OP_ENDIAN_BE16_UN},
+	{"be16u_to_cpu", 12, 1, 200, IM_ENDIAN_BE16_UN, OP_ENDIAN_BE16_UN},
 	{"be24_to_cpu", 11, 1, 200, IM_ENDIAN_BE24, OP_ENDIAN_BE24},
 	{"be32_to_cpu", 11, 1, 200, IM_ENDIAN_BE32, OP_ENDIAN_BE32},
 	{"le16_to_cpu", 11, 1, 200, IM_ENDIAN_LE16, OP_ENDIAN_LE16},
-	{"le16un_to_cpu", 13, 1, 200, IM_ENDIAN_LE16_UN, OP_ENDIAN_LE16_UN},
+	{"le16u_to_cpu", 12, 1, 200, IM_ENDIAN_LE16_UN, OP_ENDIAN_LE16_UN},
 	{"le24_to_cpu", 11, 1, 200, IM_ENDIAN_LE24, OP_ENDIAN_LE24},
 	{"le32_to_cpu", 11, 1, 200, IM_ENDIAN_LE32, OP_ENDIAN_LE32},
 
@@ -261,6 +261,9 @@ static int dump(void)
 	image_ptr = (struct sensor_config_image *)buf;
 	config = (struct sensor_config *)&image_ptr->configs;
 
+	printf("flags: %d\n", image_ptr->flags);
+	printf("dbg_sensors: %d\n", image_ptr->dbg_sensors);
+	printf("dbg_level: %d\n", image_ptr->dbg_level);
 	for (i = 0; i < image.num; i++)
 	{
 		dump_sensor_config(config);
@@ -290,6 +293,7 @@ static int parser(void)
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlNodePtr p;
+	char *str = NULL;
 
 	/*xml*/
 	doc = xmlReadFile(xmlfile, NULL, XML_PARSE_NOBLANKS);
@@ -340,8 +344,26 @@ static int parser(void)
 	/*init sensor image*/
 	image = (struct sensor_config_image *)buf;
 	image->magic = 0x1234;
-	image->version = 1;
 	image->num = sensor_num;
+
+	str = (char *)xmlGetProp(root, (const xmlChar*)"flags");
+	if (str) {
+		image->flags = strtoul((const char*)str, NULL, 0);
+		xmlFree(str);
+	}
+
+	str = (char *)xmlGetProp(root, (const xmlChar*)"dbg_sensors");
+	if (str) {
+		image->dbg_sensors = strtoul((const char*)str, NULL, 0);
+		xmlFree(str);
+	}
+
+	str = (char *)xmlGetProp(root, (const xmlChar*)"dbg_level");
+	if (str) {
+		image->dbg_level = strtoul((const char*)str, NULL, 0);
+		xmlFree(str);
+	}
+
 	config = (struct sensor_config *)&image->configs;
 	size = sizeof(struct sensor_config_image) - sizeof(int *);
 	ret = sensor_parser_sensors(root->xmlChildrenNode,
@@ -2515,6 +2537,32 @@ err:
 	return ret;
 }
 
+/* check if local variable is referenced, if yes, can't optimize
+*  action: start action to check
+*  num: how many action to check
+*  index: index of local variable
+*  return: return 1 if can optimize
+*/
+static int sensor_can_optimize_local(struct im_action *action, int num, int index)
+{
+	for (; num > 0; num--, action++)
+	{
+		if (action->operand1.type == IM_LOCAL
+			&& action->operand1.data.index == index) {
+			if (action->type == IM_ASSIGN)
+				return 1;
+			else
+				return 0;
+		}
+
+		if (action->type != IM_BIT_NOR/*single operenad*/
+			&& action->operand2.type == IM_LOCAL
+			&& action->operand2.data.index == index)
+			return 0;
+	}
+	return 1;
+}
+
 static int sensor_optimize_im_actions(struct sensor_parser *parser)
 {
 	int ret = 0;
@@ -2540,15 +2588,18 @@ static int sensor_optimize_im_actions(struct sensor_parser *parser)
 			int index = action->operand1.data.index;
 			int inx1 = -1, inx2 = -1;
 
+			/*check if this local is referenced in two operands of next_action*/
 			if (next_action->operand1.type == IM_LOCAL)
 				inx1 = next_action->operand1.data.index == index ? index: inx1;
 
-			if (next_action->type != IM_BIT_NOR &&
-					next_action->operand2.type == IM_LOCAL)
+			if (next_action->type != IM_BIT_NOR/*single operenad*/
+					&& next_action->operand2.type == IM_LOCAL)
 				inx2 = next_action->operand2.data.index == index ? index: inx2;
 
 			/*only match one then can optimize*/
-			if (inx1 != inx2) {
+			if (inx1 != inx2 && sensor_can_optimize_local(next_action + 1,
+				parser->im_num - 2 - num, index)) {
+
 				*opt_action = *next_action;
 				if (inx1 == index)
 					(*opt_action).operand1 = action->operand2;
@@ -2928,6 +2979,7 @@ static void dump_im_actions(struct sensor_parser *parser)
 
 static char *action_debug[] = {
 	"OP_ACCESS        ",
+	"OP_MIN           ", "OP_MAX           ",
 	"OP_LOGIC_EQ      ", "OP_LOGIC_NEQ     ", "OP_LOGIC_GREATER ",
 	"OP_LOGIC_LESS    ",
 	"OP_LOGIC_GE      ", "OP_LOGIC_LE      ", "OP_LOGIC_AND     ",
@@ -2939,7 +2991,6 @@ static char *action_debug[] = {
 	"OP_ENDIAN_BE16   ", "OP_ENDIAN_BE16_UN", "OP_ENDIAN_BE24   ",
 	"OP_ENDIAN_BE32   ", "OP_ENDIAN_LE16   ", "OP_ENDIAN_LE16_UN",
 	"OP_ENDIAN_LE24   ", "OP_ENDIAN_LE32   ",
-	"OP_MIN           ", "OP_MAX           ",
 	"OP_COMMA_EXPR    ",
 	"OP_RESERVE",
 };
