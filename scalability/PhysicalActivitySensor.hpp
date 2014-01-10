@@ -148,6 +148,7 @@ private:
                 virtual void reduce(void);
                 virtual void reset(void);
                 virtual void publish(int &result, int &score);
+                int convertResult(int cn);
 
         public:
                 std::deque<short> mStream;

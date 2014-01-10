@@ -51,30 +51,30 @@ AccelSensor::~AccelSensor()
 int AccelSensor::enable(int32_t handle, int en)
 {
     unsigned int flags = en ? 1 : 0;
+    int fd, ret = 0;
+    char buf[50];
 
     D("AccelSensor-%s, flags = %d, mEnabled = %d", __func__, flags, mEnabled);
-    if (flags != mEnabled) {
-        int fd;
-        fd = open(mConfig->activate_path, O_RDWR);
-        if (fd >= 0) {
-            char buf[2] = { 0 };
-            if (flags) {
-                buf[0] = '1';
-            } else {
-                buf[0] = '0';
-            }
-            int ret = write(fd, buf, sizeof(buf));
-            close(fd);
-            if (ret == sizeof(buf)) {
-                mEnabled = flags;
-                return 0;
-            }
-        }
-        E("AccelSensor-%s, errno = %d", __func__, errno);
+
+    if (flags == mEnabled)
+        return 0;
+
+    if ((fd = SensorBase::openFile(mConfig->activate_path, O_RDWR)) < 0) {
+        E("AccelSensor: Open device file failed, possible path: %s!",
+                                                mConfig->activate_path);
         return -1;
     }
 
-    return 0;
+    buf[1] = 0;
+    buf[0] = flags ? '1' : '0';
+    ret = write(fd, buf, sizeof(buf));
+    if (ret == sizeof(buf)) {
+        mEnabled = flags;
+        ret = 0;
+    }
+    close(fd);
+
+    return ret;
 }
 
 int AccelSensor::setDelay(int32_t handle, int64_t ns)
@@ -82,10 +82,10 @@ int AccelSensor::setDelay(int32_t handle, int64_t ns)
     int fd, ms;
     char buf[10] = { 0 };
 
-    fd = open(mConfig->poll_path, O_RDWR);
-    if (fd < 0) {
-        E("AccelSensor-%s:%s", __func__, strerror(errno));
-	    return -1;
+    if ((fd = SensorBase::openFile(mConfig->poll_path, O_RDWR)) < 0) {
+        E("AccelSensor: Open device file failed, possible path: %s!",
+                                                mConfig->poll_path);
+        return -1;
     }
 
     if (ns / 1000 == SENSOR_NOPOLL)
