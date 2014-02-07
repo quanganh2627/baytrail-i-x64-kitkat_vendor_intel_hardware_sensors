@@ -94,13 +94,12 @@ int InputEventSensor::setDelay(int handle, int64_t ns) {
         int64_t delay;
         int minDelay = device.getMinDelay() / US_TO_MS;
 
-        if (ns / 1000 == SENSOR_NOPOLL)
-                delay = 0;
-        else
-                delay = ns / NS_TO_MS;
-
+        delay = ns / NS_TO_MS;
         if (delay < minDelay)
                 delay = minDelay;
+
+        if (ns / 1000 == SENSOR_NOPOLL)
+                delay = 0;
 
         /* If the sensor is interrupt mode */
         if (minDelay == 0 || data.setDelayInterface.length() == 0)
