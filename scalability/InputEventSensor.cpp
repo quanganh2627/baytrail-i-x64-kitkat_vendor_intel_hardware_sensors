@@ -51,6 +51,11 @@ int InputEventSensor::getPollfd()
                 }
 
                 if (data.name.compare(name) == 0) {
+                        unsigned int clockId = CLOCK_MONOTONIC;
+                        /* Set desired clock as monotonic to record timestamp of event
+                         * Fixme: this ioctl is supported since Linux 3.4
+	                 */
+                        ioctl(fd, EVIOCSCLOCKID, &clockId);
                         pollfd = fd;
                         break;
                 }
