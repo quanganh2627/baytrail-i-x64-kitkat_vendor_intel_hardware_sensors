@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * XML Parser for General Sensor Driver Config
- * Parse XML file and generate config firmware image
- * Dump config firmware image to text
+ * Helper for General Sensor Driver
+ * a)Create new sensor driver & HAL config XML
+ * b)Build integrate XMLs for driver and HAL module
+ * c)Parse XML file and generate config firmware image
+ * d)Dump config firmware image to text
  *
  * Date: 	June 2013
- * Authors: 	PSI IO & Sensor Team
- *		qipeng.zha@intel.com
+ * Authors: 	qipeng.zha@intel.com
  */
 
 #define _LARGEFILE64_SOURCE
@@ -37,7 +38,7 @@
 typedef unsigned char u8;
 typedef unsigned short u16;
 #include "sensor_driver_config.h"
-#include "sensor_parser.h"
+#include "sensor_helper.h"
 
 #define SENSOR_PARSER_DBG
 
@@ -113,41 +114,194 @@ struct im_op_attr im_op_attrs[] = {
 	{"max", 3, 2, 200, IM_MAX, OP_MAX},
 };
 
-static void display_help(void)
-{
-	printf(
-	"Usage: sensorparser <OPTIONS>\n"
-	"Parser or Dump sensor driver config info from XML or image file\n"
-	"           --help               Display this help and exit\n"
-	"-p         --parser             Parser xml, or Dump firmware\n"
-	"-x file    --xml=file           XML config file\n"
-	"-f file    --firmware=file      Firmware image file\n"
-	"-q         --quiet=0/1/2/3/	 Print level of debug message\n"
-	"Example:\n"
-	"  ./sensor_parser -p -x sensor_driver_config.xml -f sensor_config.bin\n"
-	"  ./sensor_parser -f sensor_config.bin > dump\n"
-	"\n");
-
-	exit(EXIT_SUCCESS);
-}
+static const char xml_templete[] =
+"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+"<sensors>\n"
+" <sensor> <!-- Edit driver config and hal config for each sensor, By default one sensor node is created, Add sensor node if multi sensor chip -->\n"
+"  <driver_config>\n"
+"    <basic_info>\n"
+"      <i2c_bus_num></i2c_bus_num> <!-- The attatched I2C bus number, 8bit Hex or Decimal -->\n"
+"      <i2c_addrs>\n"
+"	<addr></addr> <!-- I2C slave address, can specify up to 4, 8bit Hex or Decimal -->\n"
+"      </i2c_addrs>\n"
+"      <id_reg_addr></id_reg_addr> <!-- ID reg address of this sensor, 8bit Hex or Decimal-->\n"
+"      <ids>\n"
+"        <id></id> <!-- ID, can specify up to 4 IDs -->\n"
+"      </ids>\n"
+"      <device_name></device_name> <!-- I2C device name in kernel, if ACPI is applied, need to get this from FW, or any uniqe string is ok -->\n"
+"      <input_name></input_name> <!-- Linux Input device name, any uniqe string is ok -->\n"
+"      <event_type></event_type> <!-- EV_REL or EV_ABS -->\n"
+"      <method></method> <!-- one of polling, interrupt and mix -->\n"
+"      <default_poll_interval></default_poll_interval> <!-- poll rate in ms, 32bit, for example: 200 -->\n"
+"      <min_poll_interval></min_poll_interval> <!-- minimal poll rate in ms, 32bit, skip this if no -->\n"
+"      <max_poll_interval></max_poll_interval> <!-- minimal poll rate in ms, 32bit, skip this if no -->\n"
+"      <gpio_num></gpio_num> <!-- 32bit, if method is NOT polling, specify gpio pin number here, and will be used when can't get it from ACPI -->\n"
+"      <irq_flag></irq_flag> <!-- 32bit, flag of linux irq handler. IRQF_TRIGGER_RISING=1, FALLING=2, HIGH=4, LOW=8, ONESHOT=0x2000 -->\n"
+"      <irq_serialize></irq_serialize> <!-- for multi sensor chip, is need to serialize its irq handling, set Y here, or skip this -->\n"
+"    </basic_info>\n"
+"    <odr_tables> <!-- Output data rate setting table -->\n"
+"    </odr_tables>\n"
+"    <range_tables> <!-- Range setting table -->\n"
+"    </range_tables>\n"
+"    <sys_entries> <!-- Add sys attribute file here -->\n"
+"    </sys_entries>\n"
+"    <sensor_actions> <!-- Sensor actions specified in script, refer to readme or example for detailed info -->\n"
+"      <init><![CDATA[\n"
+"        ]]>\n"
+"      </init>\n"
+"      <enable><![CDATA[\n"
+"        ]]>\n"
+"      </enable>\n"
+"      <disable><![CDATA[\n"
+"        ]]>\n"
+"      </disable>\n"
+"      <int_ack><![CDATA[\n"
+"        ]]> \n"
+"      </int_ack>\n"
+"      <get_data_x><![CDATA[\n"
+"        ]]>\n"
+"      </get_data_x>\n"
+"      <get_data_y><![CDATA[\n"
+"        ]]>\n"
+"      </get_data_y>\n"
+"      <get_data_z><![CDATA[\n"
+"        ]]>\n"
+"      </get_data_z>\n"
+"    </sensor_actions>\n"
+"  </driver_config>\n"
+"  <hal_config>\n"
+"    <type></type> <!-- sensor type: compass, gyroscope, light, proximity, accelerometer -->\n"
+"    <platform_config>\n"
+"      <data_node></data_node>\n"
+"      <driver_calibration_node></driver_calibration_node>\n"
+"      <driver_calibration_file></driver_calibration_file> <!-- for example: /data/compass.conf-->\n"
+"      <driver_calibration_function></driver_calibration_function> <!-- for example: CompassGenericCalibration -->\n"
+"      <calibration_file></calibration_file>\n"
+"      <calibration_function></calibration_function>\n"
+"      <fliter_length></fliter_length> <!-- for example: 50 -->\n"
+"    </platform_config>\n"
+"    <device> <!-- The first 7 attributes are defined for Android sensor -->\n"
+"      <name></name>\n"
+"      <vendor></vendor>\n"
+"      <version></version>\n"
+"      <maxRange></maxRange>\n"
+"      <resolution></resolution>\n"
+"      <power></power>\n"
+"      <minDelay></minDelay>\n"
+"      <mapper></mapper> <!-- Axises mapper, for example: <mapper axis_x=\"X\" axis_y=\"Y\" axis_z=\"Z\"></mapper>-->\n"
+"      <scale></scale> <!-- scale setting of Axises data, for example: <scale axis_x=\"0.0625\" axis_y=\"0.0625\" axis_z=\"-0.0625\"></scale>-->\n"
+"    </device>\n"
+"  </hal_config>\n"
+" </sensor>\n"
+"</sensors>\n";
 
 /* Option variables*/
-static enum { PARSER = 0, DUMP } parser_dump = DUMP;
-static const char *xmlfile = NULL;
-static const char *firmwarefile = NULL;
+static enum { INVALID = 0, NEW, BUILD, PARSER, DUMP } helper = INVALID;
+static const char *firmwarefile = "sensor_config.bin";
 /*static const char *dumpfile = NULL;*/
+static char *driver_xml = "sensor_driver_config.xml";
+static char *hal_xml = "sensor_hal_config_default.xml";
+static char *new_xml = NULL;
+static char *initrc = "init.sensor.rc";
+static int debug_driver_flag = 0;
+static int debug_driver_level = 0;
+static int debug_driver_sensors = 0;
 
-static void process_options(int argc, char *const argv[])
+static int display_help(char *name)
+{
+	printf("Usage: %s <Options>\n\n", name);
+	printf("Backgroud:\n"
+	"   a) Sensor solution:	Linux general sensor driver module and Android scalability HAL module\n"
+	"	User defined XML with sensor info -> formated binary in target -> parsered by general sensor driver -> instantiate sensor drivers\n"
+	"	User defined XML with sensor info in target -> parsered by Scalability HAL -> Android HAL interfaces\n"
+	"   b) What do we get:	One XML file to enable one sensor\n"
+	"	Follow below usage to create a templete XML or get a example XML\n"
+	);
+
+	printf("\nThis is Helper to\n"
+	"   a) Create config(Driver&HAL) XML templete file for new sensor\n"
+	"   b) Build XMLs and script for integrate: sensor_driver_config.xml, sensor_hal_config_deault.xml, init.sensor.rc\n"
+	"   c) Parser integrated driver XML file(sensor_driver_config.xml) into firmeware image\n"
+	"   d) Dump firmware image(sensor_config.bin) into readable txt for debug\n\n"
+	"Options:\n"
+	"   -n file       --new=file             New a sensor driver and HAL config XML file\n"
+	"   -b <xml list> --build                Build sensor_driver_config.xml, sensor_hal_config_default.xml, init.sensor.rc\n"
+	"                                        from Driver&HAL config XML files\n"
+	"   -p           --parser                Parser integrated driver XML file into firmeware image\n"
+	"   -d           --dump                  Dump firmware image into readable txt for debug\n\n"
+	"Advanced options:\n"
+	"   -f file       --firmwarebin=file     Sensor Driver firmware file name, default is sensor_config.bin\n"
+	"   -x file       --driverxml=file       Sensor Driver XML file name, default is sensor_driver_config.xml\n"
+	"   -h file       --halxml=file          Sensor HAL XML file name, default is sensor_hal_config_default.xml\n"
+	"   -i file       --initrc=file          Init script file name, default is init.sensor.rc\n"
+	"   -q            --quiet=0/1/2/3/       Print level of debug message\n\n");
+	printf("Example:\n" "  %s -n newsensor.xml\n", name);
+	printf("  %s -b sensor1.xml sensor2.xml\n", name);
+	printf("  %s -p -x sensor_driver_config.xml -f sensor_config.bin\n", name);
+	printf("  %s -d -f sensor_config.bin\n\n", name);
+
+	printf("Develop flow:\n"
+	"1, Enable a new sensor chip\n"
+	"   a) %s -n newsensor.xml and Edit it. follow below part of How to edit XML\n"
+	"   b) cp newsensor.xml to %s/xmls\n"
+	"   c) Edit %s/config, append one line of newsensor.xml\n"
+	"   d) build and test, then commit newsensor.xml and config\n", name, BASEDIR, BASEDIR);
+
+	printf("2, Update driver or HAL config for supported sensor\n"
+	"   a) Edit %s/xmls/***.xml\n"
+	"   b) build and test. commit newsensor.xml and config\n"
+	"   Notes\n"
+	"        build	a)mm in vendor/intel/hardware/sensor/fw\n"
+	"		b)or -b and -p to generate sensor_hal_config_default.xml and sensor_config.bin\n"
+	"        test	adb push $(TARGET_OUT_ETC)/firmware/sensor_config.bin /etc/firmware\n"
+	"		and $(TARGET_OUT_ETC)/sensor_hal_config_default.xml /etc\n", BASEDIR);
+
+	printf("\nHow to edit XML\n Reference an example in %s/sensor/xmls\n", BASEDIR);
+	printf(" The configuare infomation of each sensor contain two parts: driver_info and hal_info\n"
+	"1, driver_info\n"
+	"    driever_info are classified into basic_info, odr_tables, range_tables, sys_entries, sensor_actions\n"
+	"    a) Follow commment of templete xml\n"
+	"    b) script to define actions\n"
+	"       I) keywords:\n"
+	"		immediate: 		32bit signed, hex, decimal, oct\n"
+	"		global_1, global_2,...: 32bit signed, global data variable in all actions of this sensor\n"
+	"		local_1, local_2,...: 	32bit signed, local temporary data variable in current action\n"
+	"		regbuf_addr_len: 	global I2C register buf\n"
+	"		readreg_addr_flag_len: 	read I2C register, the value will be stored in global register buf which can be accessed by regbuf_addr_len\n"
+	"		writereg_addr_flag_len: write I2C register, such as writereg_addr_flag_len = immediate/regbuf/variable/expressions of these\n"
+	"		return: 		such as return immediate/regbuf/variable/expressions of these\n"
+	"		c-like operators: 	arithmetic(+-*/), logic, bit, endian, min, max, (), expressions\n"
+	"		sleep_ms:		example: sleep_1 will delay 1ms\n"
+	"		if-else-endif\n"
+	"		comment: 		/*comment here*/\n"
+	"        II) Grammar: c-like grammar\n"
+	" 		All expression should be end with \";\", except if/else/endif\n\n"
+	"2, hal_info\n"
+	"    Follow commment of templete xml\n");
+
+	return 0;
+}
+
+int main(int argc, char *argv[])
 {
 	for (;;) {
 		int option_index = 0;
-		static const char *short_options = "px:f:q:";
+		static const char *short_options = "bdpn:f:x:h:i:q:g:l:s:";
 		static const struct option long_options[] = {
-			{"help", no_argument, 0, 0},
+			{"build", no_argument, 0, 'b'},
+			{"dump", no_argument, 0, 'd'},
 			{"parser", no_argument, 0, 'p'},
-			{"xml", required_argument, 0, 'x'},
-			{"firmware", required_argument, 0, 'f'},
-/*			{"dump", required_argument, 0, 'd'}, */
+			{"new", required_argument, 0, 'n'},
+
+			{"firmwarebin", required_argument, 0, 'f'},
+			{"driverxml", required_argument, 0, 'x'},
+			{"halxml", required_argument, 0, 'h'},
+			{"initrc", required_argument, 0, 'i'},
+			{"flag", required_argument, 0, 'g'},
+			{"level", required_argument, 0, 'l'},
+			{"sensors", required_argument, 0, 's'},
+
+			{"help", no_argument, 0, 0},
 			{"quiet", required_argument, 0, 'q'},
 			{0, 0, 0, 0},
 		};
@@ -159,51 +313,73 @@ static void process_options(int argc, char *const argv[])
 		}
 
 		switch (c) {
-			case 0:
-				display_help();
-				break;
-			case 'p':
-				parser_dump = PARSER;
-				break;
-			case 'x':
-				if (!(xmlfile = strdup(optarg))) {
-					perror("stddup");
-					exit(-1);
-				}
-				break;
-			case 'f':
-				if (!(firmwarefile = strdup(optarg))) {
-					perror("stddup");
-					exit(-1);
-				}
-				break;
-			case 'q':
-				dbg_level = strtol(optarg, NULL, 0);
-				break;
+		case 0:
+			return display_help(argv[0]);
+		case 'b':
+			helper = BUILD;
+			break;
+		case 'd':
+			helper = DUMP;
+			break;
+		case 'p':
+			helper = PARSER;
+			break;
+		case 'n':
+			helper = NEW;
+			if (!(new_xml = strdup(optarg))) {
+				perror("stddup");
+				exit(-1);
+			}
+			break;
+		case 'f':
+			if (!(firmwarefile = strdup(optarg))) {
+				perror("stddup");
+				exit(-1);
+			}
+			break;
+		case 'x':
+			if (!(driver_xml = strdup(optarg))) {
+				perror("stddup");
+				exit(-1);
+			}
+			break;
+		case 'h':
+			if (!(hal_xml = strdup(optarg))) {
+				perror("stddup");
+				exit(-1);
+			}
+			break;
+		case 'i':
+			if (!(initrc = strdup(optarg))) {
+				perror("stddup");
+				exit(-1);
+			}
+			break;
+		case 'g':
+			debug_driver_flag = strtol(optarg, NULL, 0);
+			break;
+		case 'l':
+			debug_driver_level = strtol(optarg, NULL, 0);
+			break;
+		case 's':
+			debug_driver_sensors = strtol(optarg, NULL, 0);
+			break;
+		case 'q':
+			dbg_level = strtol(optarg, NULL, 0);
+			break;
 		}
 	}
 
-	if (parser_dump == PARSER) {
-		if (!xmlfile || !firmwarefile)
-			display_help();
-	} else {
-		if (!firmwarefile)
-			display_help();
-	}
-}
-
-int main(int argc, char *argv[])
-{
-	int ret = 0;
-
-	process_options(argc, argv);
-
-	if (parser_dump == PARSER)
-		ret = parser();
+	if (helper == NEW)
+		return create_xml(new_xml);
+	else if (helper == BUILD)
+		return build_xmls(argc - optind, &argv[optind]);
+	else if (helper == PARSER)
+		return parser();
+	else if (helper == DUMP)
+		return dump();
 	else
-		ret = dump();
-
-	return ret;
+		return display_help(argv[0]);
 }
 
 static int dump(void)
@@ -296,7 +472,7 @@ static int parser(void)
 	char *str = NULL;
 
 	/*xml*/
-	doc = xmlReadFile(xmlfile, NULL, XML_PARSE_NOBLANKS);
+	doc = xmlReadFile(driver_xml, NULL, XML_PARSE_NOBLANKS);
 	if (doc == NULL) {
 		printf("Fail to read XML Document\n");
 		return -1;
@@ -1026,7 +1202,7 @@ static int sensor_config_init_basic(struct sensor_parser *parser, xmlNodePtr nod
 				}
 			}
 		}
-		else if (!xmlStrcmp(p->name, (const xmlChar *)"driver_name")) {
+		else if (!xmlStrcmp(p->name, (const xmlChar *)"device_name")) {
 			strncpy((char *)config->name,
 				(const char *)str, MAX_DEV_NAME_BYTES);
 			/*truncate if too long*/
@@ -3102,3 +3278,726 @@ static void dump_ll_actions(struct sensor_parser *parser)
 
 	dump_ll_action(parser->ll_actions, parser->ll_num, 0);
 }
+
+static int create_xml(char *xml_name)
+{
+	int ret = 0;
+	int fd;
+	int size;
+
+	fd = open(xml_name, O_CREAT|O_RDWR, S_IRWXU);
+	if(fd <= 0)
+	{
+		printf("Error: open new xml file %s\n", xml_name);
+		return -1;
+	}
+
+	size = strlen(xml_templete);
+	ret = write(fd, xml_templete, size);
+	if (ret != size)
+	{
+		printf("Fail to write sensor config, ret:%d\n", ret);
+		ret = -1;
+		goto out;
+	}
+	ret = ftruncate(fd, size);
+	if (ret)
+	{
+		printf("Fail to truncate sensor config, ret:%d\n", ret);
+		goto out;
+	}
+	fsync(fd);
+
+	printf("Created XML templete file: %s\n", xml_name);
+
+	DBG(LEVEL2, "%s",xml_templete);
+out:
+	return ret;
+}
+
+struct xml_auto_infos {
+	int i2c_bus;
+#define MAX_DEVICES		4
+	int i2c_addrs[MAX_DEVICES];
+	int share_num;
+//if user specify sysnode, then don't override them
+	int special_hal_sysnode;
+#define MAX_SHARE_NUM		4
+#define MAX_INPUT_MAX_BYTES	20
+	char input_name[MAX_SHARE_NUM][MAX_INPUT_MAX_BYTES];
+
+#define TYPE_MAX_BYTES		20
+	char type[MAX_SHARE_NUM][TYPE_MAX_BYTES];
+
+#define SYSNODE_MAX_BYTES		256
+	char activate_node[SYSNODE_MAX_BYTES];
+	char poll_node[SYSNODE_MAX_BYTES];
+};
+
+static int do_xml_get_info(xmlNodePtr sensor_node, struct xml_auto_infos *info)
+{
+	int ret = 0;
+	xmlNodePtr p_driver_hal_config = NULL;
+	xmlNodePtr p;
+	int num;
+
+	for (num = 0; sensor_node; sensor_node = sensor_node->next, num++) {
+		DBG(LEVEL2, "%s", sensor_node->name);
+
+		p_driver_hal_config = sensor_node->xmlChildrenNode;
+
+		if (p_driver_hal_config) {
+			DBG(LEVEL2, "%s", p_driver_hal_config->name);
+		} else {
+			/*incomplete driver & hal config*/
+			DBG(LEVEL2, "incomplete driver and hal config\n");
+			return  -1;
+		}
+		if (!xmlStrcmp(p_driver_hal_config->name, (const xmlChar *)"hal_config")) {
+			/*no driver, only hal config*/
+			DBG(LEVEL2, "No driver config");
+			info->i2c_bus = 0;
+			return  0;
+		}
+
+		p = p_driver_hal_config->xmlChildrenNode;  //driver_config->basic info
+		if (p && !xmlStrcmp(p->name, (const xmlChar*)"basic_info")) {
+			DBG(LEVEL2, "%s", p->name);
+			p = p->xmlChildrenNode;  	   //basic info->***
+		} else {
+			DBG(LEVEL2, "No driver config");
+			info->i2c_bus = 0;
+			goto hal;
+		}
+
+		for (; p; p = p->next)
+		{
+			//DBG(LEVEL2,"%s", p->name);
+			xmlChar *str = xmlNodeGetContent(p);
+			if (str == NULL || (!xmlStrcmp(str, (const xmlChar *)""))) {
+				continue;
+			}
+
+			//DBG(LEVEL2,"%s", str);
+			if (!xmlStrcmp(p->name, (const xmlChar *)"i2c_bus_num")) {
+				int val = strtoul((const char*)str, NULL, 0);
+				info->i2c_bus = val;
+				DBG(LEVEL2,"i2c_bus: %d", val);
+			}
+			else if (!xmlStrcmp(p->name, (const xmlChar *)"i2c_addrs")) {
+				xmlNodePtr idNode = p->xmlChildrenNode;
+				int i;
+
+				for (i = 0; idNode; idNode = idNode->next)
+				{
+					char *addr;
+
+					addr = (char *)xmlNodeGetContent(idNode);
+					if (addr) {
+						info->i2c_addrs[i++] =
+							strtoul((const char *)addr, NULL, 0);
+						DBG(LEVEL2,"i2c_addr: 0x%02x", info->i2c_addrs[i-1]);
+						xmlFree(addr);
+					}
+				}
+			}
+			else if (!xmlStrcmp(p->name, (const xmlChar *)"input_name")) {
+				DBG(LEVEL2,"input name: %s", str);
+				strcpy(info->input_name[num], (const char *)str);
+			}
+		}
+
+hal:
+		p = p_driver_hal_config->next;  	//hal_config
+		if (p) {
+			p = p->xmlChildrenNode;		//type,platform_config,device
+		}
+		else {
+			printf("Error: No hal config\n");
+			return -1;
+		}
+
+		for (; p; p = p->next)
+		{
+			//DBG(LEVEL2,"%s", p->name);
+			xmlChar *str = xmlNodeGetContent(p);
+			if (str == NULL || (!xmlStrcmp(str, (const xmlChar *)""))) {
+				continue;
+			}
+
+			//DBG(LEVEL2,"%s", str);
+			if (!xmlStrcmp(p->name, (const xmlChar *)"type")) {
+				DBG(LEVEL2, "type:%s", str);
+				strcpy(info->type[num], (const char *)str);
+			}
+			else if (!xmlStrcmp(p->name, (const xmlChar *)"platform_config")) {
+				xmlNodePtr q = p->xmlChildrenNode;
+				for (; q; q = q->next)
+				{
+					DBG(LEVEL2, "%s", q->name);
+					char *val;
+
+					/*any of name ,activate_node, poll_node*/
+					if (!xmlStrcmp(q->name, (const xmlChar *)"activate_node")) {
+						val = (char *)xmlNodeGetContent(q);
+						if (*val) {
+							DBG(LEVEL2," %s", val);
+							strcpy(info->activate_node, (const char *)val);
+							info->special_hal_sysnode = 1;
+							xmlFree(val);
+						}
+					} else if (!xmlStrcmp(q->name, (const xmlChar *)"poll_node")) {
+						val = (char *)xmlNodeGetContent(q);
+						if (*val) {
+							DBG(LEVEL2, "%s", val);
+							strcpy(info->poll_node, (const char *)val);
+							info->special_hal_sysnode = 1;
+							xmlFree(val);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
+static int xml_get_info(char *xml, struct xml_auto_infos *info)
+{
+	int ret = 0;
+	xmlDocPtr doc;
+	xmlNodePtr root = NULL;
+	int sensor_num = 0;
+	xmlNodePtr p;
+
+	doc = xmlReadFile(xml, NULL, XML_PARSE_NOBLANKS);
+	if (doc == NULL) {
+		printf("Fail to read XML Document\n");
+		return -1;
+	}
+	root = xmlDocGetRootElement(doc);
+	if (root == NULL) {
+		printf("Empty XML document\n");
+		xmlFreeDoc(doc);
+		return -1;
+	}
+	if (xmlStrcmp(root->name, (const xmlChar *) "sensors")) {
+		printf("Wrong XML document"
+			"cannot find \"sensors\" element!\n");
+		xmlFreeDoc(doc);
+		return -1;
+	}
+	p = root->xmlChildrenNode;
+	while (p != NULL) {
+		sensor_num++;
+		p = p->next;
+	}
+
+	memset(info, 0, sizeof(struct xml_auto_infos));
+
+	info->share_num = sensor_num;
+	DBG(LEVEL2, "share num: %d", sensor_num);
+
+	ret = do_xml_get_info(root->xmlChildrenNode, info);
+
+	return ret;
+}
+
+/*append: 1:append buf to file, 0:write from the 0 and set size*/
+static int write_file(char *name, char *buf, int size, int append)
+{
+	int ret = 0;
+	int fd;
+
+	fd = open(name, O_CREAT|O_RDWR, S_IRWXU|S_IRWXG |S_IROTH);
+	if (fd <= 0)
+	{
+		printf("Error: open file %s\n", name);
+		return -1;
+	}
+
+	if (append) {
+		ret = lseek(fd, 0, SEEK_END);
+		if (ret < 0) {
+			printf("lseek error\n");
+			goto out;
+		}
+	}
+
+	ret = write(fd, buf, size);
+	if (ret != size)
+	{
+		printf("Fail to write sensor config, ret:%d\n", ret);
+		ret = -1;
+		goto out;
+	}
+
+	if (!append) {
+		ret = ftruncate(fd, size);
+		if (ret)
+		{
+			printf("Fail to truncate sensor config, ret:%d\n", ret);
+			goto out;
+		}
+	}
+	fsync(fd);
+	ret = 0;
+out:
+	close(fd);
+	return ret;
+}
+
+static char driver_xml_head[] =
+	"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n";
+static char driver_xml_tail[] =
+	"</sensor_driver_config>";
+
+static char hal_xml_head[] =
+	"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+	"<sensor_hal_config>\n";
+static char hal_xml_tail[] =
+	"</sensor_hal_config>";
+
+	//"#!/syste/bin/sh\n"
+static char initrc_head[] =
+	"#init script for general sensor driver solution, will be called in init.product.rc\n"
+	"on post-fs\n"
+	"chown system system /sys/devices/generalsensor/start\n"
+	"chown system system /sys/devices/generalsensor/dbglevel\n"
+	"chown system system /sys/devices/generalsensor/dbgsensors\n"
+	"#start general sensor driver\n"
+	"write /sys/devices/generalsensor/start 1\n";
+
+static int prebuild_xmls()
+{
+	int ret = 0;
+	char buf[128] = { 0 };
+
+	ret = write_file(driver_xml, driver_xml_head, strlen(driver_xml_head), 0);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		goto out;
+	}
+	sprintf(buf, "<sensor_driver_config flags=\"%d\" dbg_level=\"%d\" dbg_sensors=\"0x%08x\">\n",
+			debug_driver_flag, debug_driver_level, debug_driver_sensors);
+	ret = write_file(driver_xml, buf, strlen(buf), 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		goto out;
+	}
+
+	ret = write_file(hal_xml, hal_xml_head, strlen(hal_xml_head), 0);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		goto out;
+	}
+
+	ret = write_file(initrc, initrc_head, strlen(initrc_head), 0);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		goto out;
+	}
+out:
+	return ret;
+}
+
+static int postbuild_xmls()
+{
+	int ret = 0;
+
+	ret = write_file(driver_xml, driver_xml_tail, strlen(driver_xml_tail), 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		goto out;
+	}
+
+	ret = write_file(hal_xml, hal_xml_tail, strlen(hal_xml_tail), 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		goto out;
+	}
+
+out:
+	return ret;
+}
+
+/*read file content into buf*/
+static int read_file(char *name, char **buf, int *size)
+{
+	int ret = 0;
+	int fd;
+
+	fd = open(name, O_RDONLY);
+	if (fd <= 0)
+	{
+		printf("Error: open file %s\n", name);
+		return -1;
+	}
+
+	ret = lseek(fd, 0, SEEK_END);
+	if (ret < 0) {
+		printf("lseek error\n");
+		goto out;
+	}
+	*size = ret;
+
+	*buf = malloc(*size);
+	if (*buf == NULL) {
+		printf("lseek error\n");
+		ret = -1;
+		goto out;
+	}
+
+	ret = lseek(fd, 0, SEEK_SET);
+	ret = read(fd, *buf, *size);
+	if (ret != *size)
+	{
+		printf("Fail to read file, ret:%d\n", ret);
+		ret = -1;
+		goto out;
+	}
+	ret = 0;
+out:
+	close(fd);
+	return ret;
+}
+
+static char sensor_driver_head[] = "  <sensor name=\"";
+static char sensor_driver_end[] = "  </sensor>\n";
+static char sensor_hal_head[] = "  <sensor type=\"";
+static char sensor_hal_end[] = " </sensor>\n";
+
+#define XML_NAME_MAX_BYTES	512
+//use xml file name as sensor name, remove .xml
+static void prepare_sensor_driver_head(char *buf, char *xml_name, int multi)
+{
+	char *p;
+	char name[XML_NAME_MAX_BYTES] = {0};
+
+	p = strrchr(xml_name, '/');
+	if (p)
+		strcpy(name, p + 1);
+	else
+		strcpy(name, xml_name);
+	p = strstr(name, ".xml");
+	if (p)
+		*p = '\0';
+	DBG(LEVEL3, "sensor name: %s", name);
+
+	p = buf;
+	strcpy(p, sensor_driver_head);
+	p += strlen(sensor_driver_head);
+	strcpy(p, name);
+	p += strlen(name);
+
+	if (multi) {
+		*p++ = (multi + 0x30);
+		strcpy(p, " depend_on=");
+		p += strlen(" depend_on=");
+		strcpy(p, name);
+		p += strlen(name);
+	}
+	*p++ = '"';
+	*p++ = '>';
+	*p++ = '\n';
+	*p++ = '\0';
+}
+
+static void prepare_sensor_hal_head(char *buf, struct xml_auto_infos *info, int multi)
+{
+	char *p;
+	char *type = info->type[multi];
+	char syspath[256];
+	int i;
+
+	/*sensor*/
+	strcpy(buf, sensor_hal_head);
+	buf += strlen(sensor_hal_head);
+	strcpy(buf, type);
+	buf += strlen(type);
+	*buf++ = '"';
+	*buf++ = '>';
+	*buf++ = '\n';
+
+	/*three auto update node in platform_config*/
+	p = "    <platform_config driver_node_type=\"input_event\">\n";
+	strcpy(buf, p);
+	buf += strlen(p);
+
+	if (info->i2c_bus == 0 || info->special_hal_sysnode)
+		goto out;
+
+	/*name*/
+	p = "      <name>";
+	strcpy(buf, p);
+	buf += strlen(p);
+	p = info->input_name[multi];
+	strcpy(buf, p);
+	buf += strlen(p);
+	p = "</name>\n";
+	strcpy(buf, p);
+	buf += strlen(p);
+
+	/*activate*/
+	p = "      <activate_node>";
+	strcpy(buf, p);
+	buf += strlen(p);
+	for (i = 0; info->i2c_addrs[i]; i++)
+	{
+		if (i  > 0)
+			*buf++ = ';';
+		sprintf(syspath, "/sys/bus/i2c/devices/%d-00%02x/enable", info->i2c_bus, info->i2c_addrs[i]);
+		strcpy(buf, syspath);
+		buf += strlen(syspath);
+	}
+	p = "</activate_node>\n";
+	strcpy(buf, p);
+	buf += strlen(p);
+
+	/*poll*/
+	p = "      <poll_node>";
+	strcpy(buf, p);
+	buf += strlen(p);
+	for (i = 0; info->i2c_addrs[i]; i++)
+	{
+		if (i  > 0)
+			*buf++ = ';';
+		sprintf(syspath, "/sys/bus/i2c/devices/%d-00%02x/poll", info->i2c_bus, info->i2c_addrs[i]);
+		strcpy(buf, syspath);
+		buf += strlen(syspath);
+	}
+	p = "</poll_node>\n";
+	strcpy(buf, p);
+	buf += strlen(p);
+
+out:
+	*buf++ = '\0';
+}
+
+/*remove name,enable and poll, since these are set automatically
+* just replace with blank
+*/
+static int remove_auto_nodes(char *start)
+{
+	char *p_start;
+	char *p_end;
+	int i;
+
+	p_start = strstr(start, "<name></name>");
+	if (p_start) {
+		for (i = 0; i < (int)sizeof("<name></name>"); i++, p_start++)
+		{
+			*p_start = ' ';
+		}
+	}
+
+	p_start = strstr(start, "<activate_node>");
+	p_end = strstr(start, "</activate_node>");
+	if (p_start && p_end) {
+		for (;p_start < p_end + sizeof("</activate_node>"); p_start++)
+		{
+			*p_start = ' ';
+		}
+	}
+
+	p_start = strstr(start, "<poll_node>");
+	p_end = strstr(start, "</poll_node>");
+	if (p_start && p_end) {
+		for (;p_start < p_end + sizeof("</poll_node>"); p_start++)
+		{
+			*p_start = ' ';
+		}
+	}
+	return 0;
+}
+
+static int prepare_initrc(struct xml_auto_infos *info)
+{
+	int i;
+	int ret;
+	char syspath[512] = { 0 };
+	char *p = syspath;
+	static int initrc_sensor_num = 0;
+
+	for (i = 0; !info->special_hal_sysnode && info->i2c_addrs[i]; i++, initrc_sensor_num++)
+	{
+		sprintf(p, "chown system system /sys/devices/generalsensor/sensor%d/enable\n", initrc_sensor_num);
+		p += strlen(p);
+		sprintf(p, "chown system system /sys/devices/generalsensor/sensor%d/poll\n", initrc_sensor_num);
+	}
+
+	/*special device: only hal config*/
+	if (info->special_hal_sysnode) {
+		p = syspath;
+		sprintf(p, "chown system system %s\n", info->activate_node);
+		p += strlen(p);
+		sprintf(p, "chown system system %s\n", info->poll_node);
+	}
+
+	ret = write_file(initrc, syspath, strlen(syspath), 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		return ret;
+	}
+	return 0;
+}
+
+static char config_head[4096];
+static int do_build_xmls(char *xml, struct xml_auto_infos *info)
+{
+	int ret = 0;
+	char *buf = NULL;
+	int size;
+	int sensor;
+
+	ret = read_file(xml, &buf, &size);
+	if (ret) {
+		printf("[%d]%s:read file error\n", __LINE__, __func__);
+		goto out;
+	}
+
+	for (sensor = 0; sensor < info->share_num; sensor++)
+	{
+		char *driver_start;
+		char *driver_end;
+		char *hal_start;
+		char *hal_end;
+
+		/*driver config*/
+		driver_start = strstr(buf, "<basic_info>");
+		if (!driver_start) {
+			DBG(LEVEL2, "[%d]%s:find no driver start\n", __LINE__, __func__);
+			goto hal;
+		}
+		driver_end = strstr(buf, "</sensor_actions>");
+		if (!driver_end) {
+			printf("[%d]%s:find no driver end\n", __LINE__, __func__);
+			goto hal;
+		}
+
+		prepare_sensor_driver_head(config_head, xml, sensor);
+		DBG(LEVEL2, "sensor driver config head: %s", config_head);
+		ret = write_file(driver_xml, config_head, strlen(config_head), 1);
+		if (ret) {
+			printf("[%d]%s:Write file error\n", __LINE__, __func__);
+			goto out;
+		}
+		DBG(LEVEL2, "%s\n",driver_start);
+		DBG(LEVEL2, "%s\n",driver_end);
+
+		//4 blank before basic_info
+		*(driver_start - 4) = ' ';
+		*(driver_start - 3) = ' ';
+		*(driver_start - 2) = ' ';
+		*(driver_start - 1) = ' ';
+		ret = write_file(driver_xml, driver_start - 4, driver_end - driver_start + sizeof("</sensor_actions>") + 4, 1);
+		if (ret) {
+			printf("[%d]%s:Write file error\n", __LINE__, __func__); goto out;
+		}
+		ret = write_file(driver_xml, sensor_driver_end, sizeof(sensor_driver_end)-1, 1);
+		if (ret) {
+			printf("[%d]%s:Write file error\n", __LINE__, __func__);
+			goto out;
+		}
+		/*driver config*/
+
+hal:
+		/*hal config*/
+		hal_start = strstr(buf, "<platform_config>");
+		if (!hal_start) {
+			printf("[%d]%s:find no hal start\n", __LINE__, __func__);
+			continue;
+		}
+		hal_end = strstr(buf, "</device>");
+		if (!hal_end) {
+			printf("[%d]%s:find no hal end\n", __LINE__, __func__);
+			continue;
+		}
+
+		prepare_sensor_hal_head(config_head, info, sensor);
+		DBG(LEVEL2, "sensor hal config head: %s", config_head);
+		ret = write_file(hal_xml, config_head, strlen(config_head), 1);
+		if (ret) {
+			printf("[%d]%s:Write file error\n", __LINE__, __func__);
+			goto out;
+		}
+
+		//if there is driver config and don't specify valid config in hal
+		if (info->i2c_bus != 0 && !info->special_hal_sysnode)
+			remove_auto_nodes(hal_start);
+
+		//2 blank before platform_config
+		ret = write_file(hal_xml, hal_start + strlen("<platform_config>") + 1,
+				hal_end - hal_start + sizeof("</device>") - strlen("<platform_config>"), 1);
+		if (ret) {
+			printf("[%d]%s:Write file error\n", __LINE__, __func__);
+			goto out;
+		}
+		ret = write_file(hal_xml, sensor_hal_end, strlen(sensor_hal_end), 1);
+		if (ret) {
+			printf("[%d]%s:Write file error\n", __LINE__, __func__);
+			goto out;
+		}
+		/*hal config*/
+
+		/*initrc*/
+		ret = prepare_initrc(info);
+		if (ret) {
+			printf("[%d]%s:error\n", __LINE__, __func__);
+			goto out;
+		}
+		/*initrc*/
+	}
+
+out:
+	if (buf)
+		free(buf);
+	return ret;
+}
+
+static int build_xmls(int n, char **xml_name)
+{
+	int ret = 0;
+	int xml;
+	struct xml_auto_infos info;
+
+	if (n <= 0) {
+		printf("Error: specify at least one sensor config XML file\n");
+		return -1;
+	}
+
+	ret = prebuild_xmls();
+	if (ret) {
+		printf("Error in prebuild\n");
+		goto out;
+	}
+
+	for (xml = 0; xml < n; xml++, xml_name++)
+	{
+		DBG(LEVEL2, "%s\n", *xml_name);
+
+		ret = xml_get_info(*xml_name, &info);
+		if (ret) {
+			printf("Error in xml get info\n");
+			goto out;
+		}
+
+		ret = do_build_xmls(*xml_name, &info);
+		if (ret) {
+			printf("Error in do build\n");
+			goto out;
+		}
+	}
+
+	ret = postbuild_xmls();
+	if (ret) {
+		printf("Error in postbuild\n");
+		goto out;
+	}
+
+	printf("Successfully build %s, %s, %s\n", driver_xml, hal_xml, initrc);
+out:
+	return ret;
+}
+

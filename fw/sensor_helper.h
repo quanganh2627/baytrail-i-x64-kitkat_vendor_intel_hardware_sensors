@@ -171,5 +171,7 @@ static void dump_im_actions(struct sensor_parser *parser);
 static void dump_ll_actions(struct sensor_parser *parser);
 
 static void dump_sensor_config(struct sensor_config *config);
+static int build_xmls(int n, char **xml_name);
+static int create_xml(char *xml_name);
 
 #endif
