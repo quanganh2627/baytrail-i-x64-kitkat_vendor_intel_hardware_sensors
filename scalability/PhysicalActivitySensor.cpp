@@ -85,8 +85,6 @@ PhysicalActivitySensor::PhysicalActivitySensor(SensorDevice &device)
         mActivityInstantCollectData = NULL;
         mActivityInstantProcess = NULL;
 
-        connectToPSH();
-
         setupResultPipe();
 
         loadAlgorithm();
@@ -96,8 +94,6 @@ PhysicalActivitySensor::~PhysicalActivitySensor() {
         LOGI("~PhysicalActivitySensor %d\n", mEnabled);
 
         stopWorker();
-
-        disconnectFromPSH();
 
         tearDownResultPipe();
 
@@ -251,7 +247,7 @@ inline void PhysicalActivitySensor::tearDownThreadWakeupPipe()
 
 bool PhysicalActivitySensor::selftest()
 {
-        if (isConnectToPSH() && isResultPipeSetup() && isAlgorithmLoaded()) {
+        if (isResultPipeSetup() && isAlgorithmLoaded()) {
                 return true;
         } else {
                 LOGE("Physical activity sensor self test failed!");
@@ -262,8 +258,8 @@ bool PhysicalActivitySensor::selftest()
 // start worker thread
 bool PhysicalActivitySensor::startWorker()
 {
-        if (!isConnectToPSH() || !isResultPipeSetup()) {
-                LOGE("Invalid connections to PSH");
+        if (!isResultPipeSetup()) {
+                LOGE("Result pipe not set up");
                 return false;
         }
 
@@ -325,7 +321,7 @@ int PhysicalActivitySensor::activate(int32_t handle, int en) {
 
         LOGI("PhysicalActivitySensor - %s - enable=%d", __FUNCTION__, en);
 
-        if (!isConnectToPSH() || !isResultPipeSetup()) {
+        if (!isResultPipeSetup()) {
                 LOGE("Invalid status while enable");
                 return -1;
         }
@@ -363,7 +359,7 @@ int PhysicalActivitySensor::setDelay(int32_t handle, int64_t ns)
                 return -1;
         }
 
-        if (!isConnectToPSH() || !isResultPipeSetup()) {
+        if (!isResultPipeSetup()) {
                 LOGE("Invalid status while enable");
                 return -1;
         }
@@ -457,6 +453,7 @@ void* PhysicalActivitySensor::workerThread(void *data)
         if (SENSOR_DELAY_TYPE_PHYSICAL_ACTIVITY_INSTANT * 1000 == delay)
                 instantMode = true;
 
+        src->connectToPSH();
         // start streaming and get read fd
         if (instantMode) {
                 // instant mode, open accelerometer stream
@@ -577,6 +574,7 @@ void* PhysicalActivitySensor::workerThread(void *data)
                         }
                 }
         }
+        src->disconnectFromPSH();
 
         if (client != NULL) {
                 delete client;

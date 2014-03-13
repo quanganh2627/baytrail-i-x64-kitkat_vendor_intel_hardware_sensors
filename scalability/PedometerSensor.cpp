@@ -45,8 +45,6 @@ PedometerSensor::PedometerSensor(SensorDevice &device)
 
         mPedoHandle = PSH_SESSION_NOT_OPENED;
 
-        // set up psh connection
-        connectToPSH();
         // Establish result pipe to sensor HAL
         setupResultPipe();
 }
@@ -56,8 +54,6 @@ PedometerSensor::~PedometerSensor()
         LOGI("~PedomterSensor %d\n", mEnabled);
 
         stopWorker();
-        // close connection
-        disconnectFromPSH();
         // close pipes
         tearDownResultPipe();
 }
@@ -173,8 +169,8 @@ void PedometerSensor::stopWorker()
 // start worker thread
 bool PedometerSensor::startWorker()
 {
-        if (!isConnectToPSH() || !isResultPipeSetup()) {
-                LOGE("Invalid connections to PSH or bad result pipe");
+        if (!isResultPipeSetup()) {
+                LOGE("Bad result pipe");
                 return false;
         }
 
@@ -212,7 +208,7 @@ int PedometerSensor::activate(int32_t handle, int en)
 
         LOGI("PedomterSensor - %s - enable=%d", __FUNCTION__, en);
 
-        if (!isConnectToPSH() || !isResultPipeSetup()) {
+        if (!isResultPipeSetup()) {
                 LOGE("Invalid status while enable");
                 return -1;
         }
@@ -244,7 +240,7 @@ int PedometerSensor::setDelay(int32_t handle, int64_t ns)
                 return -1;
         }
 
-        if (!isConnectToPSH() || !isResultPipeSetup()) {
+        if (!isResultPipeSetup()) {
                 LOGE("Invalid status while setDelay");
                 return -1;
         }
@@ -304,6 +300,7 @@ void* PedometerSensor::workerThread(void *data)
         if (SENSOR_DELAY_TYPE_PEDOMETER_INSTANT * 1000 == delay)
                 instantMode = true;
 
+        src->connectToPSH();
         // start streaming and get read fd
         if (instantMode) {
                 int property = PROP_PEDO_MODE_ONCHANGE;
@@ -382,6 +379,7 @@ void* PedometerSensor::workerThread(void *data)
                         }
                 }
         }
+        src->disconnectFromPSH();
         pthread_exit(NULL);
         return NULL;
 }
@@ -394,7 +392,7 @@ int PedometerSensor::getPollfd()
 
 bool PedometerSensor::selftest()
 {
-        if (isConnectToPSH() && isResultPipeSetup()){
+        if (isResultPipeSetup()){
                 return true;
         }
         LOGE("Pedometer sensor self test failed!");
