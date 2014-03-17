@@ -25,6 +25,7 @@
 #define _LARGEFILE64_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <linux/types.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -33,9 +34,6 @@
 #include <getopt.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
-
-typedef unsigned char u8;
-typedef unsigned short u16;
 #include "sensor_driver_config.h"
 #include "sensor_parser.h"
 
