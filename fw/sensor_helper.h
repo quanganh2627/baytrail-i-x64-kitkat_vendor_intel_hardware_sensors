@@ -25,9 +25,9 @@ struct im_operand {
 		/*index of local or global variables*/
 		int index;
 		struct im_reg {
-			u8 addr;
-			u8 len;
-			u8 flag;
+			__u8 addr;
+			__u8 len;
+			__u8 flag;
 		} reg;
 		int ms;
 	} data;
