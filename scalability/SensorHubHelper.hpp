@@ -29,6 +29,7 @@ public:
         static int getShakeEvent(struct shaking_data data);
         static int getSimpleTappingEvent(struct stap_data data);
         static int getMoveDetectEvent(struct md_data data);
+        static int8_t getVectorStatus(int sensorType);
 };
 
 #endif

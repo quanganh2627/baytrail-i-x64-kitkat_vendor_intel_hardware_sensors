@@ -291,7 +291,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[0] = (reinterpret_cast<struct accel_data*>(stream))[i].x;
                         events[i].data[1] = (reinterpret_cast<struct accel_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct accel_data*>(stream))[i].z;
-                        events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
+                        events[i].accuracy = getVectorStatus(sensorType);
                         events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
@@ -300,10 +300,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[0] = (reinterpret_cast<struct compass_raw_data *>(stream))[i].x;
                         events[i].data[1] = (reinterpret_cast<struct compass_raw_data *>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct compass_raw_data *>(stream))[i].z;
-                        if((reinterpret_cast<struct compass_raw_data *>(stream))[i].accuracy)
-                                events[i].accuracy = SENSOR_STATUS_ACCURACY_HIGH;
-                        else
-                                events[i].accuracy = SENSOR_STATUS_ACCURACY_LOW;
+                        events[i].accuracy = getVectorStatus(sensorType);
                         events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
@@ -312,7 +309,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[0] = (reinterpret_cast<struct orientation_data*>(stream))[i].azimuth;
                         events[i].data[1] = (reinterpret_cast<struct orientation_data*>(stream))[i].pitch;
                         events[i].data[2] = (reinterpret_cast<struct orientation_data*>(stream))[i].roll;
-                        events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
+                        events[i].accuracy = getVectorStatus(sensorType);
                         events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
@@ -321,10 +318,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[0] = (reinterpret_cast<struct gyro_raw_data*>(stream))[i].x;
                         events[i].data[1] = (reinterpret_cast<struct gyro_raw_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct gyro_raw_data*>(stream))[i].z;
-                        if ((reinterpret_cast<struct gyro_raw_data*>(stream))[i].accuracy)
-                                events[i].accuracy = SENSOR_STATUS_ACCURACY_HIGH;
-                        else
-                                events[i].accuracy = SENSOR_STATUS_ACCURACY_LOW;
+                        events[i].accuracy = getVectorStatus(sensorType);
                         events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
                 }
                 break;
@@ -456,4 +450,144 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         delete[] stream;
 
         return count;
+}
+
+#include <sys/inotify.h>
+#include <pthread.h>
+#include <fcntl.h>
+
+#define ACCELERATION_CALIBATION_FILE   "/data/ACCEL.conf"
+#define MAGNETIC_CALIBATION_FILE       "/data/COMPS.conf"
+#define GYROSCOPE_CALIBATION_FILE      "/data/GYRO.conf"
+#define ACCELERATION_CALIBATION_STATUS (1 << 0)
+#define MAGNETIC_CALIBATION_STATUS     (1 << 1)
+#define GYROSCOPE_CALIBATION_STATUS    (1 << 2)
+
+static void update_vector_status(int fd, int* vector_status, int flag)
+{
+        struct cmd_calibration_param param;
+        pread(fd, &param, sizeof(param), 0);
+
+        if (param.calibrated == SUBCMD_CALIBRATION_TRUE)
+                *(int*)vector_status |= flag;
+        else
+                *(int*)vector_status &= ~flag;
+}
+
+static int monitor_calibration_flies(const char* file, int fd_inotify, int* vector_status, int flag, int* wd)
+{
+        int fd = -1;
+        fd = open(file, O_RDONLY);
+        if (fd < 0) {
+                LOGW("Cannot open file: %s %d", file, fd);
+                *(int*)vector_status |= flag;
+        } else {
+                update_vector_status(fd, (int*)vector_status, flag);
+                if (fd_inotify >= 0) {
+                        *wd = inotify_add_watch(fd_inotify, file, IN_MODIFY);
+                        if (*wd < 0) {
+                                LOGE("Cannot watch file: %s %d", file, *wd);
+                        }
+                }
+        }
+
+        return fd;
+}
+
+static void* vector_status_monitor(void* vector_status)
+{
+        int fd_accl, fd_comp, fd_gyro, fd_inotify;
+        int wd_accl = -1, wd_comp = -1, wd_gyro = -1;
+        fd_set rfds;
+        int ret = -1;
+        struct inotify_event ievent[16];
+
+        fd_inotify = inotify_init();
+        if (fd_inotify < 0) {
+                LOGE("Cannot initialize inotify!");
+        }
+
+        fd_accl = monitor_calibration_flies(ACCELERATION_CALIBATION_FILE, fd_inotify, (int*)vector_status, ACCELERATION_CALIBATION_STATUS, &wd_accl);
+        fd_comp = monitor_calibration_flies(MAGNETIC_CALIBATION_FILE, fd_inotify, (int*)vector_status, MAGNETIC_CALIBATION_STATUS, &wd_comp);
+        fd_gyro = monitor_calibration_flies(GYROSCOPE_CALIBATION_FILE, fd_inotify, (int*)vector_status, GYROSCOPE_CALIBATION_STATUS, &wd_gyro);
+
+        if ((fd_accl < 0 && fd_comp < 0 && fd_gyro < 0) || fd_inotify < 0)
+                goto exit_monitor;
+
+        while (true) {
+                bool accl_change = false, comp_change = false, gyro_change = false;
+                FD_ZERO (&rfds);
+                FD_SET (fd_inotify, &rfds);
+                ret = select (fd_inotify + 1, &rfds, NULL, NULL, NULL);
+                if (ret <= 0) {
+                        LOGE("select fd_inotify error: %d", ret);
+                        continue;
+                }
+                ret = read(fd_inotify, ievent, 16 * sizeof(struct inotify_event));
+                for (int i = 0; i < ret / sizeof(struct inotify_event); i++) {
+                        if (ievent[i].wd == wd_accl) {
+                                accl_change = true;
+                        } else if (ievent[i].wd == wd_comp) {
+                                comp_change = true;
+                        } else if (ievent[i].wd == wd_gyro) {
+                                gyro_change = true;
+                        }
+                }
+
+                if (accl_change && fd_accl >= 0) {
+                        update_vector_status(fd_accl, (int*)vector_status, ACCELERATION_CALIBATION_STATUS);
+                }
+                if (comp_change && fd_comp >= 0) {
+                        update_vector_status(fd_comp, (int*)vector_status, MAGNETIC_CALIBATION_STATUS);
+                }
+                if (gyro_change && fd_gyro >= 0) {
+                        update_vector_status(fd_gyro, (int*)vector_status, GYROSCOPE_CALIBATION_STATUS);
+                }
+        }
+
+exit_monitor:
+        if (fd_inotify >= 0)
+                close(fd_inotify);
+        if (fd_accl >= 0)
+                close(fd_accl);
+        if (fd_comp >= 0)
+                close(fd_comp);
+        if (fd_gyro >= 0)
+                close(fd_gyro);
+
+        return NULL;
+}
+
+int8_t SensorHubHelper::getVectorStatus(int sensorType)
+{
+        static int vector_status = 0;
+        static pthread_t tid = -1;
+        int err;
+
+        if (tid < 0) {
+                err = pthread_create(&tid, NULL, vector_status_monitor, &vector_status);
+                if (err) {
+                        LOGE("vector_status_monitor thread create error: %d", err);
+                        tid = -1;
+                        return SENSOR_STATUS_UNRELIABLE;
+                }
+        }
+
+        switch (sensorType) {
+        case SENSOR_TYPE_ACCELEROMETER:
+                return (vector_status & ACCELERATION_CALIBATION_STATUS) ? SENSOR_STATUS_ACCURACY_HIGH : SENSOR_STATUS_ACCURACY_LOW;
+        case SENSOR_TYPE_MAGNETIC_FIELD:
+                return (vector_status & MAGNETIC_CALIBATION_STATUS) ? SENSOR_STATUS_ACCURACY_HIGH : SENSOR_STATUS_ACCURACY_LOW;
+        case SENSOR_TYPE_GYROSCOPE:
+                return (vector_status & GYROSCOPE_CALIBATION_STATUS) ? SENSOR_STATUS_ACCURACY_HIGH : SENSOR_STATUS_ACCURACY_LOW;
+        case SENSOR_TYPE_ORIENTATION:
+                if (vector_status == (ACCELERATION_CALIBATION_STATUS | MAGNETIC_CALIBATION_STATUS | GYROSCOPE_CALIBATION_STATUS))
+                        return SENSOR_STATUS_ACCURACY_HIGH;
+                else
+                        return SENSOR_STATUS_ACCURACY_LOW;
+        default:
+                return SENSOR_STATUS_UNRELIABLE;
+        }
+
+        return SENSOR_STATUS_UNRELIABLE;
 }
