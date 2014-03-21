@@ -439,7 +439,7 @@ void* PhysicalActivitySensor::workerThread(void *data)
 
         int psh_fd = -1;
         bool instantMode = false;
-        short accel[3];
+	struct accel_data accel;
         struct phy_activity_data actData;
         Client *client = NULL;
         Client *tmpClient = NULL;
@@ -514,33 +514,35 @@ void* PhysicalActivitySensor::workerThread(void *data)
                 }
 
                 if (instantMode) {
-                        if (read(psh_fd, accel, sizeof(accel)) != sizeof(accel)) {
+                        if (read(psh_fd, &accel, sizeof(accel)) != sizeof(accel)) {
                                 LOGE("Unexpected Read End");
                                 break;
                         }
-                        if ((*src->mActivityInstantCollectData)(accel[0], accel[1], accel[2])) {
+                        if ((*src->mActivityInstantCollectData)(accel.x, accel.y, accel.z)) {
                                 LOGI("Process");
                                 (*src->mActivityInstantProcess)();
                         }
                 } else {
-                        if (read(psh_fd, &actData.len,
-                                 sizeof(actData.len)) != sizeof(actData.len)) {
-                                LOGE("Unexpected Read End");
-                                break;
-                        }
+			short values[MAX_PHY_ACT_DATA_LEN];
+
+			if (read(psh_fd, &actData, sizeof(actData)) != sizeof(actData)) {
+				LOGE("Unexpected Read End");
+				break;
+			}
+
                         if (actData.len < 1
-                            || actData.len > (int)(sizeof(actData.values)/sizeof(actData.values[0]))) {
+                            || actData.len > MAX_PHY_ACT_DATA_LEN) {
                                 LOGE("Invalid Len %hd", actData.len);
                                 continue;
                         }
-                        if (read(psh_fd, actData.values, sizeof(actData.values[0]) * actData.len) !=
-                            (int)sizeof(actData.values[0]) * actData.len) {
-                                LOGE("Physical Activity read end");
-                                break;
-                        }
+
+			if (read(psh_fd, values, actData.len) != (actData.len * sizeof(short))) {
+				LOGE("Physical Activity read end");
+				break;
+			}
 
                         // publish result
-                        if (client->accept(actData.values, actData.len)) {
+                        if (client->accept(values, actData.len)) {
                                 int finalData[OUTPUT_SIZE];
                                 client->publish(finalData[0], finalData[1]);
                                 int ind_step = 0;
@@ -549,7 +551,7 @@ void* PhysicalActivitySensor::workerThread(void *data)
                                         ind_step = actData.len / (OUTPUT_SIZE - 2);
                                 for (int i = 0; i < OUTPUT_SIZE - 2; i++)
                                         if (ind_step != 0)
-                                                finalData[2 + i] = client->convertResult(CN(actData.values[(i+1) * ind_step - 1]));
+                                                finalData[2 + i] = client->convertResult(CN(values[(i+1) * ind_step - 1]));
                                         else
                                                 finalData[2 + i] = 0;
                                 // write to result pipe
