@@ -96,14 +96,13 @@ int PSHCommonSensor::setDelay(int handle, int64_t ns) {
                 return -1;
         }
 
-        last_timestamp = getTimestamp();
         return 0;
 }
 
 int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
         int count = 32;
 
-        count = SensorHubHelper::readSensorhubEvents(pollfd, sensorhubEvent, count, device.getType(), last_timestamp);
+        count = SensorHubHelper::readSensorhubEvents(pollfd, sensorhubEvent, count, device.getType());
         for (int i = 0; i < count; i++) {
                 if (device.getType() == SENSOR_TYPE_STEP_COUNTER) {
                         event.u64.step_counter = sensorhubEvent[i].step_counter;
