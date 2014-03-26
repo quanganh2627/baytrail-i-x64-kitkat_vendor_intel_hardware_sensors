@@ -135,7 +135,7 @@ static const char xml_templete[] =
 "      <max_poll_interval></max_poll_interval> <!-- minimal poll rate in ms, 32bit, skip this if no -->\n"
 "      <gpio_num></gpio_num> <!-- 32bit, if method is NOT polling, specify gpio pin number here, and will be used when can't get it from ACPI -->\n"
 "      <irq_flag></irq_flag> <!-- 32bit, flag of linux irq handler. IRQF_TRIGGER_RISING=1, FALLING=2, HIGH=4, LOW=8, ONESHOT=0x2000 -->\n"
-"      <irq_serialize></irq_serialize> <!-- for multi sensor chip, is need to serialize its irq handling, set Y here, or skip this -->\n"
+"      <irq_serialize></irq_serialize> <!-- for multi sensor chip, when need to serialize its irq handling, set Y here, or skip this -->\n"
 "    </basic_info>\n"
 "    <odr_tables> <!-- Output data rate setting table -->\n"
 "    </odr_tables>\n"
@@ -201,6 +201,7 @@ static char *driver_xml = "sensor_driver_config.xml";
 static char *hal_xml = "sensor_hal_config_default.xml";
 static char *new_xml = NULL;
 static char *initrc = "init.sensor.rc";
+static char *exmodule = "sensor_general_plugin.c";
 static int debug_driver_flag = 0;
 static int debug_driver_level = 0;
 static int debug_driver_sensors = 0;
@@ -232,6 +233,7 @@ static int display_help(char *name)
 	"   -x file       --driverxml=file       Sensor Driver XML file name, default is sensor_driver_config.xml\n"
 	"   -h file       --halxml=file          Sensor HAL XML file name, default is sensor_hal_config_default.xml\n"
 	"   -i file       --initrc=file          Init script file name, default is init.sensor.rc\n"
+	"   -m file       --exmodule=file        external module source file name, default is sensor_general_plugin.c\n"
 	"   -q            --quiet=0/1/2/3/       Print level of debug message\n\n");
 	printf("Example:\n" "  %s -n newsensor.xml\n", name);
 	printf("  %s -b sensor1.xml sensor2.xml\n", name);
@@ -271,9 +273,12 @@ static int display_help(char *name)
 	"		c-like operators: 	arithmetic(+-*/), logic, bit, endian, min, max, (), expressions\n"
 	"		sleep_ms:		example: sleep_1 will delay 1ms\n"
 	"		if-else-endif\n"
-	"		comment: 		/*comment here*/\n"
+	"		__extern_c__ {}		code in c language, the function prototype: int externc_$index_$inputname(struct sensor_data *data)\n"
+	"		                	return value: return Non-zero if error, or return 0\n"
+	"		                	input: follow sensor_general.h if need to use struct sensor_data, can use keywords: local_* and global_*\n"
+	"		comment: 		/*comment here*/, don't nested /**/\n"
 	"        II) Grammar: c-like grammar\n"
-	" 		All expression should be end with \";\", except if/else/endif\n\n"
+	" 		All expression should be end with \";\", except if/else/endif/__extern_c__\n\n"
 	"2, hal_info\n"
 	"    Follow commment of templete xml\n");
 
@@ -284,7 +289,7 @@ int main(int argc, char *argv[])
 {
 	for (;;) {
 		int option_index = 0;
-		static const char *short_options = "bdpn:f:x:h:i:q:g:l:s:";
+		static const char *short_options = "bdpn:f:x:h:i:q:g:l:s:m:";
 		static const struct option long_options[] = {
 			{"build", no_argument, 0, 'b'},
 			{"dump", no_argument, 0, 'd'},
@@ -295,6 +300,8 @@ int main(int argc, char *argv[])
 			{"driverxml", required_argument, 0, 'x'},
 			{"halxml", required_argument, 0, 'h'},
 			{"initrc", required_argument, 0, 'i'},
+			{"exmodule", required_argument, 0, 'm'},
+
 			{"flag", required_argument, 0, 'g'},
 			{"level", required_argument, 0, 'l'},
 			{"sensors", required_argument, 0, 's'},
@@ -349,6 +356,12 @@ int main(int argc, char *argv[])
 			break;
 		case 'i':
 			if (!(initrc = strdup(optarg))) {
+				perror("stddup");
+				exit(-1);
+			}
+			break;
+		case 'm':
+			if (!(exmodule = strdup(optarg))) {
 				perror("stddup");
 				exit(-1);
 			}
@@ -595,6 +608,12 @@ static int sensor_parser_sensors(xmlNodePtr node, int num,
 		goto out;
 	}
 
+	ret = prepare_exmodule();
+	if (ret) {
+		printf("[%d]%s:prepare exmodule\n", __LINE__, __func__);
+		return ret;
+	}
+
 	for (i = 0; i < num; i++)
 	{
 		xmlNodePtr p = NodeBuf[i];
@@ -613,6 +632,12 @@ static int sensor_parser_sensors(xmlNodePtr node, int num,
 
 		*size += config->size;
 		config = (struct sensor_config *)((char *)config + config->size);
+	}
+
+	ret = post_exmodule();
+	if (ret) {
+		printf("[%d]%s:prepare exmodule\n", __LINE__, __func__);
+		return ret;
 	}
 
 	/*adjust for multi func device*/
@@ -1012,7 +1037,6 @@ static int sensor_config_init(xmlNodePtr node, struct sensor_config *config)
 	int i;
 
 	memset(config, 0, sizeof(struct sensor_config));
-	config->actions = (struct lowlevel_action *)&config->actions;
 
 	/*set default*/
 	config->i2c_bus = INVALID_I2C_BUS;
@@ -1111,12 +1135,12 @@ static int sensor_config_verify(struct sensor_config *config)
 		}
 	}
 
-	if (strlen(config->name) == 0) {
+	if (strlen((const char *)config->name) == 0) {
 		printf("must specify driver name\n");
 		goto err;
 	}
 
-	if (strlen(config->input_name) == 0) {
+	if (strlen((const char *)config->input_name) == 0) {
 		printf("must specify input name\n");
 		goto err;
 	}
@@ -1864,7 +1888,9 @@ err:
 * replace ; with \n
 * add \n behind if()/else/endif
 * copy formated str to parser->high_actions
+* write extern c to file, no further process
 */
+#define KEYWORD_EXTERN_C	"__extern_c__"
 static int sensor_action_str_format(struct sensor_parser *parser, char *input)
 {
 	int len = strlen(input);
@@ -1900,6 +1926,53 @@ static int sensor_action_str_format(struct sensor_parser *parser, char *input)
 			comment = 1;
 			in_inx += 1;
 			continue;
+		}
+
+		/*extern c function*/
+		if (!strncmp(&input[in_inx], KEYWORD_EXTERN_C, strlen(KEYWORD_EXTERN_C))) {
+			int left_brace = 0;
+			int right_brace = 0;
+			char *externc_start = NULL;
+			char *externc_end = NULL;
+
+			in_inx += strlen(KEYWORD_EXTERN_C);
+			for (; in_inx < len ; in_inx++)
+			{
+				c = input[in_inx];
+				if (c == '{') {
+					if (left_brace == 0)
+						externc_start = &input[in_inx];
+					left_brace++;
+				} else if (c == '}') {
+					right_brace++;
+
+					if (left_brace == right_brace) {
+						externc_end = &input[in_inx];
+						DBG(LEVEL4, "\n%s\n", externc_start);
+						break;
+					}
+				}
+			}
+			/*complete c function*/
+			if (in_inx < len) {
+				int externc_inx;
+
+				in_inx++;
+				if (sensor_format_externc(parser, externc_start, externc_end, &externc_inx)) {
+					printf("Error: %s\n", externc_start);
+					return -1;
+				}
+				sprintf(&buf[out_inx], "%s%08d", KEYWORD_EXTERN_C, externc_inx);
+				out_inx += (strlen(KEYWORD_EXTERN_C) + 8/*08d*/);
+				buf[out_inx++] = '\0';
+				strcpy(parser->high_actions[parser->high_num++],
+								&buf[line_start]);
+				line_start = out_inx;
+				DBG(LEVEL4, "%s", &buf[out_inx]);
+			} else {
+				printf("Err: incomplete extern c, do NOT use { or } in comment: %s\n", &input[in_inx]);
+				return -1;
+			}
 		}
 
 		c = input[in_inx];
@@ -2122,6 +2195,27 @@ static int sensor_high2im_single(struct sensor_parser *parser,
 		if (*end_ptr) {
 			printf("[%d]%s Error when parser %s %s\n",
 					__LINE__, __func__, key_str, high_action);
+			goto err;
+		}
+
+		return ret;
+	}
+
+	if ((key_str = "__extern_c__") &&
+		!strncmp(high_action, key_str, strlen(key_str))) {
+		char *end_ptr = NULL;
+
+		action->type = IM_EXTERN_C;
+		action->operand1.data.index =
+			strtol(high_action + strlen(key_str), &end_ptr, 0);
+		parser->im_top++;
+
+		DBG(LEVEL1, "externc im action: %s, %d",
+				high_action, action->operand1.data.index);
+
+		if (*end_ptr) {
+			printf("[%d]%s Error when parser %s %s, %s\n",
+					__LINE__, __func__, key_str, high_action, end_ptr);
 			goto err;
 		}
 
@@ -2917,6 +3011,15 @@ static int sensor_trans_ll(struct sensor_parser *parser,
 		parser->ll_top++;
 		break;
 
+	case IM_EXTERN_C:
+		DBG(LEVEL2, "extern_c");
+
+		ll_action->type = EXTERNC;
+		ll_action->action.externc.index = im_action->operand1.data.index;
+
+		parser->ll_top++;
+		break;
+
 	case IM_ASSIGN/*=*/:
 
 	case IM_LOGIC_EQ:
@@ -3061,6 +3164,14 @@ static void dump_im_actions(struct sensor_parser *parser)
 			printf("im actoin: sleep ");
 			oper = &actions->operand1;
 			printf("\t %d\n", oper->data.ms);
+			continue;
+		}
+
+		if (actions->type == IM_EXTERN_C) {
+			dump_tabs(i, level);
+			printf("im actoin: extern c");
+			oper = &actions->operand1;
+			printf("\t %d\n", oper->data.index);
 			continue;
 		}
 
@@ -3211,6 +3322,11 @@ static void dump_ll_action(struct lowlevel_action *actions, int num, int level)
 				dump_tabs(i, level);
 				printf(" sleep");
 				printf("\t%d\n", actions->action.sleep.ms);
+				continue;
+			} else if (actions->type == EXTERNC) {
+				dump_tabs(i, level);
+				printf(" externc");
+				printf("\t%d\n", actions->action.externc.index);
 				continue;
 			} else if (actions->type == RETURN) {
 				dump_tabs(i, level);
@@ -3561,6 +3677,7 @@ static char hal_xml_tail[] =
 static char initrc_head[] =
 	"#init script for general sensor driver solution, will be called in init.product.rc\n"
 	"on post-fs\n"
+	"insmod /lib/modules/sensor_general_plugin1_0.ko\n"
 	"chown system system /sys/devices/generalsensor/start\n"
 	"chown system system /sys/devices/generalsensor/dbglevel\n"
 	"chown system system /sys/devices/generalsensor/dbgsensors\n"
@@ -3999,3 +4116,178 @@ out:
 	return ret;
 }
 
+static char externc_array[MAX_EXTERN_C][MAX_BYTES_EXTERNC_NAME];
+static int externc_global_index = 0;
+
+static char exmodule_head[] =
+"/*\n"
+" * Plugin driver for general sensor module\n"
+" *\n"
+" * This program is free software; you can redistribute it and/or modify\n"
+" * it under the terms of the GNU General Public License version 2 as\n"
+" * published by the Free Software Foundation.\n"
+" *\n"
+" * This program is distributed in the hope that it will be useful,\n"
+" * but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+" * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+" * GNU General Public License for more details.\n"
+" *\n"
+" * You should have received a copy of the GNU General Public License\n"
+" * along with this program.  If not, see <http://www.gnu.org/licenses/>.\n"
+" *\n"
+" */\n"
+"#include <linux/module.h>\n"
+"#include <linux/err.h>\n"
+"#include <linux/errno.h>\n"
+"#include <linux/fs.h>\n"
+"#include <linux/sysfs.h>\n"
+"#include <linux/i2c.h>\n"
+"#include <linux/input.h>\n"
+"#include <linux/workqueue.h>\n"
+"#include <linux/slab.h>\n"
+"#include <linux/interrupt.h>\n"
+"#include <linux/gpio.h>\n"
+"#include <linux/acpi_gpio.h>\n"
+"#include <linux/delay.h>\n"
+"#include <linux/firmware.h>\n"
+"#include <asm/div64.h>\n"
+"#include \"sensor_driver_config.h\"\n"
+"#include \"sensor_general.h\"\n\n"
+"#define local_0	(data->private[0])\n"
+"#define local_1	(data->private[1])\n"
+"#define local_2	(data->private[2])\n"
+"#define local_3	(data->private[3])\n"
+"#define local_4	(data->private[4])\n"
+"#define local_5	(data->private[5])\n"
+"#define local_6	(data->private[6])\n"
+"#define local_7	(data->private[7])\n"
+"#define local_8	(data->private[8])\n"
+"#define local_9	(data->private[9])\n"
+"#define local_10	(data->private[10])\n"
+"#define local_11	(data->private[11])\n"
+"#define local_12	(data->private[12])\n"
+"#define local_13	(data->private[13])\n"
+"#define local_14	(data->private[14])\n"
+"#define local_15	(data->private[15])\n"
+"#define global_0	(data->private[(PRIVATE_MAX_SIZE)/2 + 0])\n"
+"#define global_1	(data->private[(PRIVATE_MAX_SIZE)/2 + 1])\n"
+"#define global_2	(data->private[(PRIVATE_MAX_SIZE)/2 + 2])\n"
+"#define global_3	(data->private[(PRIVATE_MAX_SIZE)/2 + 3])\n"
+"#define global_4	(data->private[(PRIVATE_MAX_SIZE)/2 + 4])\n"
+"#define global_5	(data->private[(PRIVATE_MAX_SIZE)/2 + 5])\n"
+"#define global_6	(data->private[(PRIVATE_MAX_SIZE)/2 + 6])\n"
+"#define global_7	(data->private[(PRIVATE_MAX_SIZE)/2 + 7])\n"
+"#define global_8	(data->private[(PRIVATE_MAX_SIZE)/2 + 8])\n"
+"#define global_9	(data->private[(PRIVATE_MAX_SIZE)/2 + 9])\n"
+"#define global_10	(data->private[(PRIVATE_MAX_SIZE)/2 + 10])\n"
+"#define global_11	(data->private[(PRIVATE_MAX_SIZE)/2 + 11])\n"
+"#define global_12	(data->private[(PRIVATE_MAX_SIZE)/2 + 12])\n"
+"#define global_13	(data->private[(PRIVATE_MAX_SIZE)/2 + 13])\n"
+"#define global_14	(data->private[(PRIVATE_MAX_SIZE)/2 + 14])\n"
+"#define global_15	(data->private[(PRIVATE_MAX_SIZE)/2 + 15])\n"
+;
+
+static char exmodule_end[] =
+"\n\nstatic int __init sensor_externc_init(void)\n"
+"{\n"
+"\tint ret;\n\tint i;\n\tfor(i = 0; externc_array[i]; i++) {\n"
+"\t\tret = sensor_register_extern_c(externc_array[i]);\n"
+"\t\tif (ret)\n"
+"\t\t\treturn ret;\n"
+"\t}\n"
+"\treturn 0;\n"
+"}\n"
+"\nstatic void __exit sensor_externc_exit(void)\n"
+"{\n"
+"\tint i;\n\tfor(i = 0; externc_array[i]; i++)\n"
+"\t\tsensor_unregister_extern_c(externc_array[i]);\n"
+"\treturn;\n"
+"}\n\n"
+"module_init(sensor_externc_init);\n"
+"module_exit(sensor_externc_exit);\n"
+"MODULE_DESCRIPTION(\"Plugin of General Sensor Driver\");\n"
+"MODULE_AUTHOR(\"PSI IO&Sensor Team\");\n"
+"MODULE_LICENSE(\"GPL\");\n";
+
+static char exmodule_externc_array[] =
+"\n\nstatic p_extern_c externc_array[MAX_EXTERN_C] = {\n";
+
+static int prepare_exmodule()
+{
+	int ret;
+
+	/*set default when init*/
+	memset(externc_array, 0, MAX_EXTERN_C * MAX_BYTES_EXTERNC_NAME);
+
+	ret = write_file(exmodule, exmodule_head, strlen(exmodule_head), 0);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+	}
+	return ret;
+}
+
+static int post_exmodule()
+{
+	int ret;
+	int i;
+
+	ret = write_file(exmodule, exmodule_externc_array, strlen(exmodule_externc_array), 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		return ret;
+	}
+
+	for (i = 0; i < externc_global_index; i++)
+	{
+		//printf("%s", externc_array[i]);
+		ret = write_file(exmodule, externc_array[i], strlen(externc_array[i]), 1);
+		if (ret) {
+			printf("[%d]%s:Write file error\n", __LINE__, __func__);
+			return ret;
+		}
+	}
+
+	ret = write_file(exmodule, "\tNULL\n};\n", 9, 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		return ret;
+	}
+
+	ret = write_file(exmodule, exmodule_end, strlen(exmodule_end), 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		return ret;
+	}
+	return 0;
+}
+
+/* all c function pointers are put in array
+*  global index of extern c functions
+*/
+static int sensor_format_externc(struct sensor_parser *parser,
+			char *start, char *end, int *externc_inx)
+{
+	int ret;
+	char buf[MAX_BYTES_EXTERNC_NAME] = { 0 };
+
+	*externc_inx = externc_global_index++;
+
+	sprintf(buf, "\n\nstatic int externc_%d_%s(struct sensor_data *data)\n",
+				*externc_inx, parser->config->input_name);
+	ret = write_file(exmodule, buf, strlen(buf), 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		return ret;
+	}
+
+	ret = write_file(exmodule, start, end - start + 1, 1);
+	if (ret) {
+		printf("[%d]%s:Write file error\n", __LINE__, __func__);
+		return ret;
+	}
+
+	sprintf(externc_array[*externc_inx], "\t&externc_%d_%s,\n",
+				*externc_inx, parser->config->input_name);
+
+	return 0;
+}

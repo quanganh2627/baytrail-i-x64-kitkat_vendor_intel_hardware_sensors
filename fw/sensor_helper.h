@@ -10,6 +10,8 @@
 #define NON_INITIAL_IFELSE	0xff
 #define ARRAY_SIZE(a)		(int)(sizeof(a)/sizeof(a[0]))
 
+#define MAX_BYTES_EXTERNC_NAME		128
+
 /*
 *  intermediate operand
 */
@@ -39,6 +41,7 @@ enum im_op_type { IM_IF = 0,
 	IM_ELSE, IM_ENDIF,
 	IM_SLEEP,
 	IM_RETURN,
+	IM_EXTERN_C,
 	/*=*/
 	IM_ASSIGN,
 	IM_LOGIC_EQ, IM_LOGIC_NEQ, IM_LOGIC_GREATER, IM_LOGIC_LESS,
@@ -173,5 +176,10 @@ static void dump_ll_actions(struct sensor_parser *parser);
 static void dump_sensor_config(struct sensor_config *config);
 static int build_xmls(int n, char **xml_name);
 static int create_xml(char *xml_name);
+static int sensor_format_externc(struct sensor_parser *parser,
+			char *start, char *end, int *externc_inx);
+static int prepare_exmodule();
+static int post_exmodule();
+
 
 #endif

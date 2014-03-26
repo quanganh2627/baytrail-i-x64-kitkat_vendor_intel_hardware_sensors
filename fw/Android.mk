@@ -24,6 +24,13 @@ SENSOR_DRIVER_CONFIG_XML := sensor_driver_config.xml
 SENSOR_HAL_CONFIG_XML := sensor_hal_config_default.xml
 SENSOR_INITRC := init.sensor.rc
 
+#plugin driver module
+SENSOR_GENERAL_PLUGIN_SOURCE :=\
+	$(PRODUCT_OUT)/obj/ETC/sensor_config.bin_intermediates/sensor_general_plugin.c
+SENSOR_GENERAL_PLUGIN_MAKEFILE := $(LOCAL_PATH)/Makefile
+$(eval $(call build_kernel_module,$(dir $(SENSOR_GENERAL_PLUGIN_SOURCE)),sensor_general_plugin))
+sensor_general_plugin: sensor_config.bin
+
 include $(CLEAR_VARS)
 LOCAL_MODULE := sensor_config.bin
 LOCAL_MODULE_TAGS := optional
@@ -37,10 +44,12 @@ $(LOCAL_BUILT_MODULE): sensor_helper $(ACP)
 				-h $(dir $@)/$(SENSOR_HAL_CONFIG_XML) \
 				-i $(dir $@)/$(SENSOR_INITRC) \
 				   $(SENSOR_XMLS)
-	$(hide)sensor_helper -p -x $(dir $@)/sensor_driver_config.xml -f $@
+	$(hide)sensor_helper -p -x $(dir $@)/sensor_driver_config.xml \
+				-m $(SENSOR_GENERAL_PLUGIN_SOURCE) \
+				-f $@
+	$(hide)$(ACP) $(SENSOR_GENERAL_PLUGIN_MAKEFILE) $(dir $@)
 	$(hide)$(ACP) -fp $(dir $@)/$(SENSOR_HAL_CONFIG_XML) $(TARGET_OUT_ETC)
 	$(hide)$(ACP) -fp $(dir $@)/$(SENSOR_INITRC) $(PRODUCT_OUT)/root
 	$(hide)sensor_helper -d -f $@ > $(dir $@)/sensor_config.dump
-
 
 endif # USE_GENERAL_SENSOR_DRIVER
