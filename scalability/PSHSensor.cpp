@@ -92,6 +92,15 @@ bool PSHSensor::SensorHubMethodsInitialize()
                 }
         }
 
+        if (methods.psh_set_property_with_size == NULL) {
+                methods.psh_set_property_with_size = reinterpret_cast<error_t (*)(handle_t, property_type, int, void *)>(dlsym(methodsHandle, "psh_set_property_with_size"));
+                if (methods.psh_set_property_with_size == NULL) {
+                        LOGE("dlsym: psh_set_property_with_size error!");
+                        SensorHubMethodsFinallize();
+                        return false;
+                }
+        }
+
         return true;
 }
 

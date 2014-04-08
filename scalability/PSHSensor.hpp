@@ -12,6 +12,7 @@ struct sensor_hub_methods {
         error_t (*psh_start_streaming_with_flag)(handle_t handle, int data_rate, int buffer_delay, streaming_flag flag);
         error_t (*psh_stop_streaming)(handle_t handle);
         error_t (*psh_set_property)(handle_t handle, property_type prop_type, void *value);
+        error_t (*psh_set_property_with_size)(handle_t handle, property_type prop_type, int size, void *value);
 };
 
 class PSHSensor : public Sensor {
