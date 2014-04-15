@@ -522,6 +522,10 @@ static void* vector_status_monitor(void* vector_status)
                         continue;
                 }
                 ret = read(fd_inotify, ievent, 16 * sizeof(struct inotify_event));
+                if (ret < 0) {
+                        LOGE("read fd_inotify error: %d", ret);
+                        continue;
+                }
                 for (int i = 0; i < ret / sizeof(struct inotify_event); i++) {
                         if (ievent[i].wd == wd_accl) {
                                 accl_change = true;

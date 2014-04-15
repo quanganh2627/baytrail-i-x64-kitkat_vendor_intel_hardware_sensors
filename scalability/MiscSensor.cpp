@@ -118,8 +118,7 @@ int MiscSensor::getData(std::queue<sensors_event_t> &eventQue) {
                         Calibration(&event, CALIBRATION_DATA, NULL);
                 eventQue.push(event);
                 return 0;
-        }
-        else if (ret % sizeof(sensors_misc_event_t) != 0) {
+        } else if (ret < 0 || ret % sizeof(sensors_misc_event_t) != 0) {
                 LOGE("%s line: %d, name: %s ret: %d",
                      __FUNCTION__, __LINE__, data.name.c_str(), ret);
                 return -1;
