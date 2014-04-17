@@ -259,8 +259,37 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
         return -1;
 }
 
-ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* events, size_t count, int sensorType, int64_t &last_timestamp)
+void SensorHubHelper::accelFilter(struct SensorDevice &device, struct sensorhub_event_t &event)
 {
+    static int x, y, z, filter = -1;
+    int delta_x, delta_y, delta_z;
+
+    if (filter < 0)
+        filter = (int)(ACCEL_FILTER / device.getScale(AXIS_X));
+
+    delta_x = event.data[0] - x;
+    if (delta_x > -filter && delta_x < filter)
+        event.data[0] = x;
+    else
+        x = event.data[0];
+
+    delta_y = event.data[1] - y;
+    if (delta_y > -filter && delta_y < filter)
+        event.data[1] = y;
+    else
+        y = event.data[1];
+
+    delta_z = event.data[2] - z;
+    if (delta_z > -filter && delta_z < filter)
+        event.data[2] = z;
+    else
+        z = event.data[2];
+}
+
+ssize_t SensorHubHelper::readSensorhubEvents(struct SensorDevice &device, int fd,
+		struct sensorhub_event_t* events, size_t count, int64_t &last_timestamp)
+{
+        int sensorType;
         int64_t current_timestamp, timestamp_step;
 
         if (fd < 0)
@@ -269,6 +298,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         if (count <= 0)
                 return 0;
 
+        sensorType = device.getType();
         size_t unitSize = getUnitSize(sensorType);
         size_t streamSize = unitSize * count;
         byte* stream = new byte[streamSize];
@@ -293,6 +323,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[2] = (reinterpret_cast<struct accel_data*>(stream))[i].z;
                         events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
                         events[i].timestamp = last_timestamp + timestamp_step * (i + 1);
+                        accelFilter(device, events[i]);
                 }
                 break;
         case SENSOR_TYPE_MAGNETIC_FIELD:

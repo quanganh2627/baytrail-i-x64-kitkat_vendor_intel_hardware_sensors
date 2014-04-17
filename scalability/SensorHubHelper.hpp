@@ -4,6 +4,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <libsensorhub.h>
+#include "SensorDevice.hpp"
 
 typedef unsigned char byte;
 
@@ -21,7 +22,7 @@ class SensorHubHelper {
         static size_t getUnitSize(int sensorType);
 public:
         static psh_sensor_t getType(int sensorType, sensors_subname subname);
-        static ssize_t readSensorhubEvents(int fd, struct sensorhub_event_t* event, size_t count, int sensorType, int64_t &last_timestamp);
+        static ssize_t readSensorhubEvents(struct SensorDevice &device, int fd, struct sensorhub_event_t* event, size_t count, int64_t &last_timestamp);
         static void getStartStreamingParameters(int sensorType, int &dataRate, int &bufferDelay, streaming_flag &flag);
         static bool setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler);
         static int getGestureFlickEvent(struct gesture_flick_data data);
@@ -29,6 +30,7 @@ public:
         static int getShakeEvent(struct shaking_data data);
         static int getSimpleTappingEvent(struct stap_data data);
         static int getMoveDetectEvent(struct md_data data);
+        static void accelFilter(struct SensorDevice &device, struct sensorhub_event_t &event);
 };
 
 #endif

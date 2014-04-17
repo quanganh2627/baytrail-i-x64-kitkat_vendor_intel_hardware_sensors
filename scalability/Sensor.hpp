@@ -7,6 +7,7 @@
 #define SENSOR_NOPOLL   0x7fffffff
 #define NS_TO_MS 1000000
 #define US_TO_MS 1000
+#define ACCEL_FILTER 0.1
 
 class Sensor {
 protected:
