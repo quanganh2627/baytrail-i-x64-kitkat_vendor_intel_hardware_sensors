@@ -66,7 +66,6 @@ typedef void (*FUNC_GESTURE_CLOSE) ();
 
 class GestureSensor : public PSHSensor
 {
-        int mEnabled;
 
 public:
         GestureSensor() {};
@@ -131,7 +130,7 @@ private:
         bool                    mHasGestureLibrary;
 
         static int getGestureFromString(char* gesture);
-
+        virtual int flush(int handle);
         bool mInitGesture;
 };
 

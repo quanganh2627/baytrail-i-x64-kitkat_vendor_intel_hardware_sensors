@@ -32,7 +32,7 @@
 /*****************************************************************************/
 
 #undef LOG_TAG
-#define LOG_TAG "PhysicalActivitySensor"
+#define LOG_TAG "PhysicalActivitySensors"
 
 // for physical activity virtual sensor
 #define FULL_SCORE 100
@@ -63,16 +63,16 @@ static const char * classNames[] = {
 };
 
 PhysicalActivitySensor::PhysicalActivitySensor(SensorDevice &device)
-        : PSHSensor(device),
-          mEnabled(0)
+        : PSHSensor(device)
 {
+        state.setActivated(false);
         mResultPipe[0] = PIPE_NOT_OPENED;
         mResultPipe[1] = PIPE_NOT_OPENED;
 
         mWakeFDs[0] = PIPE_NOT_OPENED;
         mWakeFDs[1] = PIPE_NOT_OPENED;
 
-        mCurrentDelay = 0;
+        state.setDelay(0);
         mWorkerThread = THREAD_NOT_STARTED;
 
         mPSHCn = 0;
@@ -91,7 +91,7 @@ PhysicalActivitySensor::PhysicalActivitySensor(SensorDevice &device)
 }
 
 PhysicalActivitySensor::~PhysicalActivitySensor() {
-        LOGI("~PhysicalActivitySensor %d\n", mEnabled);
+        LOGI("~PhysicalActivitySensor %d\n", state.getActivated());
 
         stopWorker();
 
@@ -309,14 +309,14 @@ bool PhysicalActivitySensor::restartWorker(int64_t newDelay)
 {
         {
                 Mutex::Autolock _l(mDelayMutex);
-                mCurrentDelay = newDelay;
+                state.setDelay(newDelay);
         }
         stopWorker();
         return startWorker();
 }
 
 int PhysicalActivitySensor::activate(int32_t handle, int en) {
-        int flags = en ? 1 : 0;
+        bool flags = en ? true : false;
         int ret;
 
         LOGI("PhysicalActivitySensor - %s - enable=%d", __FUNCTION__, en);
@@ -326,18 +326,19 @@ int PhysicalActivitySensor::activate(int32_t handle, int en) {
                 return -1;
         }
 
-        if (mEnabled == en) {
+        if (state.getActivated() == flags) {
                 LOGI("Duplicate request");
                 return -1;
         }
 
-        mEnabled = en;
+        state.setActivated(flags);
 
-        if (0 == mEnabled) {
+        if (!state.getActivated()) {
                 stopWorker();
-                mCurrentDelay = 0;
-        }  //  we start worker when setDelay
-
+                state.setDelay(0);
+        } else {
+                restartWorker(state.getDelay());
+        }
         return 0;
 }
 
@@ -364,12 +365,7 @@ int PhysicalActivitySensor::setDelay(int32_t handle, int64_t ns)
                 return -1;
         }
 
-        if (mEnabled == 0) {
-                LOGW("setDelay while not enabled");
-                return -1;
-        }
-
-        if (mCurrentDelay == ns) {
+        if (state.getDelay() == ns) {
                 LOGI("Setting the same delay, do nothing");
                 return 0;
         }
@@ -378,7 +374,7 @@ int PhysicalActivitySensor::setDelay(int32_t handle, int64_t ns)
         if (restartWorker(ns)) {
                 return 0;
         } else {
-                mCurrentDelay = 0;
+                state.setDelay(0);
                 return -1;
         }
 }
@@ -439,7 +435,7 @@ void* PhysicalActivitySensor::workerThread(void *data)
 
         int psh_fd = -1;
         bool instantMode = false;
-	struct accel_data accel;
+        struct accel_data accel;
         struct phy_activity_data actData;
         Client *client = NULL;
         Client *tmpClient = NULL;
@@ -447,7 +443,7 @@ void* PhysicalActivitySensor::workerThread(void *data)
         int64_t delay;
         {
                 Mutex::Autolock _l(src->mDelayMutex);
-                delay = src->mCurrentDelay;
+                delay = src->state.getDelay();
         }
 
         if (SENSOR_DELAY_TYPE_PHYSICAL_ACTIVITY_INSTANT * 1000 == delay)
@@ -523,12 +519,12 @@ void* PhysicalActivitySensor::workerThread(void *data)
                                 (*src->mActivityInstantProcess)();
                         }
                 } else {
-			short values[MAX_PHY_ACT_DATA_LEN];
+            short values[MAX_PHY_ACT_DATA_LEN];
 
-			if (read(psh_fd, &actData, sizeof(actData)) != sizeof(actData)) {
-				LOGE("Unexpected Read End");
-				break;
-			}
+            if (read(psh_fd, &actData, sizeof(actData)) != sizeof(actData)) {
+                    LOGE("Unexpected Read End");
+                    break;
+            }
 
                         if (actData.len < 1
                             || actData.len > MAX_PHY_ACT_DATA_LEN) {
@@ -536,10 +532,11 @@ void* PhysicalActivitySensor::workerThread(void *data)
                                 continue;
                         }
 
-			if (read(psh_fd, values, actData.len) != (actData.len * sizeof(short))) {
-				LOGE("Physical Activity read end");
-				break;
-			}
+            if (read(psh_fd, values, actData.len)
+                    != (actData.len * sizeof(short))) {
+                    LOGE("Physical Activity read end");
+                    break;
+            }
 
                         // publish result
                         if (client->accept(values, actData.len)) {
@@ -582,7 +579,6 @@ void* PhysicalActivitySensor::workerThread(void *data)
                 delete client;
                 client = NULL;
         }
-
         pthread_exit(NULL);
         return NULL;
 }
@@ -604,6 +600,12 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
         int unit_size = OUTPUT_SIZE * sizeof(*p_activity_data);
 
         LOGI("PhysicalActivitySensor - getData");
+
+        if (state.getFlushSuccess() == true) {
+                eventQue.push(metaEvent);
+                state.setFlushSuccess(false);
+                LOGI("metaEvent reported");
+        }
 
         if (!isResultPipeSetup()) {
                 LOGI("invalid status ");
@@ -640,6 +642,24 @@ int PhysicalActivitySensor::getData(std::queue<sensors_event_t> &eventQue)
 
         LOGI("PhysicalActivitySensor - read %d events", numEventReceived);
         return numEventReceived;
+}
+
+int PhysicalActivitySensor::flush(int handle)
+{
+        LOGD("flush");
+        if (handle != device.getHandle()) {
+                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                     __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
+                return -EINVAL;
+        }
+
+        if (!state.getActivated()) {
+                LOGW("%s line: %d %s not activated", __FUNCTION__, __LINE__, device.getName());
+                return -EINVAL;
+        }
+
+        state.setFlushSuccess(true);
+        return 0;
 }
 
 PhysicalActivitySensor::Client::~Client()

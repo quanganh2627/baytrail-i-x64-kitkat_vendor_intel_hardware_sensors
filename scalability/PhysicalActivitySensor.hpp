@@ -68,7 +68,6 @@ typedef SH_STATUS (*FUNC_ACTIVITY_INSTANT_PROCESS) ();
 
 class PhysicalActivitySensor : public PSHSensor
 {
-        int mEnabled;
 public:
         PhysicalActivitySensor() {};
         PhysicalActivitySensor(SensorDevice &device);
@@ -117,9 +116,9 @@ private:
         static int getPA(short result);
         static void*  workerThread(void* data);
         static int ActCB(void *ctx, short *results, int len);
-
+        virtual int flush(int handle);
         Mutex       mDelayMutex;
-        int64_t     mCurrentDelay;
+
 
         handle_t    mPAHandle;
         handle_t    mAccHandle;

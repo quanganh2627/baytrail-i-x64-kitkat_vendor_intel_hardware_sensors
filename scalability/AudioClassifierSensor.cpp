@@ -42,15 +42,16 @@
 #define LOG_TAG "AudioClassifierSensor"
 
 AudioClassifierSensor::AudioClassifierSensor(SensorDevice &device) :
-        mEnabled(0), PSHSensor(device) {
+        PSHSensor(device) {
     LOGI("AudioClassifierSensor");
+    state.setActivated(false);
     pthread_cond_init(&mCondTimeOut, NULL);
     pthread_mutex_init(&mMutexTimeOut, NULL);
 
     mResultPipe[0] = PIPE_NOT_OPENED;
     mResultPipe[1] = PIPE_NOT_OPENED;
 
-    mCurrentDelay = 0;
+    state.setDelay(0);
     mAudioHal = new AudioHAL();
     mWakeFDs[0] = PIPE_NOT_OPENED;
     mWakeFDs[1] = PIPE_NOT_OPENED;
@@ -281,7 +282,7 @@ void AudioClassifierSensor::AudioHAL::audioHalActivate() {
     aware_classifier->dB_offset = 21;
     aware_classifier->alpha = 0.95 * (1 << ALPHA_QFACTOR);
     if (device != NULL) {
-        LOGD("activating aware... %x\n", device);
+        LOGD("activating aware...\n");
         if (device->activate_aware_session((hw_device_t*) device,
                 aware_classifier) == 0)
             LOGD("activated aware successful...\n");
@@ -313,25 +314,28 @@ void AudioClassifierSensor::AudioHAL::audioHalDeActivate() {
 }
 
 int AudioClassifierSensor::activate(int32_t handle, int en) {
-    LOGI("enable");
+    LOGI("activate");
+    bool flags = en ? true : false;
     if (!isResultPipeSetup()) {
         LOGE("Invalid status while enable");
         return -1;
     }
-    if (mEnabled == en) {
+    if (state.getActivated() == flags) {
         LOGI("Duplicate request");
         return -1;
     }
-    mEnabled = en;
-    if (0 == mEnabled) {
+    state.setActivated(flags);
+    if (0 == en) {
         stopWorker();
-        mCurrentDelay = 0;
-    }  // we start worker when setDelay
+        state.setDelay(0);
+    } else {
+        restartWorker(state.getDelay());
+    }
     return 0;
 }
 
 int AudioClassifierSensor::setDelay(int32_t handle, int64_t ns) {
-    LOGI("setDelay");
+    LOGI("setDelay ns = %lld", ns);
     if (ns != SENSOR_DELAY_TYPE_AUDIO_CLASSIFICATION_INSTANT * 1000
             && ns != SENSOR_DELAY_TYPE_AUDIO_CLASSIFICATION_SHORT * 1000
             && ns != SENSOR_DELAY_TYPE_AUDIO_CLASSIFICATION_MEDIUM * 1000
@@ -339,11 +343,7 @@ int AudioClassifierSensor::setDelay(int32_t handle, int64_t ns) {
         LOGE("Delay not supported");
         return -1;
     }
-    if (mEnabled == 0) {
-        LOGE("setDelay while not enabled");
-        return -1;
-    }
-    if (mCurrentDelay == ns) {
+    if (state.getDelay() == ns) {
         LOGI("Setting the same delay, do nothing");
         return 0;
     }
@@ -351,7 +351,7 @@ int AudioClassifierSensor::setDelay(int32_t handle, int64_t ns) {
     if (restartWorker(ns)) {
         return 0;
     } else {
-        mCurrentDelay = 0;
+        state.setDelay(0);
         return -1;
     }
     return 0;
@@ -371,12 +371,13 @@ int AudioClassifierSensor::getAudioDelay(int64_t ns) {
     } else {
         audioDelay = 1;
     }
+    LOGD("getAudioDelay %d ns = %lld", audioDelay, ns);
     return audioDelay;
 }
 bool AudioClassifierSensor::restartWorker(int64_t newDelay) {
     {
         Mutex::Autolock _l(mDelayMutex);
-        mCurrentDelay = newDelay;
+        state.setDelay(newDelay);
     }
     stopWorker();
     return startWorker();
@@ -388,7 +389,7 @@ bool AudioClassifierSensor::startWorker() {
     if (!setUpThreadWakeupPipe())
         goto error_handle;
     if (mWorkerThread = androidCreateThread(workerThread, this) > 0) {
-        LOGD("mWorkerThread = %d", mWorkerThread);
+        LOGD("mWorkerThread = %ld", mWorkerThread);
         return true;
     } else {
         LOGE("thread created error");
@@ -435,7 +436,11 @@ int AudioClassifierSensor::getData(std::queue<sensors_event_t> &eventQue) {
     int size, numEventReceived = 0;
     char buf[512];
     int unit_size = sizeof(*p_audio_data);
-
+    if (state.getFlushSuccess() == true) {
+        eventQue.push(metaEvent);
+        state.setFlushSuccess(false);
+        LOGI("metaEvent reported");
+    }
     if (!isResultPipeSetup()) {
         LOGI("invalid status ");
         return 0;
@@ -494,6 +499,26 @@ int AudioClassifierSensor::getData(std::queue<sensors_event_t> &eventQue) {
     return numEventReceived;
 }
 
+int AudioClassifierSensor::flush(int handle) {
+    LOGD("flush");
+    if (handle != device.getHandle()) {
+        LOGE(
+                "%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                __FUNCTION__, __LINE__, device.getName(), device.getHandle(),
+                handle);
+        return -EINVAL;
+    }
+
+    if (!state.getActivated()) {
+        LOGW("%s line: %d %s not activated", __FUNCTION__, __LINE__,
+                device.getName());
+        return -EINVAL;
+    }
+
+    state.setFlushSuccess(true);
+    return 0;
+}
+
 int AudioClassifierSensor::workerThread(void *data) {
     AudioClassifierSensor *src = (AudioClassifierSensor*) data;
     int psh_fd = -1;
@@ -501,18 +526,17 @@ int AudioClassifierSensor::workerThread(void *data) {
     // for klocwork issue
     if (src == NULL || src->mAudioHal == NULL) {
         LOGE("null pointer issue");
-        return NULL;
+        return 0;
     }
     // Get current delay
     int64_t delay;
     {
         Mutex::Autolock _l(src->mDelayMutex);
-        delay = src->mCurrentDelay;
+        delay = src->state.getDelay();
     }
     // start streaming and get read fd
     int nTimeDelay = TIME_DELAY_FOR_PSH;
-    src->condEventWait(
-            src->getAudioDelay(src->mCurrentDelay) - TIME_DELAY_FOR_PSH / 1000);
+
     src->mAudioHal->audioHalActivate();
     src->connectToPSH();
     if (src->startStreamForPSH() == -1) {
@@ -556,7 +580,7 @@ int AudioClassifierSensor::workerThread(void *data) {
         src->mAudioHal->audioHalDeActivate();
         //wait
         src->condEventWait(
-                src->getAudioDelay(src->mCurrentDelay)
+                src->getAudioDelay(src->state.getDelay())
                         - TIME_DELAY_FOR_PSH / 1000);
         //wait end
         src->mAudioHal->audioHalActivate();
@@ -579,7 +603,7 @@ err_handle_start:
         Mutex::Autolock _l(src->m_cond);
         src->mWorkerThread = THREAD_NOT_STARTED;
     }
-    return NULL;
+    return 0;
 }
 
 /*

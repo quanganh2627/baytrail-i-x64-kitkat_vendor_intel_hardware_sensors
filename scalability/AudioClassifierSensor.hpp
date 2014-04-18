@@ -57,7 +57,6 @@ enum _ClassifierMask
 class AudioClassifierSensor : public PSHSensor
 {
     class AudioHAL;
-    int mEnabled;
 
 public:
     AudioClassifierSensor(SensorDevice &device);
@@ -108,8 +107,9 @@ private:
 
     void stopWorker();
 
+    virtual int flush(int handle);
+
     AudioHAL * mAudioHal;
-    int64_t     mCurrentDelay;
     Mutex       mDelayMutex;
     pthread_mutex_t mMutexTimeOut;
     pthread_cond_t mCondTimeOut;

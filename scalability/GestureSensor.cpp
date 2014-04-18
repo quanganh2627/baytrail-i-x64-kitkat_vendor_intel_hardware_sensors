@@ -34,9 +34,9 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 GestureSensor::GestureSensor(SensorDevice &device)
-        : PSHSensor(device),
-          mEnabled(0)
+        : PSHSensor(device)
 {
+        state.setActivated(false);
         mPollingThreadIDGyro= THREAD_NOT_STARTED;
         mPollingThreadIDProximity = THREAD_NOT_STARTED;
         mPollingThreadIDAccel = THREAD_NOT_STARTED;
@@ -82,7 +82,7 @@ GestureSensor::GestureSensor(SensorDevice &device)
 
 GestureSensor::~GestureSensor()
 {
-        LOGI("~GestureSensor %d\n", mEnabled);
+        LOGI("~GestureSensor %d\n", state.getActivated());
         Stop_accel();
         Stop_gyro();
         Stop_proximity();
@@ -100,7 +100,7 @@ GestureSensor::~GestureSensor()
 
 int GestureSensor::activate(int32_t handle, int en)
 {
-        int flags = en ? 1 : 0;
+        bool flags = en ? true : false;
 
         LOGI("GestureSensor - %s - enable=%d", __FUNCTION__, en);
         if (!mHasGestureLibrary) {
@@ -111,7 +111,7 @@ int GestureSensor::activate(int32_t handle, int en)
         if (mResultPipe[0] == PIPE_NOT_OPENED || mResultPipe[1] == PIPE_NOT_OPENED)
                 return -1;
 
-        if (mEnabled == en)
+        if (state.getActivated() == flags)
                 return 0;
 
         if (en == 1) {
@@ -126,12 +126,12 @@ int GestureSensor::activate(int32_t handle, int en)
                         Stop_proximity();
                         return -1;
                 }
-                mEnabled = 1;
+                state.setActivated(true);
         } else {
                 Stop_accel();
                 Stop_gyro();
                 Stop_proximity();
-                mEnabled = 0;
+                state.setActivated(false);
         }
 
         return 0;
@@ -169,6 +169,12 @@ int GestureSensor::getData(queue<sensors_event_t> & eventQue)
 
         LOGI("GestureSensor - getData");
 
+        if (state.getFlushSuccess() == true) {
+                eventQue.push(metaEvent);
+                state.setFlushSuccess(false);
+                LOGI("metaEvent reported");
+        }
+
         if (mResultPipe[0] == PIPE_NOT_OPENED) {
                 LOGI("invalid status ");
                 return 0;
@@ -194,6 +200,24 @@ int GestureSensor::getData(queue<sensors_event_t> & eventQue)
 
         LOGI("GestureSensor - read %d events", numEventReceived);
         return numEventReceived;
+}
+
+int GestureSensor::flush(int handle)
+{
+        LOGD("flush");
+        if (handle != device.getHandle()) {
+                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                     __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
+                return -EINVAL;
+        }
+
+        if (!state.getActivated()) {
+                LOGW("%s line: %d %s not activated", __FUNCTION__, __LINE__, device.getName());
+                return -EINVAL;
+        }
+
+        state.setFlushSuccess(true);
+        return 0;
 }
 
 static const char * gestures[] = {
