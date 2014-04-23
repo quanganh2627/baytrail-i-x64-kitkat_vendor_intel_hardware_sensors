@@ -16,6 +16,8 @@ struct sensor_hub_methods {
         error_t (*psh_set_property)(handle_t handle, property_type prop_type, void *value);
         error_t (*psh_set_property_with_size)(handle_t handle, property_type prop_type, int size, void *value);
         error_t (*psh_flush_streaming)(handle_t handle, unsigned int size);
+        error_t (*psh_set_calibration)(handle_t handle, struct cmd_calibration_param* param);
+        error_t (*psh_get_calibration)(handle_t handle, struct cmd_calibration_param* param);
 };
 
 class PSHSensor : public Sensor {

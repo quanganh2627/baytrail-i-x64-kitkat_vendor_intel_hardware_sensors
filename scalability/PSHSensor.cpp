@@ -108,6 +108,24 @@ bool PSHSensor::SensorHubMethodsInitialize()
                 }
         }
 
+        if (methods.psh_set_calibration == NULL) {
+                methods.psh_set_calibration = reinterpret_cast<error_t (*)(handle_t, struct cmd_calibration_param*)>(dlsym(methodsHandle, "psh_set_calibration"));
+                if (methods.psh_set_calibration == NULL) {
+                        LOGE("dlsym: psh_set_calibration error!");
+                        SensorHubMethodsFinallize();
+                        return false;
+                }
+        }
+
+        if (methods.psh_get_calibration == NULL) {
+                methods.psh_get_calibration = reinterpret_cast<error_t (*)(handle_t, struct cmd_calibration_param*)>(dlsym(methodsHandle, "psh_get_calibration"));
+                if (methods.psh_get_calibration == NULL) {
+                        LOGE("dlsym: psh_get_calibration error!");
+                        SensorHubMethodsFinallize();
+                        return false;
+                }
+        }
+
         return true;
 }
 
