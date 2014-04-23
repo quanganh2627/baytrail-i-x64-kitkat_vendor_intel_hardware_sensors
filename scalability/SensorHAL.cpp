@@ -1,6 +1,7 @@
 #include <hardware/hardware.h>
 #include "InputEventSensor.hpp"
 #include "MiscSensor.hpp"
+#include "PSHUncalibratedSensor.hpp"
 #include "PSHCommonSensor.hpp"
 #include "PlatformConfig.hpp"
 #include "PedometerSensor.hpp"
@@ -90,6 +91,10 @@ static bool initSensors()
                         case SENSOR_TYPE_GAME_ROTATION_VECTOR:
                         case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
                                 mSensor = new PSHCommonSensor(mDevice);
+                                break;
+                        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+                        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
+                                mSensor = new PSHUncalibratedSensor(mDevice);
                                 break;
                         case SENSOR_TYPE_PEDOMETER:
                                 mSensor = new PedometerSensor(mDevice);

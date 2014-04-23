@@ -1,5 +1,64 @@
 #include "PSHSensor.hpp"
 
+#define ACCELERATION_CALIBATION_FILE   "/data/ACCEL.conf"
+#define MAGNETIC_CALIBATION_FILE       "/data/COMPS.conf"
+#define GYROSCOPE_CALIBATION_FILE      "/data/GYRO.conf"
+
+struct magnetic_info {
+        float offset[3];
+        float w[3][3];
+        float bfield;
+} __attribute__ ((packed));
+
+struct gyroscope_info {
+        short x;
+        short y;
+        short z;
+} __attribute__ ((packed));
+
+bool SensorHubHelper::getCalibrationFileName(int sensorType, char* file)
+{
+        switch (sensorType) {
+        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+                memcpy(file, MAGNETIC_CALIBATION_FILE, 17);
+                return true;
+        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
+                memcpy(file, GYROSCOPE_CALIBATION_FILE, 16);
+                return true;
+        default:
+                return false;
+        }
+        return false;
+}
+
+bool SensorHubHelper::getCalibrationOffset(int sensorType, struct cmd_calibration_param* param, float* offset)
+{
+        struct magnetic_info* minfo;
+        struct gyroscope_info* ginfo;
+
+        if (param->calibrated != SUBCMD_CALIBRATION_TRUE)
+                return false;
+
+        switch (sensorType) {
+        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+                minfo = (struct magnetic_info*)param->cal_param.data;
+                offset[0] = minfo->offset[0];
+                offset[1] = minfo->offset[1];
+                offset[2] = minfo->offset[2];
+                return true;
+        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
+                ginfo = (struct gyroscope_info*)param->cal_param.data;
+                offset[0] = ginfo->x;
+                offset[1] = ginfo->y;
+                offset[2] = ginfo->z;
+                return true;
+        default:
+                return false;
+        }
+        return false;
+}
+
+
 psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
 {
         switch (sensorType) {
@@ -7,12 +66,14 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 if (subname == SECONDARY)
                         return SENSOR_ACCELEROMETER_SEC;
                 return SENSOR_ACCELEROMETER;
+        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
         case SENSOR_TYPE_MAGNETIC_FIELD:
                 if (subname == SECONDARY)
                         return SENSOR_COMP_SEC;
                 return SENSOR_COMP;
         case SENSOR_TYPE_ORIENTATION:
                 return SENSOR_ORIENTATION;
+        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
         case SENSOR_TYPE_GYROSCOPE:
                 if (subname == SECONDARY)
                         return SENSOR_GYRO_SEC;
@@ -208,10 +269,12 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
         switch (sensorType) {
         case SENSOR_TYPE_ACCELEROMETER:
                 return sizeof(struct accel_data);
+        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
         case SENSOR_TYPE_MAGNETIC_FIELD:
                 return sizeof(struct compass_raw_data);
         case SENSOR_TYPE_ORIENTATION:
                 return sizeof(struct orientation_data);
+        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
         case SENSOR_TYPE_GYROSCOPE:
                 return sizeof(struct gyro_raw_data);
         case SENSOR_TYPE_LIGHT:
@@ -296,6 +359,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].timestamp = (reinterpret_cast<struct accel_data*>(stream))[i].ts;
                 }
                 break;
+        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
         case SENSOR_TYPE_MAGNETIC_FIELD:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = (reinterpret_cast<struct compass_raw_data *>(stream))[i].x;
@@ -314,6 +378,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].timestamp = (reinterpret_cast<struct orientation_data*>(stream))[i].ts;
                 }
                 break;
+        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
         case SENSOR_TYPE_GYROSCOPE:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = (reinterpret_cast<struct gyro_raw_data*>(stream))[i].x;
@@ -457,9 +522,6 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
 #include <pthread.h>
 #include <fcntl.h>
 
-#define ACCELERATION_CALIBATION_FILE   "/data/ACCEL.conf"
-#define MAGNETIC_CALIBATION_FILE       "/data/COMPS.conf"
-#define GYROSCOPE_CALIBATION_FILE      "/data/GYRO.conf"
 #define ACCELERATION_CALIBATION_STATUS (1 << 0)
 #define MAGNETIC_CALIBATION_STATUS     (1 << 1)
 #define GYROSCOPE_CALIBATION_STATUS    (1 << 2)

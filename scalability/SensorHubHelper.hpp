@@ -21,6 +21,8 @@ class SensorHubHelper {
 public:
         static size_t getUnitSize(int sensorType);
         static psh_sensor_t getType(int sensorType, sensors_subname subname);
+        static bool getCalibrationFileName(int sensorType, char* file);
+        static bool getCalibrationOffset(int sensorType, struct cmd_calibration_param* param, float* offset);
         static ssize_t readSensorhubEvents(int fd, struct sensorhub_event_t* event, size_t count, int sensorType);
         static void getStartStreamingParameters(int sensorType, int &dataRate, int &bufferDelay, streaming_flag &flag);
         static bool setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler);

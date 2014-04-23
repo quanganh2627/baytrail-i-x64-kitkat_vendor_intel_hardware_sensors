@@ -36,6 +36,7 @@ LOCAL_SRC_FILES := SensorHAL.cpp    \
                    InputEventSensor.cpp \
                    MiscSensor.cpp \
                    PSHCommonSensor.cpp \
+                   PSHUncalibratedSensor.cpp \
                    SensorHubHelper.cpp \
                    PedometerSensor.cpp \
                    PhysicalActivitySensor.cpp \

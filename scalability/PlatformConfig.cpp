@@ -169,6 +169,11 @@ bool PlatformConfig::addSensorDevice(xmlNodePtr node, std::string type, std::str
 
                 mSensor.setHandle(mSensor.idToHandle(mSensor.getId()));
                 sensorType = getType(type);
+                if (sensorType == 0) {
+                        LOGE("%s line: %d Unsupported sensor type: %d",
+                             __FUNCTION__, __LINE__, sensorType);
+                        return false;
+                }
                 mSensor.setType(sensorType);
                 eventProperty = getEventProperty(sensorType);
                 mSensor.setEventProperty(eventProperty);
@@ -343,6 +348,10 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR;
         else if (type.compare(0, 11, "calibration") ==0)
                 return SENSOR_TYPE_CALIBRATION;
+        else if (type.compare(0, 27, "uncalibrated_magnetic_field") == 0)
+                return SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
+        else if (type.compare(0, 22, "uncalibrated_gyroscope") == 0)
+                return SENSOR_TYPE_GYROSCOPE_UNCALIBRATED;
         LOGW("%s: unsupported sensor: %s", __FUNCTION__, type.c_str());
         return 0;
 }

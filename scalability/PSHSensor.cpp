@@ -4,12 +4,13 @@
 struct sensor_hub_methods PSHSensor::methods;
 
 PSHSensor::PSHSensor()
+        :sensorHandle(NULL)
 {
         SensorHubMethodsInitialize();
 }
 
 PSHSensor::PSHSensor(SensorDevice &mDevice)
-        :Sensor(mDevice)
+        :Sensor(mDevice), sensorHandle(NULL)
 {
         SensorHubMethodsInitialize();
 }
