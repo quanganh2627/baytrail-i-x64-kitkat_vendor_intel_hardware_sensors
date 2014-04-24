@@ -41,7 +41,8 @@ LOCAL_SRC_FILES := SensorHAL.cpp    \
                    PhysicalActivitySensor.cpp \
                    GestureSensor.cpp \
                    utils.cpp \
-                   AudioClassifierSensor.cpp
+                   AudioClassifierSensor.cpp \
+                   CalibrationSensor.cpp
 
 LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
                     $(call include-path-for, stlport) \

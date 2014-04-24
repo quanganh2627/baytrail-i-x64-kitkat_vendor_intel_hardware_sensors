@@ -12,6 +12,7 @@
 #define SENSOR_TYPE_SHAKE                   106
 #define SENSOR_TYPE_SIMPLE_TAPPING          108
 #define SENSOR_TYPE_MOVE_DETECT             109
+#define SENSOR_TYPE_CALIBRATION             110
 
 // Sensor event types
 #define SHIFT_GESTURE_FLICK         4

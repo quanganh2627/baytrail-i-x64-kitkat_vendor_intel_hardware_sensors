@@ -62,6 +62,7 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
         case SENSOR_TYPE_AUDIO_CLASSIFICATION:
+        case SENSOR_TYPE_CALIBRATION:
         default:
                 LOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
                 break;
@@ -255,6 +256,7 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
         case SENSOR_TYPE_AUDIO_CLASSIFICATION:
+        case SENSOR_TYPE_CALIBRATION:
         default:
                 LOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
                 break;
@@ -440,6 +442,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         case SENSOR_TYPE_GESTURE:
         case SENSOR_TYPE_PHYSICAL_ACTIVITY:
         case SENSOR_TYPE_PEDOMETER:
+        case SENSOR_TYPE_CALIBRATION:
         default:
                 LOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
                 break;

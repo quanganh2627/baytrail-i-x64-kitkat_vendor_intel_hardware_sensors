@@ -341,6 +341,8 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_GAME_ROTATION_VECTOR;
         else if (type.compare(0, 28, "geo_magnetic_rotation_vector") ==0)
                 return SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR;
+        else if (type.compare(0, 11, "calibration") ==0)
+                return SENSOR_TYPE_CALIBRATION;
         LOGW("%s: unsupported sensor: %s", __FUNCTION__, type.c_str());
         return 0;
 }
