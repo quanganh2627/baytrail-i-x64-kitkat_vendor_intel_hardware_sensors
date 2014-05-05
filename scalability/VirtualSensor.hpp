@@ -1,80 +1,75 @@
 #ifndef VIRTUAL_SENSOR_HPP
 #define VIRTUAL_SENSOR_HPP
+
 /*****************************************************************************/
 // Definition for virtual sensors, it's one-one map to the user space library
 // Sensor types
-#define SENSOR_TYPE_GESTURE_FLICK           100
-#define SENSOR_TYPE_GESTURE                 101
-#define SENSOR_TYPE_PHYSICAL_ACTIVITY       102
-#define SENSOR_TYPE_TERMINAL                103
-#define SENSOR_TYPE_AUDIO_CLASSIFICATION    104
-#define SENSOR_TYPE_PEDOMETER               105
-#define SENSOR_TYPE_SHAKE                   106
-#define SENSOR_TYPE_SIMPLE_TAPPING          108
-#define SENSOR_TYPE_MOVE_DETECT             109
+#define SENSOR_TYPE_GESTURE_FLICK           SENSOR_TYPE_DEVICE_PRIVATE_BASE + 1
+#define SENSOR_TYPE_GESTURE                 SENSOR_TYPE_DEVICE_PRIVATE_BASE + 2
+#define SENSOR_TYPE_PHYSICAL_ACTIVITY       SENSOR_TYPE_DEVICE_PRIVATE_BASE + 3
+#define SENSOR_TYPE_TERMINAL                SENSOR_TYPE_DEVICE_PRIVATE_BASE + 4
+#define SENSOR_TYPE_AUDIO_CLASSIFICATION    SENSOR_TYPE_DEVICE_PRIVATE_BASE + 5
+#define SENSOR_TYPE_PEDOMETER               SENSOR_TYPE_DEVICE_PRIVATE_BASE + 6
+#define SENSOR_TYPE_SHAKE                   SENSOR_TYPE_DEVICE_PRIVATE_BASE + 7
+#define SENSOR_TYPE_SIMPLE_TAPPING          SENSOR_TYPE_DEVICE_PRIVATE_BASE + 8
+#define SENSOR_TYPE_MOVE_DETECT             SENSOR_TYPE_DEVICE_PRIVATE_BASE + 9
+#define SENSOR_TYPE_GESTURE_EARTOUCH        SENSOR_TYPE_DEVICE_PRIVATE_BASE + 10
+#define SENSOR_TYPE_GESTURE_HMM             SENSOR_TYPE_DEVICE_PRIVATE_BASE + 11
 #define SENSOR_TYPE_CALIBRATION             110
 
 // Sensor event types
-#define SHIFT_GESTURE_FLICK         4
-#define SHIFT_GESTURE               5
-#define SHIFT_PHYSICAL_ACTIVITY     6
-#define SHIFT_TERMINAL              7
-#define SHIFT_AUDIO_CLASSIFICATION  8
-#define SHIFT_SHAKE_TITLT           9
-#define SHIFT_SIMPLE_TAPPING        10
-#define SHIFT_MOVE_DETECT           11
 
-#define SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK        (1 << SHIFT_GESTURE_FLICK | 1)
-#define SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK       (1 << SHIFT_GESTURE_FLICK | 2)
-#define SENSOR_EVENT_TYPE_GESTURE_UP_FLICK          (1 << SHIFT_GESTURE_FLICK | 3)
-#define SENSOR_EVENT_TYPE_GESTURE_DOWN_FLICK        (1 << SHIFT_GESTURE_FLICK | 4)
-#define SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK_TWICE  (1 << SHIFT_GESTURE_FLICK | 5)
-#define SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK_TWICE (1 << SHIFT_GESTURE_FLICK | 6)
-#define SENSOR_EVENT_TYPE_GESTURE_NO_FLICK          (1 << SHIFT_GESTURE_FLICK | 7)
+#define SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK        (1)
+#define SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK       (2)
+#define SENSOR_EVENT_TYPE_GESTURE_UP_FLICK          (3)
+#define SENSOR_EVENT_TYPE_GESTURE_DOWN_FLICK        (4)
+#define SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK_TWICE  (5)
+#define SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK_TWICE (6)
+#define SENSOR_EVENT_TYPE_GESTURE_NO_FLICK          (7)
 
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_ONE            (1 << SHIFT_GESTURE | 1)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_TWO            (1 << SHIFT_GESTURE | 2)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_THREE          (1 << SHIFT_GESTURE | 3)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_FOUR           (1 << SHIFT_GESTURE | 4)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_FIVE           (1 << SHIFT_GESTURE | 5)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_SIX            (1 << SHIFT_GESTURE | 6)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_SEVEN          (1 << SHIFT_GESTURE | 7)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_EIGHT          (1 << SHIFT_GESTURE | 8)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_NINE           (1 << SHIFT_GESTURE | 9)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_ZERO           (1 << SHIFT_GESTURE | 10)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_EAR_TOUCH      (1 << SHIFT_GESTURE | 11)
-#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_EAR_TOUCH_BACK (1 << SHIFT_GESTURE | 12)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_ONE            (1)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_TWO            (2)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_THREE          (3)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_FOUR           (4)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_FIVE           (5)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_SIX            (6)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_SEVEN          (7)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_EIGHT          (8)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_NINE           (9)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_ZERO           (10)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_EAR_TOUCH      (17)
+#define SENSOR_EVENT_TYPE_GESTURE_NUMBER_EAR_TOUCH_BACK (18)
 
-#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_WALKING     (1 << SHIFT_PHYSICAL_ACTIVITY | 1)
-#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_RUNNING     (1 << SHIFT_PHYSICAL_ACTIVITY | 2)
-#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_SEDENTARY   (1 << SHIFT_PHYSICAL_ACTIVITY | 3)
-#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_RANDOM      (1 << SHIFT_PHYSICAL_ACTIVITY | 4)
-#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_BIKING      (1 << SHIFT_PHYSICAL_ACTIVITY | 5)
-#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_DRIVING     (1 << SHIFT_PHYSICAL_ACTIVITY | 6)
+#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_WALKING     (1)
+#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_RUNNING     (2)
+#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_SEDENTARY   (3)
+#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_RANDOM      (4)
+#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_BIKING      (5)
+#define SENSOR_EVENT_TYPE_PHYSICAL_ACTIVITY_DRIVING     (6)
 
-#define SENSOR_EVENT_TYPE_TERMINAL_FACE_UP              (1 << SHIFT_TERMINAL | 1)
-#define SENSOR_EVENT_TYPE_TERMINAL_FACE_DOWN            (1 << SHIFT_TERMINAL | 2)
-#define SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_UP          (1 << SHIFT_TERMINAL | 3)
-#define SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_DOWN        (1 << SHIFT_TERMINAL | 4)
-#define SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_UP        (1 << SHIFT_TERMINAL | 5)
-#define SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_DOWN      (1 << SHIFT_TERMINAL | 6)
-#define SENSOR_EVENT_TYPE_TERMINAL_UNKNOWN              (1 << SHIFT_TERMINAL | 7)
+#define SENSOR_EVENT_TYPE_TERMINAL_FACE_UP              (1)
+#define SENSOR_EVENT_TYPE_TERMINAL_FACE_DOWN            (2)
+#define SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_UP          (3)
+#define SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_DOWN        (4)
+#define SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_UP        (5)
+#define SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_DOWN      (6)
+#define SENSOR_EVENT_TYPE_TERMINAL_UNKNOWN              (7)
 
-#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_CROWD            (1 << SHIFT_AUDIO_CLASSIFICATION | 1)
-#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SOFT_MUSIC       (1 << SHIFT_AUDIO_CLASSIFICATION | 2)
-#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MECHANICAL       (1 << SHIFT_AUDIO_CLASSIFICATION | 3)
-#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MOTION           (1 << SHIFT_AUDIO_CLASSIFICATION | 4)
-#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MALE_SPEECH      (1 << SHIFT_AUDIO_CLASSIFICATION | 5)
-#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_FEMALE_SPEECH    (1 << SHIFT_AUDIO_CLASSIFICATION | 6)
-#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SILENT           (1 << SHIFT_AUDIO_CLASSIFICATION | 7)
-#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_UNKNOWN          (1 << SHIFT_AUDIO_CLASSIFICATION | 8)
+#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_CROWD            (1)
+#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SOFT_MUSIC       (2)
+#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MECHANICAL       (3)
+#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MOTION           (4)
+#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_MALE_SPEECH      (5)
+#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_FEMALE_SPEECH    (6)
+#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_SILENT           (7)
+#define SENSOR_EVENT_TYPE_AUDIO_CLASSIFICATION_UNKNOWN          (8)
 
-#define SENSOR_EVENT_TYPE_SHAKE         (1 << SHIFT_SHAKE_TITLT | 1)
-#define SENSOR_EVENT_TYPE_SIMPLE_TAPPING_DOUBLE_TAPPING         (1 << SHIFT_SIMPLE_TAPPING | 1)
+#define SENSOR_EVENT_TYPE_SHAKE         (1)
+#define SENSOR_EVENT_TYPE_SIMPLE_TAPPING_DOUBLE_TAPPING         (1)
 
-#define SENSOR_EVENT_TYPE_MOVE_DETECT_STILL             (1 << SHIFT_MOVE_DETECT | 1)
-#define SENSOR_EVENT_TYPE_MOVE_DETECT_SLIGHT            (1 << SHIFT_MOVE_DETECT | 2)
-#define SENSOR_EVENT_TYPE_MOVE_DETECT_MOVE              (1 << SHIFT_MOVE_DETECT | 3)
+#define SENSOR_EVENT_TYPE_MOVE_DETECT_STILL             (1)
+#define SENSOR_EVENT_TYPE_MOVE_DETECT_SLIGHT            (2)
+#define SENSOR_EVENT_TYPE_MOVE_DETECT_MOVE              (3)
 
 // Sensor delay types
 #define SENSOR_DELAY_TYPE_PHYSICAL_ACTIVITY_INSTANT     (((1 << 3) + 1) * 1000)
@@ -111,14 +106,14 @@
 #define PSH_SESSION_NOT_OPENED NULL
 
 typedef enum { /* definition flick gestures value */
-    NO_FLICK = 0,
-    LEFT_FLICK,
-    RIGHT_FLICK,
-    UP_FLICK,
-    DOWN_FLICK,
-    LEFT_TWICE,
-    RIGHT_TWICE,
-    FLICK_GESTURES_MAX = 0x7FFFFFFF
+        NO_FLICK = 0,
+        LEFT_FLICK,
+        RIGHT_FLICK,
+        UP_FLICK,
+        DOWN_FLICK,
+        LEFT_TWICE,
+        RIGHT_TWICE,
+        FLICK_GESTURES_MAX = 0x7FFFFFFF
 } FlickGestures;
 
 // physical activity sensor
@@ -143,6 +138,9 @@ typedef enum { /* definition flick gestures value */
 #define PEDO_QUICK 4
 #define PEDO_NORMAL 32
 #define PEDO_STATISTIC 256
+// eartouch sensor
+#define EARTOUCH              1
+#define EARTOUCH_BACK         2
 
 // shake sensor
 #define SHAKING_BUF_SIZE            512
@@ -181,4 +179,72 @@ typedef enum { /* definition flick gestures value */
 #define THREAD_NOT_STARTED 0
 #define PIPE_NOT_OPENED -1
 #define PSH_SESSION_NOT_OPENED NULL
+
+// some common functions defined in class
+#include <queue>
+#include <hardware/sensors.h>
+class VirtualLogical {
+public:
+        VirtualLogical(int type, int handle) {
+                this->handle = handle;
+                memset(&event, 0, sizeof(sensors_event_t));
+                event.version = sizeof(sensors_event_t);
+                event.sensor = handle;
+                event.type = type;
+
+                memset(&metaEvent, 0, sizeof(metaEvent));
+                metaEvent.version = META_DATA_VERSION;
+                metaEvent.type = SENSOR_TYPE_META_DATA;
+                metaEvent.meta_data.sensor = handle;
+                metaEvent.meta_data.what = META_DATA_FLUSH_COMPLETE;
+        }
+        virtual ~VirtualLogical() {
+        }
+        virtual int getPollfd() = 0;
+        virtual int activate(int handle, int enabled) {
+                return 0;
+        }
+        virtual int setDelay(int handle, int64_t ns) {
+                return 0;
+        }
+        virtual int getData(std::queue<sensors_event_t> &eventQue) = 0;
+        virtual bool selftest() = 0;
+        virtual int flush(int handle) = 0;
+        virtual void resetEventHandle(int handle) = 0;
+        class SensorState {
+                bool activated;
+                bool flushSuccess;
+                int delay;
+        public:
+                SensorState() {
+                        activated = false;
+                        flushSuccess = false;
+                        delay = 200;
+                }
+                bool getActivated() {
+                        return activated;
+                }
+                void setActivated(bool new_activated) {
+                        activated = new_activated;
+                }
+                bool getFlushSuccess() {
+                        return flushSuccess;
+                }
+                void setFlushSuccess(bool new_flushSuccess) {
+                        flushSuccess = new_flushSuccess;
+                }
+                int getDelay() {
+                        return delay;
+                }
+                void setDelay(int new_delay) {
+                        delay = new_delay;
+                }
+
+        };
+        SensorState state;
+        sensors_event_t event;
+        sensors_meta_data_event_t metaEvent;
+        int handle;
+};
+
 #endif

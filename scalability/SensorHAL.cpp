@@ -4,10 +4,7 @@
 #include "PSHUncalibratedSensor.hpp"
 #include "PSHCommonSensor.hpp"
 #include "PlatformConfig.hpp"
-#include "PedometerSensor.hpp"
-#include "PhysicalActivitySensor.hpp"
-#include "GestureSensor.hpp"
-#include "AudioClassifierSensor.hpp"
+#include "AwareSensor.hpp"
 #include "CalibrationSensor.hpp"
 #include <poll.h>
 
@@ -97,16 +94,12 @@ static bool initSensors()
                                 mSensor = new PSHUncalibratedSensor(mDevice);
                                 break;
                         case SENSOR_TYPE_PEDOMETER:
-                                mSensor = new PedometerSensor(mDevice);
-                                break;
                         case SENSOR_TYPE_PHYSICAL_ACTIVITY:
-                                mSensor = new PhysicalActivitySensor(mDevice);
-                                break;
                         case SENSOR_TYPE_GESTURE:
-                                mSensor = new GestureSensor(mDevice);
-                                break;
                         case SENSOR_TYPE_AUDIO_CLASSIFICATION:
-                                mSensor = new AudioClassifierSensor(mDevice);
+                        case SENSOR_TYPE_GESTURE_EARTOUCH:
+                        case SENSOR_TYPE_GESTURE_HMM:
+                                mSensor = new AwareSensor(mDevice);
                                 break;
                         case SENSOR_TYPE_CALIBRATION:
                                 mSensor = new CalibrationSensor(mDevice);

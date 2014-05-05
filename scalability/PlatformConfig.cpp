@@ -338,8 +338,6 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_PEDOMETER;
         else if (type.compare(0, 17, "physical_activity")==0)
                 return SENSOR_TYPE_PHYSICAL_ACTIVITY;
-        else if (type.compare(0, 7, "gesture")==0)
-                return SENSOR_TYPE_GESTURE;
         else if (type.compare(0, 16, "audio_classifier")==0)
                 return SENSOR_TYPE_AUDIO_CLASSIFICATION;
         else if (type.compare(0, 20, "game_rotation_vector") ==0)
@@ -352,6 +350,12 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
         else if (type.compare(0, 22, "uncalibrated_gyroscope") == 0)
                 return SENSOR_TYPE_GYROSCOPE_UNCALIBRATED;
+        else if (type.compare(0, 11, "gesture_hmm") ==0)
+                return SENSOR_TYPE_GESTURE_HMM;
+        else if (type.compare(0, 16, "gesture_eartouch") ==0)
+                return SENSOR_TYPE_GESTURE_EARTOUCH;
+        else if (type.compare(0, 7, "gesture")==0)
+                return SENSOR_TYPE_GESTURE;
         LOGW("%s: unsupported sensor: %s", __FUNCTION__, type.c_str());
         return 0;
 }

@@ -38,11 +38,8 @@ LOCAL_SRC_FILES := SensorHAL.cpp    \
                    PSHCommonSensor.cpp \
                    PSHUncalibratedSensor.cpp \
                    SensorHubHelper.cpp \
-                   PedometerSensor.cpp \
-                   PhysicalActivitySensor.cpp \
-                   GestureSensor.cpp \
+                   AwareSensor.cpp \
                    utils.cpp \
-                   AudioClassifierSensor.cpp \
                    CalibrationSensor.cpp
 
 LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
@@ -54,7 +51,7 @@ LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
                     $(call include-path-for, libsensorhub) \
                     $(TARGET_OUT_HEADERS)/awarelibs
 
-LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc libstlport libhardware libutils
+LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc libstlport libutils
 LOCAL_STATIC_LIBRARIES := libxml2
 
 include external/stlport/libstlport.mk
