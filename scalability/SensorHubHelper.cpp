@@ -116,6 +116,12 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 return SENSOR_GAME_ROTATION_VECTOR;
         case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
                 return SENSOR_GEOMAGNETIC_ROTATION_VECTOR;
+        case SENSOR_TYPE_DEVICE_POSITION:
+                return SENSOR_DEVICE_POSITION;
+        case SENSOR_TYPE_LIFT:
+                return SENSOR_LIFT;
+        case SENSOR_TYPE_PAN_ZOOM:
+                return SENSOR_PAN_TILT_ZOOM;
         case SENSOR_TYPE_GESTURE:
         case SENSOR_TYPE_PHYSICAL_ACTIVITY:
         case SENSOR_TYPE_PEDOMETER:
@@ -249,6 +255,8 @@ int SensorHubHelper::getSimpleTappingEvent(struct stap_data data)
 {
         if (data.stap == DOUBLE_TAPPING) {
                 return SENSOR_EVENT_TYPE_SIMPLE_TAPPING_DOUBLE_TAPPING;
+        } else if(data.stap == SINGLE_TAPPING) {
+                return SENSOR_EVENT_TYPE_SIMPLE_TAPPING_SINGLE_TAPPING;
         }
         return INVALID_EVENT;
 }
@@ -318,6 +326,12 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct game_rotation_vector_data);
         case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
                 return sizeof(struct geomagnetic_rotation_vector_data);
+        case SENSOR_TYPE_DEVICE_POSITION:
+                return sizeof(struct device_position_data);
+        case SENSOR_TYPE_LIFT:
+                return sizeof(struct lift_data);
+        case SENSOR_TYPE_PAN_ZOOM:
+                return sizeof(struct pz_data);
         case SENSOR_TYPE_TEMPERATURE:
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
@@ -501,6 +515,26 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[2] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].z;
                         events[i].data[3] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].w;
                         events[i].timestamp = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_DEVICE_POSITION:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = (reinterpret_cast<struct device_position_data*>(stream))[i].pos;
+                        events[i].timestamp = (reinterpret_cast<struct device_position_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_LIFT:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = (reinterpret_cast<struct lift_data*>(stream))[i].look;
+                        events[i].data[1] = (reinterpret_cast<struct lift_data*>(stream))[i].vertical;
+                        events[i].timestamp = (reinterpret_cast<struct lift_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_PAN_ZOOM:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = (reinterpret_cast<struct pz_data*>(stream))[i].deltX;
+                        events[i].data[1] = (reinterpret_cast<struct pz_data*>(stream))[i].deltY;
+                        events[i].timestamp = (reinterpret_cast<struct pz_data*>(stream))[i].ts;
                 }
                 break;
         case SENSOR_TYPE_TEMPERATURE:

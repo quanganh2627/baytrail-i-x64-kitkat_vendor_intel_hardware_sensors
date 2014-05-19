@@ -87,6 +87,9 @@ static bool initSensors()
                         case SENSOR_TYPE_SIGNIFICANT_MOTION:
                         case SENSOR_TYPE_GAME_ROTATION_VECTOR:
                         case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
+                        case SENSOR_TYPE_DEVICE_POSITION:
+                        case SENSOR_TYPE_LIFT:
+                        case SENSOR_TYPE_PAN_ZOOM:
                                 mSensor = new PSHCommonSensor(mDevice);
                                 break;
                         case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:

@@ -356,6 +356,12 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_GESTURE_EARTOUCH;
         else if (type.compare(0, 7, "gesture")==0)
                 return SENSOR_TYPE_GESTURE;
+        else if (type.compare(0, 15, "device_position")==0)
+                return SENSOR_TYPE_DEVICE_POSITION;
+        else if (type.compare(0, 4, "lift")==0)
+                return SENSOR_TYPE_LIFT;
+        else if (type.compare(0, 8, "pan_zoom")==0)
+                return SENSOR_TYPE_PAN_ZOOM;
         LOGW("%s: unsupported sensor: %s", __FUNCTION__, type.c_str());
         return 0;
 }
