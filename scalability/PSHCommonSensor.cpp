@@ -71,8 +71,11 @@ int PSHCommonSensor::batch(int handle, int flags, int64_t period_ns, int64_t tim
         static int oldBufferDelay = -1;
         static streaming_flag oldFlag;
         if (timeout == 0) {
-                if (!(flags & SENSORS_BATCH_DRY_RUN))
+                if (!(flags & SENSORS_BATCH_DRY_RUN)) {
                         setDelay(handle, period_ns);
+                        bufferDelay = 0;
+                        oldBufferDelay = 0;
+                }
                 return 0;
         }
 
