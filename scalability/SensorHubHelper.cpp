@@ -155,6 +155,9 @@ void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate,
         case SENSOR_TYPE_SIGNIFICANT_MOTION:
                 flag = NO_STOP_WHEN_SCREEN_OFF;
                 break;
+        case SENSOR_TYPE_STEP_COUNTER:
+                flag = NO_STOP_NO_REPORT_WHEN_SCREEN_OFF;
+                break;
         default:
                 break;
         }
