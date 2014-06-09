@@ -92,6 +92,7 @@ PSHUncalibratedSensor::PSHUncalibratedSensor(SensorDevice &mDevice)
         tid = -1;
         thread_exit = false;
         thread_wakeup_buf = 'w';
+        memset(&param, 0, sizeof(param));
 
         if (SensorHubHelper::getCalibrationFileName(device.getType(), calibration_file)) {
                 calibration_fd = open(calibration_file, O_RDONLY);

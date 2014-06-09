@@ -19,13 +19,17 @@
 #undef LOG_TAG
 #define LOG_TAG "AwareSensor"
 VirtualLogical * (*AwareSensor::method_get_virtualsensor)(int, int);
-AwareSensor::AwareSensor(SensorDevice &device) : PSHSensor(device) {
+AwareSensor::AwareSensor(SensorDevice &device) : PSHSensor(device), virtualSensor(NULL) {
         VirtualSensorMethodsInitialize();
         if (method_get_virtualsensor != NULL) {
                 virtualSensor = method_get_virtualsensor(device.getType(),
                                 device.getHandle());
-        } else {
+        }
+        if (method_get_virtualsensor == NULL) {
                 LOGE("method_get_virtualsensor == NULL");
+        }
+        if (virtualSensor == NULL) {
+                LOGE("virtualSensor == NULL");
         }
 }
 
