@@ -12,6 +12,7 @@ InputEventSensor::InputEventSensor(SensorDevice &mDevice, struct PlatformData &m
         :DirectSensor(mDevice, mData)
 {
         inputDataOverrun = false;
+        activated = 0;
 }
 
 int InputEventSensor::getPollfd()
@@ -68,7 +69,6 @@ int InputEventSensor::getPollfd()
 }
 
 int InputEventSensor::activate(int handle, int enabled) {
-        static int activated = 0;
         int result;
 
         if (handle != device.getHandle()) {

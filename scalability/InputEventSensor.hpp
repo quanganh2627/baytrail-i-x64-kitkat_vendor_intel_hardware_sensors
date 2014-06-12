@@ -7,6 +7,7 @@ class InputEventSensor : public DirectSensor {
         int openFile(std::string &pathset);
         int writeToFile(std::string &pathset, int handle, int64_t value);
         bool inputDataOverrun;
+        int activated;
 public:
         InputEventSensor(SensorDevice &mDevice, struct PlatformData &mData);
         ~InputEventSensor()
