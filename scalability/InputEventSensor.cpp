@@ -8,6 +8,12 @@
 #include <linux/input.h>
 #define EVENT_NAME_MAX  256
 
+/*filter of compass data*/
+#define COMPASS_SMOOTH_DATA_LEN		20
+static float smoothData[COMPASS_SMOOTH_DATA_LEN][3];
+static int smoothLen = 0;
+static int smoothNext = 0;
+
 InputEventSensor::InputEventSensor(SensorDevice &mDevice, struct PlatformData &mData)
         :DirectSensor(mDevice, mData)
 {
@@ -80,9 +86,13 @@ int InputEventSensor::activate(int handle, int enabled) {
         enabled = enabled == 0 ? 0 : 1;
 
         if (Calibration != NULL) {
-                if (enabled && !activated)
+                if (enabled && !activated) {
                         Calibration(&event, READ_DATA, data.calibrationFile.c_str());
-                else if (!enabled && activated)
+			if (device.getType() == SENSOR_TYPE_MAGNETIC_FIELD) {
+				smoothLen = 0;
+				smoothNext = 0;
+			}
+                } else if (!enabled && activated)
                         Calibration(&event, STORE_DATA, data.calibrationFile.c_str());
         }
         result =writeToFile(data.activateInterface, handle, static_cast<int64_t>(enabled));
@@ -152,6 +162,28 @@ int InputEventSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                         Calibration(&event, CALIBRATION_DATA, data.calibrationFile.c_str());
                                 else if (device.getEventProperty() == VECTOR)
                                         event.acceleration.status = SENSOR_STATUS_ACCURACY_MEDIUM;
+
+				if (device.getType() == SENSOR_TYPE_MAGNETIC_FIELD) {
+					float x = 0, y = 0, z = 0;
+					if (smoothLen < COMPASS_SMOOTH_DATA_LEN)
+						smoothLen++;
+
+					smoothNext++;
+					if (smoothNext >= COMPASS_SMOOTH_DATA_LEN)
+						smoothNext = 0;
+					smoothData[smoothNext][AXIS_X] = event.data[AXIS_X];
+					smoothData[smoothNext][AXIS_Y] = event.data[AXIS_Y];
+					smoothData[smoothNext][AXIS_Z] = event.data[AXIS_Z];
+
+					for (int i = 0; i < smoothLen; i++) {
+						x += smoothData[i][AXIS_X];
+						y += smoothData[i][AXIS_Y];
+						z += smoothData[i][AXIS_Z];
+					}
+					event.data[AXIS_X] = x/smoothLen;
+					event.data[AXIS_Y] = y/smoothLen;
+					event.data[AXIS_Z] = z/smoothLen;
+				}
                                 eventQue.push(event);
                         }
                 }
