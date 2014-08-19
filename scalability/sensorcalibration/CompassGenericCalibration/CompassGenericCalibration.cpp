@@ -6,13 +6,13 @@
 using namespace android;
 
 #ifdef SENSOR_DBG
-#define  D(...)  LOGD(__VA_ARGS__)
+#define  D(...)  ALOGD(__VA_ARGS__)
 #else
 #define  D(...)  ((void)0)
 #endif
 
-#define  E(...)  LOGE(__VA_ARGS__)
-#define  I(...)  LOGI(__VA_ARGS__)
+#define  E(...)  ALOGE(__VA_ARGS__)
+#define  I(...)  ALOGI(__VA_ARGS__)
 
 #define DS_SIZE 48
 #define EPSILON  0.000000001

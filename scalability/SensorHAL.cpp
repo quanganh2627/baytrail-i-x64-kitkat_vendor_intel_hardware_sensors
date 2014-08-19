@@ -58,7 +58,7 @@ static bool initSensors()
         int newId = 0;
         for (unsigned int i = 0; i < size; i++) {
                 if (!mConfig.getSensorDevice(i, mDevice)) {
-                        LOGE("Sensor Device config error\n");
+                        ALOGE("Sensor Device config error\n");
                         return false;
                 }
 
@@ -108,12 +108,12 @@ static bool initSensors()
                                 mSensor = new CalibrationSensor(mDevice);
                                 break;
                         default:
-                                LOGE("%s Unsupported sensor type: %d\n", __FUNCTION__, mDevice.getType());
+                                ALOGE("%s Unsupported sensor type: %d\n", __FUNCTION__, mDevice.getType());
                                 return false;
                         }
                 } else {
                         if (!mConfig.getPlatformData(i, mData)) {
-                                LOGE("Get Platform Data config error\n");
+                                ALOGE("Get Platform Data config error\n");
                                 return false;
                         }
 
@@ -133,7 +133,7 @@ static bool initSensors()
                                         mSensor = new InputEventSensor(mDevice, mData);
                                 break;
                         default:
-                                LOGE("%s Unsupported sensor type: %d\n", __FUNCTION__, mDevice.getType());
+                                ALOGE("%s Unsupported sensor type: %d\n", __FUNCTION__, mDevice.getType());
                                 return false;
                         }
                 }
@@ -173,7 +173,7 @@ int sensorActivate(struct sensors_poll_device_t *dev, int handle, int enabled)
 {
         int id = SensorDevice::handleToId(handle);
         if (id < 0) {
-                LOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
+                ALOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
                      __FUNCTION__, __LINE__, handle, id);
                 return -1;
         }
@@ -185,7 +185,7 @@ int sensorSetDelay(struct sensors_poll_device_t *dev, int handle, int64_t period
 {
         int id = SensorDevice::handleToId(handle);
         if (id < 0) {
-                LOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
+                ALOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
                      __FUNCTION__, __LINE__, handle, id);
                 return -1;
         }
@@ -198,7 +198,7 @@ int sensorBatch(struct sensors_poll_device_1* dev,
 {
         int id = SensorDevice::handleToId(handle);
         if (id < 0) {
-                LOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
+                ALOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
                      __FUNCTION__, __LINE__, handle, id);
                 return -1;
         }
@@ -210,7 +210,7 @@ int sensorFlush(struct sensors_poll_device_1* dev, int handle)
 {
         int id = SensorDevice::handleToId(handle);
         if (id < 0) {
-                LOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
+                ALOGE("%s: line:%d Invalid handle: handle: %d; id: %d",
                      __FUNCTION__, __LINE__, handle, id);
                 return -1;
         }
@@ -237,14 +237,14 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
                 num = poll(mModule.pollfds, mModule.count, -1);
                 if (num <= 0) {
                         err = errno;
-                        LOGE("%s: line: %d poll error: %d %s", __FUNCTION__, __LINE__, err, strerror(err));
+                        ALOGE("%s: line: %d poll error: %d %s", __FUNCTION__, __LINE__, err, strerror(err));
                         return -err;
                 }
                 for (int i = 0; i < mModule.count; i++) {
                         if (mModule.pollfds[i].revents & POLLIN)
                                 mModule.sensors[i]->getData(eventQue);
                         else if (mModule.pollfds[i].revents != 0)
-                                LOGE("%s: line: %d poll error: %d fd: %d type: %d", __FUNCTION__, __LINE__, mModule.pollfds[i].revents, mModule.pollfds[i].fd, mModule.sensors[i]->getDevice().getType());
+                                ALOGE("%s: line: %d poll error: %d fd: %d type: %d", __FUNCTION__, __LINE__, mModule.pollfds[i].revents, mModule.pollfds[i].fd, mModule.sensors[i]->getDevice().getType());
                         mModule.pollfds[i].revents = 0;
                 }
         }

@@ -6,14 +6,14 @@ int PSHCommonSensor::getPollfd()
                 return pollfd;
 
         if (methods.psh_open_session == NULL || methods.psh_get_fd == NULL) {
-                LOGE("psh_open_session/psh_get_fd not initialized!");
+                ALOGE("psh_open_session/psh_get_fd not initialized!");
                 return -1;
         }
 
         psh_sensor_t PSHType = SensorHubHelper::getType(device.getType(), device.getSubname());
         sensorHandle = methods.psh_open_session(PSHType);
         if (sensorHandle == NULL) {
-                LOGE("psh_open_session error!");
+                ALOGE("psh_open_session error!");
                 return -1;
         }
 
@@ -30,7 +30,7 @@ int PSHCommonSensor::hardwareSet(bool activated)
                 state.setActivated(activated);
                 error_t err = methods.psh_stop_streaming(sensorHandle);
                 if (err != ERROR_NONE) {
-                        LOGE("psh_stop_streaming error %d", err);
+                        ALOGE("psh_stop_streaming error %d", err);
                         return -1;
                 }
         } else {
@@ -38,13 +38,13 @@ int PSHCommonSensor::hardwareSet(bool activated)
                 SensorHubHelper::getStartStreamingParameters(device.getType(), dataRate, bufferDelay, flag);
 
                 if (dataRate < 0) {
-                        LOGE("Invalid data rate: %d", dataRate);
+                        ALOGE("Invalid data rate: %d", dataRate);
                         return -1;
                 }
                 if (!state.getActivated()) {
                         /* Some PSH session need to set property */
                         if (!SensorHubHelper::setPSHPropertyIfNeeded(device.getType(), methods, sensorHandle)) {
-                                LOGE("Set property failed for sensor type %d", device.getType());
+                                ALOGE("Set property failed for sensor type %d", device.getType());
                                 return -1;
                         }
                 }
@@ -52,7 +52,7 @@ int PSHCommonSensor::hardwareSet(bool activated)
                 error_t err;
                 err = methods.psh_start_streaming_with_flag(sensorHandle, dataRate, bufferDelay, flag);
                 if (err != ERROR_NONE) {
-                        LOGE("psh_start_streaming(_with_flag) error %d name:%s handle: %x %d %d",
+                        ALOGE("psh_start_streaming(_with_flag) error %d name:%s handle: %x %d %d",
                              err, device.getName(), sensorHandle, dataRate, flag);
                         return -1;
                 }
@@ -122,7 +122,7 @@ int PSHCommonSensor::batch(int handle, int flags, int64_t period_ns, int64_t tim
 
 int PSHCommonSensor::activate(int handle, int enabled) {
         if (methods.psh_start_streaming == NULL || methods.psh_stop_streaming == NULL || sensorHandle == NULL) {
-                LOGE("psh_start_streaming/psh_stop_streaming/sensorHandle not initialized!");
+                ALOGE("psh_start_streaming/psh_stop_streaming/sensorHandle not initialized!");
                 return -1;
         }
 

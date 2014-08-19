@@ -51,7 +51,7 @@ int CalibrationSensor::getPollfd() {
    10000000: SENSOR_GYRO
    20000000: SENSOR_COMP */
 int CalibrationSensor::setDelay(int32_t handle, int64_t ns) {
-    LOGD("setDelay, %lld\n", ns);
+    ALOGD("setDelay, %lld\n", ns);
 
     if (ns == 10000000)
         mSensorType = SENSOR_GYRO;
@@ -62,15 +62,15 @@ int CalibrationSensor::setDelay(int32_t handle, int64_t ns) {
 }
 
 int CalibrationSensor::activate(int32_t handle, int en) {
-    LOGD("activate(), %d; sensor type, %d\n", en, mSensorType);
+    ALOGD("activate(), %d; sensor type, %d\n", en, mSensorType);
 
     if (mSensorType == SENSOR_INVALID) {
-        LOGI("setDelay() not called \n");
+        ALOGI("setDelay() not called \n");
         return -1;
     }
 
     if (mEnabled == en) {
-        LOGI("Duplicate request");
+        ALOGI("Duplicate request");
         return -1;
     }
 
@@ -88,14 +88,14 @@ int CalibrationSensor::activate(int32_t handle, int en) {
 
         pipe(mWakeupPipe);
         if ((mWorkerThread = androidCreateThread(workerThread, this)) > 0) {
-            LOGD("mWorkerThread = %ld", mWorkerThread);
+            ALOGD("mWorkerThread = %ld", mWorkerThread);
         } else {
-            LOGE("thread created error");
+            ALOGE("thread created error");
         }
     } else if (mEnabled == 0) {
         mSensorType = SENSOR_INVALID;
         write(mWakeupPipe[1], "a", 1);
-        LOGD("write to wakeup pipe \n");
+        ALOGD("write to wakeup pipe \n");
     }
 
     return 0;
@@ -111,14 +111,14 @@ int CalibrationSensor::workerThread(void* data) {
 
     handle = methods.psh_open_session(src->mSensorType);
     if (handle == NULL) {
-        LOGE("psh_open_session() failed \n");
+        ALOGE("psh_open_session() failed \n");
         return -1;
     }
 
     param.sub_cmd = SUBCMD_CALIBRATION_START;
     error = methods.psh_set_calibration(handle, &param);
     if (error != ERROR_NONE) {
-        LOGE("psh_set_calibration() failed \n");
+        ALOGE("psh_set_calibration() failed \n");
         return -1;
     }
 
@@ -145,7 +145,7 @@ int CalibrationSensor::workerThread(void* data) {
                 saved_param.sub_cmd = SUBCMD_CALIBRATION_SET;
                 methods.psh_set_calibration(handle, &saved_param);
             }
-            LOGD("mWakeupPipe is received \n");
+            ALOGD("mWakeupPipe is received \n");
             break;
         }
 
@@ -154,14 +154,14 @@ int CalibrationSensor::workerThread(void* data) {
         error = methods.psh_get_calibration(handle, &param);
 
         if (error != ERROR_NONE) {
-            LOGE("psh_get_calibration() failed \n");
+            ALOGE("psh_get_calibration() failed \n");
             return -1;
         }
 
         result = param.calibrated;
         write(src->mResultPipe[1], &result, sizeof(result));
 
-        LOGD("result is %d \n", result);
+        ALOGD("result is %d \n", result);
         if (SUBCMD_CALIBRATION_TRUE == result) {
               param.sub_cmd = SUBCMD_CALIBRATION_SET;
               methods.psh_set_calibration(handle, &param);
@@ -188,7 +188,7 @@ int CalibrationSensor::getData(std::queue<sensors_event_t> &eventQue) {
     if (state.getFlushSuccess() == true) {
         eventQue.push(metaEvent);
         state.setFlushSuccess(false);
-        LOGI("metaEvent reported");
+        ALOGI("metaEvent reported");
     }
 
     size = read(mResultPipe[0], buf, 32);

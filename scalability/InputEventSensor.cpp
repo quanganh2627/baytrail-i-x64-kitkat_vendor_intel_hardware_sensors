@@ -28,7 +28,7 @@ int InputEventSensor::getPollfd()
 
         dir = opendir(inputDir.c_str());
         if (dir == NULL) {
-                LOGE("opendir error: %s: %s; error number: %d\n", inputDir.c_str(), strerror(errno), errno );
+                ALOGE("opendir error: %s: %s; error number: %d\n", inputDir.c_str(), strerror(errno), errno );
                 return -1;
         }
 
@@ -39,7 +39,7 @@ int InputEventSensor::getPollfd()
                 file = inputDir + entry->d_name;
                 fd = open(file.c_str(), O_RDWR);
                 if (fd < 0) {
-                        LOGE("open error: %s: %s; error number: %d\n", file.c_str(), strerror(errno), errno);
+                        ALOGE("open error: %s: %s; error number: %d\n", file.c_str(), strerror(errno), errno);
                         closedir( dir );
                         return -1;
                 }
@@ -79,7 +79,7 @@ int InputEventSensor::hardwareSet(bool activated)
                                 Calibration(&event, READ_DATA, data.calibrationFile.c_str());
                         result = writeToFile(data.activateInterface, static_cast<int64_t>(1));
                         if (result) {
-                                LOGE("%s line:%d %s real active hardware sensor error! %d",
+                                ALOGE("%s line:%d %s real active hardware sensor error! %d",
                                      __FUNCTION__, __LINE__, device.getName(), result);
                                 return result;
                         }
@@ -105,7 +105,7 @@ int InputEventSensor::hardwareSet(bool activated)
 
 int InputEventSensor::activate(int handle, int enabled) {
         if (handle != device.getHandle()) {
-                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                ALOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
                      __FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
                 return -1;
         }
@@ -144,7 +144,7 @@ int InputEventSensor::getData(std::queue<sensors_event_t> &eventQue) {
 
         ret = read(pollfd, inputEvent, 32 * sizeof(struct input_event));
         if (ret < 0 || ret % sizeof(struct input_event)) {
-                LOGE("Read input event error! ret: %d", ret);
+                ALOGE("Read input event error! ret: %d", ret);
                 return -1;
         }
 
@@ -165,7 +165,7 @@ int InputEventSensor::getData(std::queue<sensors_event_t> &eventQue) {
                 }
                 else if (inputEvent[i].type == EV_SYN) {
                         if (inputEvent[i].code == SYN_DROPPED) {
-                                LOGE("input event overrun");
+                                ALOGE("input event overrun");
                                 inputDataOverrun = true;
                         } else if (inputDataOverrun) {
                                 inputDataOverrun = false;
@@ -180,7 +180,7 @@ int InputEventSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                         event.acceleration.status = SENSOR_STATUS_ACCURACY_MEDIUM;
                                 eventQue.push(event);
                         } else {
-                                LOGE("%s line:%d Unknow event sync code %u", __FUNCTION__, __LINE__, inputEvent[i].code);
+                                ALOGE("%s line:%d Unknow event sync code %u", __FUNCTION__, __LINE__, inputEvent[i].code);
                         }
                 }
         }
@@ -227,7 +227,7 @@ int InputEventSensor::writeToFile(std::string &pathset, int64_t value) {
 
         fd = openFile(pathset);
         if (fd < 0) {
-                LOGE("%s: line: %d: Cannot open the driver interface for activate: %s",
+                ALOGE("%s: line: %d: Cannot open the driver interface for activate: %s",
                      __FUNCTION__, __LINE__, data.activateInterface.c_str());
                 return fd;
         }
@@ -237,7 +237,7 @@ int InputEventSensor::writeToFile(std::string &pathset, int64_t value) {
         ret = write(fd, ss.str().c_str(), ss.str().size() + 1);
 
         if (ret != static_cast<int>(ss.str().size() + 1)) {
-                LOGE("%s: line: %d: write activate error: %d",
+                ALOGE("%s: line: %d: write activate error: %d",
                      __FUNCTION__, __LINE__, ret);
                 close(fd);
                 return -1;

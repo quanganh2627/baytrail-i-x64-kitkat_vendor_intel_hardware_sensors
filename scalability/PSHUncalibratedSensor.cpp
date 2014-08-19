@@ -16,13 +16,13 @@ void* PSHUncalibratedSensor::calibration_monitor(void* arg)
 
         fd_inotify = inotify_init();
         if (fd_inotify < 0) {
-                LOGE("%s line: %d Cannot initialize inotify!", __FUNCTION__, __LINE__);
+                ALOGE("%s line: %d Cannot initialize inotify!", __FUNCTION__, __LINE__);
                 return NULL;
         }
 
         wd = inotify_add_watch(fd_inotify, data->calibration_file, IN_MODIFY);
         if (wd < 0) {
-                LOGE("Cannot watch file: %s %d", data->calibration_file, wd);
+                ALOGE("Cannot watch file: %s %d", data->calibration_file, wd);
         }
 
         int maxfd = data->thread_wakeup_fds[0] > fd_inotify ? data->thread_wakeup_fds[0] + 1 : fd_inotify + 1;
@@ -33,14 +33,14 @@ void* PSHUncalibratedSensor::calibration_monitor(void* arg)
                 FD_SET(data->thread_wakeup_fds[0], &rfds);
                 ret = select(maxfd, &rfds, NULL, NULL, NULL);
                 if (ret <= 0) {
-                        LOGE("%s line: %d select fd_inotify error: %d", __FUNCTION__, __LINE__, ret);
+                        ALOGE("%s line: %d select fd_inotify error: %d", __FUNCTION__, __LINE__, ret);
                         continue;
                 }
 
                 if (FD_ISSET(fd_inotify, &rfds)) {
                         ret = read(fd_inotify, ievent, 16 * sizeof(struct inotify_event));
                         if (ret < 0) {
-                                LOGE("%s line: %d read fd_inotify error: %d", __FUNCTION__, __LINE__, ret);
+                                ALOGE("%s line: %d read fd_inotify error: %d", __FUNCTION__, __LINE__, ret);
                                 continue;
                         }
                         for (int i = 0; i < ret / sizeof(struct inotify_event); i++) {
@@ -64,7 +64,7 @@ void* PSHUncalibratedSensor::calibration_monitor(void* arg)
                                                 data->bias[1] = offset[1];
                                         if (offset[2] != data->bias[2])
                                                 data->bias[2] = offset[2];
-                                        LOGD_IF(UNCALIBRATED_DEBUG, "%s offset changed! %f %f %f",
+                                        ALOGD_IF(UNCALIBRATED_DEBUG, "%s offset changed! %f %f %f",
                                                 data->device.getName(), data->bias[0],
                                                 data->bias[1], data->bias[2]);
                                 }
@@ -97,7 +97,7 @@ PSHUncalibratedSensor::PSHUncalibratedSensor(SensorDevice &mDevice)
         if (SensorHubHelper::getCalibrationFileName(device.getType(), calibration_file)) {
                 calibration_fd = open(calibration_file, O_RDONLY);
                 if (calibration_fd < 0) {
-                        LOGE("%s line: %d Cannot open file: %s fd: %d",
+                        ALOGE("%s line: %d Cannot open file: %s fd: %d",
                              __FUNCTION__, __LINE__, calibration_file, calibration_fd);
                         return;
                 }
@@ -108,16 +108,16 @@ PSHUncalibratedSensor::PSHUncalibratedSensor(SensorDevice &mDevice)
                         bias[AXIS_Y] *= device.getScale(AXIS_Y);
                         bias[AXIS_Z] *= device.getScale(AXIS_Z);
                 }
-                LOGD_IF(UNCALIBRATED_DEBUG, "%s bias %f %f %f", device.getName(), bias[AXIS_X], bias[AXIS_Y], bias[AXIS_Z]);
+                ALOGD_IF(UNCALIBRATED_DEBUG, "%s bias %f %f %f", device.getName(), bias[AXIS_X], bias[AXIS_Y], bias[AXIS_Z]);
 
                 if (pipe(thread_wakeup_fds)) {
-                        LOGE("%s line: %d %s pipe error: %d", __FUNCTION__, __LINE__, device.getName(), errno);
+                        ALOGE("%s line: %d %s pipe error: %d", __FUNCTION__, __LINE__, device.getName(), errno);
                         return;
                 }
 
                 err = pthread_create(&tid, NULL, PSHUncalibratedSensor::calibration_monitor, reinterpret_cast<void*>(this));
                 if (err) {
-                        LOGE("%s calibration_monitor thread create error: %d", device.getName(), err);
+                        ALOGE("%s calibration_monitor thread create error: %d", device.getName(), err);
                         tid = -1;
                         return;
                 }
@@ -164,7 +164,7 @@ int  PSHUncalibratedSensor::getData(std::queue<sensors_event_t> &eventQue)
                         for (int j = 0; j < 3 ; j++) {
                                 event.uncalibrated_gyro.uncalib[j] = sensorhubEvent[i].data[j] * device.getScale(j) + bias[j];
                                 event.uncalibrated_gyro.bias[j] = bias[j];
-                                LOGD_IF(UNCALIBRATED_DEBUG, "%s %s: %d %f %f", device.getName(), __FUNCTION__, j, event.uncalibrated_gyro.uncalib[j], bias[j]);
+                                ALOGD_IF(UNCALIBRATED_DEBUG, "%s %s: %d %f %f", device.getName(), __FUNCTION__, j, event.uncalibrated_gyro.uncalib[j], bias[j]);
                         }
                         event.timestamp = sensorhubEvent[i].timestamp;
                         eventQue.push(event);

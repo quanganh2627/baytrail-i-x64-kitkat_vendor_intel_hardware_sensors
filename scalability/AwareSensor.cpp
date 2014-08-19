@@ -26,15 +26,15 @@ AwareSensor::AwareSensor(SensorDevice &device) : PSHSensor(device), virtualSenso
                                 device.getHandle());
         }
         if (method_get_virtualsensor == NULL) {
-                LOGE("method_get_virtualsensor == NULL");
+                ALOGE("method_get_virtualsensor == NULL");
         }
         if (virtualSensor == NULL) {
-                LOGE("virtualSensor == NULL");
+                ALOGE("virtualSensor == NULL");
         }
 }
 
 AwareSensor::~AwareSensor() {
-        LOGI("~AwareSensor");
+        ALOGI("~AwareSensor");
         if (virtualSensor != NULL) {
                 delete virtualSensor;
                 virtualSensor = NULL;
@@ -46,7 +46,7 @@ bool AwareSensor::VirtualSensorMethodsInitialize() {
         virtualsensorHandle = dlopen("/system/lib/libvirtualsensors.so",
                         RTLD_LAZY);
         if (virtualsensorHandle == NULL) {
-                LOGE("dlopen: /system/lib/libvirtualsensors.so error!");
+                ALOGE("dlopen: /system/lib/libvirtualsensors.so error!");
                 return false;
         }
 
@@ -54,11 +54,11 @@ bool AwareSensor::VirtualSensorMethodsInitialize() {
                 method_get_virtualsensor =
                                 reinterpret_cast<VirtualLogical * (*)(int, int)>(dlsym(virtualsensorHandle, "createSensor"));
                 if (method_get_virtualsensor == NULL) {
-                        LOGE("dlsym: method_get_virtualsensor error!");
+                        ALOGE("dlsym: method_get_virtualsensor error!");
                         VirtualSensorMethodsFinallize();
                         return false;
                 } else {
-                        LOGD("handle method_get_virtualsensor success!!");
+                        ALOGD("handle method_get_virtualsensor success!!");
                 }
         }
         return true;
@@ -68,7 +68,7 @@ bool AwareSensor::VirtualSensorMethodsFinallize() {
         if (virtualsensorHandle != NULL) {
                 int err = dlclose(virtualsensorHandle);
                 if (err != 0) {
-                        LOGE("dlclose error! %d", err);
+                        ALOGE("dlclose error! %d", err);
                         return false;
                 }
         }
@@ -76,7 +76,7 @@ bool AwareSensor::VirtualSensorMethodsFinallize() {
 }
 
 bool AwareSensor::selftest() {
-        LOGI("selftest");
+        ALOGI("selftest");
         if (virtualSensor != NULL) {
                 return virtualSensor->selftest();
         } else {
@@ -85,7 +85,7 @@ bool AwareSensor::selftest() {
 }
 
 int AwareSensor::activate(int32_t handle, int en) {
-        LOGI("activate");
+        ALOGI("activate");
         if (virtualSensor != NULL) {
                 return virtualSensor->activate(handle, en);
         } else {
@@ -94,7 +94,7 @@ int AwareSensor::activate(int32_t handle, int en) {
 }
 
 int AwareSensor::setDelay(int32_t handle, int64_t ns) {
-        LOGI("setDelay ns = %lld", ns);
+        ALOGI("setDelay ns = %lld", ns);
         if (virtualSensor != NULL) {
                 return virtualSensor->setDelay(handle, ns);
         } else {
@@ -111,7 +111,7 @@ int AwareSensor::getPollfd() {
 }
 
 int AwareSensor::getData(std::queue<sensors_event_t> &eventQue) {
-        LOGI("getData");
+        ALOGI("getData");
         if (virtualSensor != NULL) {
                 return virtualSensor->getData(eventQue);
         } else {
@@ -120,7 +120,7 @@ int AwareSensor::getData(std::queue<sensors_event_t> &eventQue) {
 }
 
 int AwareSensor::flush(int handle) {
-        LOGD("flush");
+        ALOGD("flush");
         if (virtualSensor != NULL) {
                 return virtualSensor->flush(handle);
         } else {
@@ -129,7 +129,7 @@ int AwareSensor::flush(int handle) {
 }
 
 void AwareSensor::resetEventHandle() {
-        LOGD("resetEventHandle");
+        ALOGD("resetEventHandle");
         if (virtualSensor != NULL) {
                 virtualSensor->resetEventHandle(device.getHandle());
         }

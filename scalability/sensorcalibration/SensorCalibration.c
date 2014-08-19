@@ -17,7 +17,7 @@ void CompassGenericCalibration(struct sensors_event_t* event, calibration_flag_t
                 fd = open(configFile, O_RDWR | O_CREAT, S_IRWXU);
 
         if (fd < 0) {
-                LOGE("%s line:%d unable to open %s", __FUNCTION__, __LINE__, configFile);
+                ALOGE("%s line:%d unable to open %s", __FUNCTION__, __LINE__, configFile);
                 return;
         }
 
@@ -28,7 +28,7 @@ void CompassGenericCalibration(struct sensors_event_t* event, calibration_flag_t
                 lock.l_whence = SEEK_SET;
                 lock.l_len = 0;
                 if (fcntl(fd, F_SETLK, &lock) < 0)
-                        LOGE("%s line:%d calibration file: %s lock fail!", __FUNCTION__, __LINE__, configFile);
+                        ALOGE("%s line:%d calibration file: %s lock fail!", __FUNCTION__, __LINE__, configFile);
                 FILE * dataFile = fdopen(dup(fd), "r");
                 CompassCal_init(dataFile);
                 if (dataFile)
@@ -41,7 +41,7 @@ void CompassGenericCalibration(struct sensors_event_t* event, calibration_flag_t
                 lock.l_whence = SEEK_SET;
                 lock.l_len = 0;
                 if (fcntl(fd, F_SETLK, &lock) < 0)
-                        LOGE("%s line:%d calibration file: %s unlock fail!", __FUNCTION__, __LINE__, configFile);
+                        ALOGE("%s line:%d calibration file: %s unlock fail!", __FUNCTION__, __LINE__, configFile);
                 FILE * dataFile = fdopen(dup(fd), "w");
                 if (dataFile) {
                         rewind(dataFile);
@@ -82,7 +82,7 @@ void GyroscopeGenericCalibration(struct sensors_event_t* event, calibration_flag
                 fd = open(configFile, O_RDONLY);
 
                 if (fd < 0) {
-                        LOGE("%s line:%d unable to open %s", __FUNCTION__, __LINE__, configFile);
+                        ALOGE("%s line:%d unable to open %s", __FUNCTION__, __LINE__, configFile);
                         return;
                 }
 
@@ -128,26 +128,26 @@ void APDS9XXXProximityDriverGenericCalibration(struct sensors_event_t* event, ca
         usleep(50000);
         driver_fd = open(configNode, O_RDWR);
         if (driver_fd < 0) {
-                LOGE("%s line:%d cannot open file: %s", __FUNCTION__, __LINE__, configNode);
+                ALOGE("%s line:%d cannot open file: %s", __FUNCTION__, __LINE__, configNode);
                 return;
         }
 
         config_fd = open(configFile, O_RDWR | O_CREAT, S_IRWXU);
         if (config_fd < 0) {
-                LOGE("%s line:%d cannot open file: %s", __FUNCTION__, __LINE__, configFile);
+                ALOGE("%s line:%d cannot open file: %s", __FUNCTION__, __LINE__, configFile);
                 goto error_open;
         }
 
         ret = read(driver_fd, buf, sizeof(buf) - 1);
         if (ret <= 0) {
-                LOGE("%s line:%d read raw data error!", __FUNCTION__, __LINE__);
+                ALOGE("%s line:%d read raw data error!", __FUNCTION__, __LINE__);
                 goto error_read_raw;
         }
 
         raw_data = atoi(buf);
 
         if (raw_data == APDS9XXX_PROXIMITY_INIT_DATA) {
-                LOGW("%s line:%d raw data is invalid: 0x%x", __FUNCTION__, __LINE__, raw_data);
+                ALOGW("%s line:%d raw data is invalid: 0x%x", __FUNCTION__, __LINE__, raw_data);
         }
 
         lock.l_type = F_WRLCK;
@@ -155,17 +155,17 @@ void APDS9XXXProximityDriverGenericCalibration(struct sensors_event_t* event, ca
         lock.l_whence = SEEK_SET;
         lock.l_len = 0;
         if (fcntl(config_fd, F_SETLK, &lock) < 0) {
-                LOGE("%s line:%d file lock error: %s %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
+                ALOGE("%s line:%d file lock error: %s %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
                 goto error_lock;
         }
 
         ret = pread(config_fd, &cal_data, sizeof(cal_data), 0);
         if (ret < 0) {
-                LOGE("%s line:%d file read error: %s %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
+                ALOGE("%s line:%d file read error: %s %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
                 goto error_read_config;
         }
         else if (ret == 0) {
-                LOGW("%s line:%d No calibration data", __FUNCTION__, __LINE__);
+                ALOGW("%s line:%d No calibration data", __FUNCTION__, __LINE__);
         }
 
         if (cal_data.number == 0 && raw_data == APDS9XXX_PROXIMITY_INIT_DATA)
@@ -175,7 +175,7 @@ void APDS9XXXProximityDriverGenericCalibration(struct sensors_event_t* event, ca
                 raw_data += APDS9XXX_PROXIMITY_MIN_CROSSTALK;
 
         if (cal_data.number > APDS9XXX_PROXIMITY_MAX_NUMBER) {
-                LOGE("%s line:%d number overflow", __FUNCTION__, __LINE__);
+                ALOGE("%s line:%d number overflow", __FUNCTION__, __LINE__);
                 goto error_overflow;
         }
         if (cal_data.number == 0) {
@@ -208,7 +208,7 @@ void APDS9XXXProximityDriverGenericCalibration(struct sensors_event_t* event, ca
 
         ret = pwrite(config_fd, &cal_data, sizeof(cal_data), 0);
         if (ret < 0)
-                LOGE("%s line:%d: Write config file %s failed, error %s",
+                ALOGE("%s line:%d: Write config file %s failed, error %s",
                      __FUNCTION__, __LINE__, configFile, strerror(errno));
 
         threshold = cal_data.average;
@@ -223,7 +223,7 @@ void APDS9XXXProximityDriverGenericCalibration(struct sensors_event_t* event, ca
         snprintf(buf, sizeof(buf), "%d\n", threshold);
         ret = write(driver_fd, buf, strlen(buf));
         if (ret < 0) {
-                LOGE("%s line:%d: Write config sysfs %s failed, error %s",
+                ALOGE("%s line:%d: Write config sysfs %s failed, error %s",
                      __FUNCTION__, __LINE__, configNode, strerror(errno));
         }
 
@@ -232,7 +232,7 @@ error_no_calibration:
 error_read_config:
         lock.l_type = F_UNLCK;
         if (fcntl(config_fd, F_SETLK, &lock) < 0)
-                LOGE("%s line:%d file lock error: %s %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
+                ALOGE("%s line:%d file lock error: %s %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
 error_lock:
 error_read_raw:
         close(config_fd);

@@ -131,7 +131,7 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
         case SENSOR_TYPE_AUDIO_CLASSIFICATION:
         case SENSOR_TYPE_CALIBRATION:
         default:
-                LOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
+                ALOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
                 break;
         }
         return SENSOR_INVALID;
@@ -338,7 +338,7 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
         case SENSOR_TYPE_AUDIO_CLASSIFICATION:
         case SENSOR_TYPE_CALIBRATION:
         default:
-                LOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
+                ALOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
                 break;
         }
         return -1;
@@ -359,7 +359,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         streamSize = read(fd, reinterpret_cast<void *>(stream), streamSize);
 
         if (streamSize % unitSize != 0) {
-                LOGE("%s line: %d: invalid stream size: type: %d size: %d",
+                ALOGE("%s line: %d: invalid stream size: type: %d size: %d",
                      __FUNCTION__, __LINE__, sensorType, streamSize);
                 delete[] stream;
                 return -1;
@@ -509,7 +509,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 break;
         case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
                 for (unsigned int i = 0; i < count; i++) {
-                        LOGI("geomagnetic_rotation_vector event");
+                        ALOGI("geomagnetic_rotation_vector event");
                         events[i].data[0] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].x;
                         events[i].data[1] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct geomagnetic_rotation_vector_data*>(stream))[i].z;
@@ -546,7 +546,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         case SENSOR_TYPE_PEDOMETER:
         case SENSOR_TYPE_CALIBRATION:
         default:
-                LOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
+                ALOGE("%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);
                 break;
         }
 
@@ -579,14 +579,14 @@ static int monitor_calibration_flies(const char* file, int fd_inotify, int* vect
         int fd = -1;
         fd = open(file, O_RDONLY);
         if (fd < 0) {
-                LOGW("Cannot open file: %s %d", file, fd);
+                ALOGW("Cannot open file: %s %d", file, fd);
                 *(int*)vector_status |= flag;
         } else {
                 update_vector_status(fd, (int*)vector_status, flag);
                 if (fd_inotify >= 0) {
                         *wd = inotify_add_watch(fd_inotify, file, IN_MODIFY);
                         if (*wd < 0) {
-                                LOGE("Cannot watch file: %s %d", file, *wd);
+                                ALOGE("Cannot watch file: %s %d", file, *wd);
                         }
                 }
         }
@@ -604,7 +604,7 @@ static void* vector_status_monitor(void* vector_status)
 
         fd_inotify = inotify_init();
         if (fd_inotify < 0) {
-                LOGE("Cannot initialize inotify!");
+                ALOGE("Cannot initialize inotify!");
         }
 
         fd_accl = monitor_calibration_flies(ACCELERATION_CALIBATION_FILE, fd_inotify, (int*)vector_status, ACCELERATION_CALIBATION_STATUS, &wd_accl);
@@ -620,12 +620,12 @@ static void* vector_status_monitor(void* vector_status)
                 FD_SET (fd_inotify, &rfds);
                 ret = select (fd_inotify + 1, &rfds, NULL, NULL, NULL);
                 if (ret <= 0) {
-                        LOGE("select fd_inotify error: %d", ret);
+                        ALOGE("select fd_inotify error: %d", ret);
                         continue;
                 }
                 ret = read(fd_inotify, ievent, 16 * sizeof(struct inotify_event));
                 if (ret < 0) {
-                        LOGE("read fd_inotify error: %d", ret);
+                        ALOGE("read fd_inotify error: %d", ret);
                         continue;
                 }
                 for (int i = 0; i < ret / sizeof(struct inotify_event); i++) {
@@ -671,7 +671,7 @@ int8_t SensorHubHelper::getVectorStatus(int sensorType)
         if (tid < 0) {
                 err = pthread_create(&tid, NULL, vector_status_monitor, &vector_status);
                 if (err) {
-                        LOGE("vector_status_monitor thread create error: %d", err);
+                        ALOGE("vector_status_monitor thread create error: %d", err);
                         tid = -1;
                         return SENSOR_STATUS_UNRELIABLE;
                 }

@@ -15,7 +15,7 @@ PlatformConfig::PlatformConfig()
 
         ret = property_get("ro.sensors.mapper", buf, NULL);
         if (ret <= 0) {
-                LOGW("Get sensors mapper property error! Use default config.");
+                ALOGW("Get sensors mapper property error! Use default config.");
                 prop="default";
         }
         else {
@@ -25,19 +25,19 @@ PlatformConfig::PlatformConfig()
 
         doc = xmlReadFile(file.c_str(), NULL, XML_PARSE_NOBLANKS);
         if (doc==NULL) {
-                LOGE("XML Document not parsed successfully.\n");
+                ALOGE("XML Document not parsed successfully.\n");
                 return;
         }
 
         root=xmlDocGetRootElement(doc);
         if (root==NULL) {
-                LOGE("Empty XML document\n");
+                ALOGE("Empty XML document\n");
                 xmlFreeDoc(doc);
                 return;
         }
 
         if (xmlStrcmp(root->name, (const xmlChar *)"sensor_hal_config")) {
-                LOGE("Wrong XML document, cannot find \"sensor_hal_config\" element!\n");
+                ALOGE("Wrong XML document, cannot find \"sensor_hal_config\" element!\n");
                 xmlFreeDoc(doc);
                 return;
         }
@@ -56,14 +56,14 @@ bool PlatformConfig::initXML(xmlNodePtr node)
 
         while (node != NULL) {
                 if (xmlStrcmp(node->name, (const xmlChar *)"sensor")) {
-                        LOGW("%s line:%d name: %s", __FUNCTION__, __LINE__, reinterpret_cast<const char*>(node->name));
+                        ALOGW("%s line:%d name: %s", __FUNCTION__, __LINE__, reinterpret_cast<const char*>(node->name));
                         node = node->next;
                         continue;
                 }
 
                 attr = xmlGetProp(node, (const xmlChar*)"type");
                 if (attr == NULL) {
-                        LOGW("%s line:%d Cannot get sensor type!", __FUNCTION__, __LINE__);
+                        ALOGW("%s line:%d Cannot get sensor type!", __FUNCTION__, __LINE__);
                         node = node->next;
                         continue;
                 }
@@ -71,7 +71,7 @@ bool PlatformConfig::initXML(xmlNodePtr node)
 
                 attr = xmlGetProp(node, (const xmlChar*)"category");
                 if (attr == NULL) {
-                        LOGW("Cannot get sensor category!");
+                        ALOGW("Cannot get sensor category!");
                         category = "linux_driver";
                 }
                 else
@@ -170,7 +170,7 @@ bool PlatformConfig::addSensorDevice(xmlNodePtr node, std::string type, std::str
                 mSensor.setHandle(mSensor.idToHandle(mSensor.getId()));
                 sensorType = getType(type);
                 if (sensorType == 0) {
-                        LOGE("%s line: %d Unsupported sensor type: %d",
+                        ALOGE("%s line: %d Unsupported sensor type: %d",
                              __FUNCTION__, __LINE__, sensorType);
                         return false;
                 }
@@ -362,7 +362,7 @@ int PlatformConfig::getType(std::string type)
                 return SENSOR_TYPE_LIFT;
         else if (type.compare(0, 8, "pan_zoom")==0)
                 return SENSOR_TYPE_PAN_ZOOM;
-        LOGW("%s: unsupported sensor: %s", __FUNCTION__, type.c_str());
+        ALOGW("%s: unsupported sensor: %s", __FUNCTION__, type.c_str());
         return 0;
 }
 
@@ -372,7 +372,7 @@ sensor_category_t PlatformConfig::getCategory(std::string category)
                 return LINUX_DRIVER;
         else if (category.compare(0, 12, "libsensorhub") == 0)
                 return LIBSENSORHUB;
-        LOGW("%s: unsupported sensor category: %s, using default",
+        ALOGW("%s: unsupported sensor category: %s, using default",
              __FUNCTION__, category.c_str());
         return LINUX_DRIVER;
 }
@@ -404,7 +404,7 @@ sensor_driver_node_type PlatformConfig::getDriverNodeType(std::string nodeType)
                 return INPUT_EVENT;
         else if (nodeType.compare(0, 4, "misc") == 0)
                 return MISC;
-        LOGW("%s: unsupported sensor driver node type: %s, using default",
+        ALOGW("%s: unsupported sensor driver node type: %s, using default",
              __FUNCTION__, nodeType.c_str());
         return INPUT_EVENT;
 }
@@ -436,7 +436,7 @@ bool PlatformConfig::getPlatformData(int id, struct PlatformData &data)
 {
         std::map<int,struct PlatformData>::iterator it=configs.find(id);
         if (it==configs.end()) {
-                LOGE("cannot find PlatformData. id: %d\n", id);
+                ALOGE("cannot find PlatformData. id: %d\n", id);
                 return false;
         }
         data=it->second;

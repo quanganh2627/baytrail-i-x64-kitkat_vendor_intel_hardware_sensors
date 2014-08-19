@@ -32,7 +32,7 @@ Sensor::Sensor(SensorDevice &mDevice)
 int Sensor::batch(int handle, int flags, int64_t period_ns, int64_t timeout)
 {
         if (handle != device.getHandle()) {
-                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                ALOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
                      __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
                 return -EINVAL;
         }
@@ -49,19 +49,19 @@ int Sensor::batch(int handle, int flags, int64_t period_ns, int64_t timeout)
 int Sensor::flush(int handle)
 {
         if (handle != device.getHandle()) {
-                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                ALOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
                      __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
                 return -EINVAL;
         }
 
 
         if (!state.getActivated()) {
-                LOGW("%s line: %d %s not activated", __FUNCTION__, __LINE__, device.getName());
+                ALOGW("%s line: %d %s not activated", __FUNCTION__, __LINE__, device.getName());
                 return -EINVAL;
         }
 
         if (!state.getBatchModeEnabled()) {
-                LOGW("%s line: %d %s batch not enabled", __FUNCTION__, __LINE__, device.getName());
+                ALOGW("%s line: %d %s batch not enabled", __FUNCTION__, __LINE__, device.getName());
                 state.setFlushSuccess(true);
                 return 0;
         }

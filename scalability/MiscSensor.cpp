@@ -23,7 +23,7 @@ int MiscSensor::getPollfd()
 
         pollfd = open(data.dataInterface.c_str(), O_RDONLY);
         if (pollfd < 0)
-                LOGE("%s: line: %d: open %s error!", __FUNCTION__, __LINE__, data.activateInterface.c_str());
+                ALOGE("%s: line: %d: open %s error!", __FUNCTION__, __LINE__, data.activateInterface.c_str());
 
         return pollfd;
 }
@@ -34,7 +34,7 @@ int MiscSensor::hardwareSet(bool activated)
 
         fd = getPollfd();
         if (fd < 0) {
-                LOGE("%s: line: %d: %s getPollfd error!", __FUNCTION__, __LINE__, data.name.c_str());
+                ALOGE("%s: line: %d: %s getPollfd error!", __FUNCTION__, __LINE__, data.name.c_str());
                 return -1;
         }
 
@@ -46,7 +46,7 @@ int MiscSensor::hardwareSet(bool activated)
                                 Calibration(&event, READ_DATA, data.calibrationFile.c_str());
                         ret = ioctl(fd, IO_CMD_ACTIVATE, 1);
                         if (ret) {
-                                LOGE("%s line:%d %s real active hardware sensor error! %d",
+                                ALOGE("%s line:%d %s real active hardware sensor error! %d",
                                      __FUNCTION__, __LINE__, device.getName(), ret);
                                 return -1;
                         }
@@ -60,7 +60,7 @@ int MiscSensor::hardwareSet(bool activated)
                 if (device.getMinDelay() != 0 && data.setDelayInterface.length() != 0) {
                         ret = ioctl(fd, IO_CMD_SETDELAY, state.getDelay());
                         if (ret) {
-                                LOGE("%s: line: %d: %s set delay error! delay: %d", __FUNCTION__, __LINE__, data.name.c_str(), state.getDelay());
+                                ALOGE("%s: line: %d: %s set delay error! delay: %d", __FUNCTION__, __LINE__, data.name.c_str(), state.getDelay());
                                 return -1;
                         }
                 }
@@ -73,7 +73,7 @@ int MiscSensor::hardwareSet(bool activated)
 
         ret = ioctl(fd, IO_CMD_ACTIVATE, 0);
         if (ret) {
-                LOGE("%s line:%d %s real deactive hardware sensor error! %d",
+                ALOGE("%s line:%d %s real deactive hardware sensor error! %d",
                      __FUNCTION__, __LINE__, device.getName(), ret);
                 return -1;
         }
@@ -82,7 +82,7 @@ int MiscSensor::hardwareSet(bool activated)
 
 int MiscSensor::activate(int handle, int enabled) {
         if (handle != device.getHandle()) {
-                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                ALOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
                      __FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
                 return -1;
         }
@@ -96,7 +96,7 @@ int MiscSensor::setDelay(int handle, int64_t period_ns)
         int minDelay = device.getMinDelay() / US_TO_MS;
 
         if (handle != device.getHandle()) {
-                LOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                ALOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
                      __FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
                 return -1;
         }
@@ -141,7 +141,7 @@ int MiscSensor::getData(std::queue<sensors_event_t> &eventQue) {
                 }
                 return 0;
         } else if (ret < 0 || ret % sizeof(sensors_misc_event_t) != 0) {
-                LOGE("%s line: %d, name: %s ret: %d",
+                ALOGE("%s line: %d, name: %s ret: %d",
                      __FUNCTION__, __LINE__, data.name.c_str(), ret);
                 return -1;
         }
@@ -172,7 +172,7 @@ int MiscSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                 eventQue.push(event);
                         }
                 default:
-                        LOGW("%s line: %d unknown axis: %d", __FUNCTION__, __LINE__, miscEvent[i].axis);
+                        ALOGW("%s line: %d unknown axis: %d", __FUNCTION__, __LINE__, miscEvent[i].axis);
                         break;
                 }
         }

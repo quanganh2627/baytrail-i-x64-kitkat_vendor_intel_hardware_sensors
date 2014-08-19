@@ -76,14 +76,14 @@ static int accel_simp_cal_sample_out_range(struct accelerometer_simple_calibrati
                 return 1;
         } else {
                 if (asc->model < GRAVITY_EARTH - ACCEL_SIMP_CAL_MODEL_OFFSET || asc->model > GRAVITY_EARTH + ACCEL_SIMP_CAL_MODEL_OFFSET) {
-                        LOGW("Incorrect asc->model: %f", asc->model);
+                        ALOGW("Incorrect asc->model: %f", asc->model);
                         return 1;
                 }
                 for (j = 0; j < ACCEL_SIMP_CAL_BUF_LENGTH; j++) {
                         for (i = 0; i < ACCEL_AXIS_MAX; i++) {
                                 noise[i] = asc->buf[i][j] - asc->average[i];
                                 if (noise[i] < -ACCEL_SIMP_CAL_NOISE_DENSITY || noise[i] > ACCEL_SIMP_CAL_NOISE_DENSITY) {
-                                        LOGW("Noise too large: asc->index: %d coordinate: %d value: %lf asc->average: %lf noise: %lf",
+                                        ALOGW("Noise too large: asc->index: %d coordinate: %d value: %lf asc->average: %lf noise: %lf",
                                              j, i, asc->buf[i][j], asc->average[i], noise[i]);
                                         return 1;
                                 }
@@ -103,9 +103,9 @@ static void accel_simp_cal_sampling(struct accelerometer_simple_calibration_even
         }
 
         if (asc->average[ACCEL_AXIS_X] < GRAVITY_EARTH + ACCEL_SIMP_CAL_MODEL_OFFSET && asc->average[ACCEL_AXIS_X] > GRAVITY_EARTH - ACCEL_SIMP_CAL_DIRECTION_OFFSET) {
-                LOGI("data x positive");
+                ALOGI("data x positive");
                 if (asc->samples.sampled[ACCEL_AXIS_X]) {
-                        LOGI("data x positive had collected");
+                        ALOGI("data x positive had collected");
                         accel_simp_cal_clear_data(asc);
                         return;
                 }
@@ -116,11 +116,11 @@ static void accel_simp_cal_sampling(struct accelerometer_simple_calibration_even
                 asc->samples.samples_collected++;
                 asc->samples_collected_this_time++;
                 accel_simp_cal_clear_data(asc);
-                LOGI("data x positive has collected");
+                ALOGI("data x positive has collected");
         } else if (asc->average[ACCEL_AXIS_X] > -ACCEL_SIMP_CAL_MODEL_OFFSET - GRAVITY_EARTH && asc->average[ACCEL_AXIS_X] < ACCEL_SIMP_CAL_DIRECTION_OFFSET - GRAVITY_EARTH) {
-                LOGI("data x negative");
+                ALOGI("data x negative");
                 if (asc->samples.sampled[ACCEL_AXIS_Y]) {
-                        LOGI("data x negative had collected");
+                        ALOGI("data x negative had collected");
                         accel_simp_cal_clear_data(asc);
                         return;
                 }
@@ -131,11 +131,11 @@ static void accel_simp_cal_sampling(struct accelerometer_simple_calibration_even
                 asc->samples.samples_collected++;
                 asc->samples_collected_this_time++;
                 accel_simp_cal_clear_data(asc);
-                LOGI("data x negative has collected");
+                ALOGI("data x negative has collected");
         } else if (asc->average[ACCEL_AXIS_Y] < GRAVITY_EARTH + ACCEL_SIMP_CAL_MODEL_OFFSET && asc->average[ACCEL_AXIS_Y] > GRAVITY_EARTH - ACCEL_SIMP_CAL_DIRECTION_OFFSET) {
-                LOGI("data y positive");
+                ALOGI("data y positive");
                 if (asc->samples.sampled[ACCEL_AXIS_Z]) {
-                        LOGI("data y positive had collected");
+                        ALOGI("data y positive had collected");
                         accel_simp_cal_clear_data(asc);
                         return;
                 }
@@ -146,11 +146,11 @@ static void accel_simp_cal_sampling(struct accelerometer_simple_calibration_even
                 asc->samples.samples_collected++;
                 asc->samples_collected_this_time++;
                 accel_simp_cal_clear_data(asc);
-                LOGI("data y positive has collected");
+                ALOGI("data y positive has collected");
         } else if (asc->average[ACCEL_AXIS_Y] > -ACCEL_SIMP_CAL_MODEL_OFFSET - GRAVITY_EARTH && asc->average[ACCEL_AXIS_Y] < ACCEL_SIMP_CAL_DIRECTION_OFFSET - GRAVITY_EARTH) {
-                LOGI("data y negative");
+                ALOGI("data y negative");
                 if (asc->samples.sampled[ACCEL_AXIS_MAX]) {
-                        LOGI("data y negative had collected");
+                        ALOGI("data y negative had collected");
                         accel_simp_cal_clear_data(asc);
                         return;
                 }
@@ -161,11 +161,11 @@ static void accel_simp_cal_sampling(struct accelerometer_simple_calibration_even
                 asc->samples.samples_collected++;
                 asc->samples_collected_this_time++;
                 accel_simp_cal_clear_data(asc);
-                LOGI("data y negative has collected");
+                ALOGI("data y negative has collected");
         } else if (asc->average[2] < GRAVITY_EARTH + ACCEL_SIMP_CAL_MODEL_OFFSET && asc->average[2] > GRAVITY_EARTH - ACCEL_SIMP_CAL_DIRECTION_OFFSET) {
-                LOGI("data z positive");
+                ALOGI("data z positive");
                 if (asc->samples.sampled[4]) {
-                        LOGI("data z positive had collected");
+                        ALOGI("data z positive had collected");
                         accel_simp_cal_clear_data(asc);
                         return;
                 }
@@ -176,11 +176,11 @@ static void accel_simp_cal_sampling(struct accelerometer_simple_calibration_even
                 asc->samples.samples_collected++;
                 asc->samples_collected_this_time++;
                 accel_simp_cal_clear_data(asc);
-                LOGI("data z positive has collected");
+                ALOGI("data z positive has collected");
         } else if (asc->average[2] > -ACCEL_SIMP_CAL_MODEL_OFFSET - GRAVITY_EARTH && asc->average[2] < ACCEL_SIMP_CAL_DIRECTION_OFFSET - GRAVITY_EARTH) {
-                LOGI("data z negative");
+                ALOGI("data z negative");
                 if (asc->samples.sampled[5]) {
-                        LOGI("data z negative had collected");
+                        ALOGI("data z negative had collected");
                         accel_simp_cal_clear_data(asc);
                         return;
                 }
@@ -191,9 +191,9 @@ static void accel_simp_cal_sampling(struct accelerometer_simple_calibration_even
                 asc->samples.samples_collected++;
                 asc->samples_collected_this_time++;
                 accel_simp_cal_clear_data(asc);
-                LOGI("data z negative has collected");
+                ALOGI("data z negative has collected");
         } else {
-                LOGI("Other data %lf %lf %lf", asc->average[ACCEL_AXIS_X], asc->average[ACCEL_AXIS_Y], asc->average[2]);
+                ALOGI("Other data %lf %lf %lf", asc->average[ACCEL_AXIS_X], asc->average[ACCEL_AXIS_Y], asc->average[2]);
                 accel_simp_cal_collect_data(event, asc);
         }
 
@@ -205,17 +205,17 @@ static int accel_simp_cal_read_samples(struct accelerometer_simple_calibration_s
 
         fd = open(configFile, O_RDONLY);
         if (fd < 0) {
-                LOGE("%s line:%d, open %s error: %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
+                ALOGE("%s line:%d, open %s error: %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
                 return fd;
         }
 
         ret = read(fd, samples, sizeof(struct accelerometer_simple_calibration_samples));
         if (ret < 0) {
-                LOGE("%s line:%d, read %s error: %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
+                ALOGE("%s line:%d, read %s error: %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
                 close(fd);
                 return ret;
         } else if (ret != sizeof(struct accelerometer_simple_calibration_samples)) {
-                LOGE("%s line:%d, invalid config file: %s", __FUNCTION__, __LINE__, configFile);
+                ALOGE("%s line:%d, invalid config file: %s", __FUNCTION__, __LINE__, configFile);
                 close(fd);
                 return -EINVAL;
         }
@@ -230,17 +230,17 @@ static int accel_simp_cal_store_samples(struct accelerometer_simple_calibration_
 
         fd = open(configFile, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
         if (fd < 0) {
-                LOGE("%s line:%d, open %s error: %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
+                ALOGE("%s line:%d, open %s error: %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
                 return fd;
         }
 
         ret = write(fd, samples, sizeof(struct accelerometer_simple_calibration_samples));
         if (ret < 0) {
-                LOGE("%s line:%d, write %s error: %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
+                ALOGE("%s line:%d, write %s error: %s", __FUNCTION__, __LINE__, configFile, strerror(errno));
                 close(fd);
                 return ret;
         } else if (ret != sizeof(struct accelerometer_simple_calibration_samples)) {
-                LOGE("%s line:%d, write config file: %s error", __FUNCTION__, __LINE__, configFile);
+                ALOGE("%s line:%d, write config file: %s error", __FUNCTION__, __LINE__, configFile);
                 close(fd);
                 return -EINVAL;
         }
@@ -255,13 +255,13 @@ static int accel_simp_cal_matrix_transformation(float (*p)[ACCEL_SIMP_CAL_SAMPLE
 	float value;
 
         if (start >= ACCEL_SIMP_CAL_SAMPLES_COUNT) {
-                LOGE("%s line:%d error matrix position:%d", __FUNCTION__, __LINE__, start);
+                ALOGE("%s line:%d error matrix position:%d", __FUNCTION__, __LINE__, start);
                 return -EOVERFLOW;
         }
 
 	value = p[start][start];
         if (value == 0.0) {
-                LOGE("%s line:%d invalid matrix:%d", __FUNCTION__, __LINE__, start);
+                ALOGE("%s line:%d invalid matrix:%d", __FUNCTION__, __LINE__, start);
                 return -EINVAL;
         }
 
@@ -297,10 +297,10 @@ static int accel_simp_cal_calculate_factors(struct accelerometer_simple_calibrat
 	for (i = 0; i < ACCEL_SIMP_CAL_SAMPLES_COUNT -1; i++) {
                 ret = accel_simp_cal_matrix_transformation(matrix, i);
                 if (ret < 0) {
-                        LOGE("%s line:%d matrix_transformation failed", __FUNCTION__, __LINE__);
+                        ALOGE("%s line:%d matrix_transformation failed", __FUNCTION__, __LINE__);
                         return ret;
                 }
-		LOGI("%f %f %f %f %f %f", matrix[i][0], matrix[i][1], matrix[i][2], matrix[i][3], matrix[i][4], matrix[i][5]);
+		ALOGI("%f %f %f %f %f %f", matrix[i][0], matrix[i][1], matrix[i][2], matrix[i][3], matrix[i][4], matrix[i][5]);
 	}
 
         for (i = ACCEL_SIMP_CAL_SAMPLES_COUNT - 2; i >= 0; i--) {
@@ -308,7 +308,7 @@ static int accel_simp_cal_calculate_factors(struct accelerometer_simple_calibrat
 		for (j = i + 1; j < ACCEL_SIMP_CAL_SAMPLES_COUNT - 1; j++) {
 			roots[i] -= matrix[i][j] * roots[j];
 		}
-		LOGI("root[%d]: %f", i, roots[i]);
+		ALOGI("root[%d]: %f", i, roots[i]);
 	}
 	roots[ACCEL_SIMP_CAL_SAMPLES_COUNT-1] = 1.0;
 
@@ -321,7 +321,7 @@ static int accel_simp_cal_calculate_factors(struct accelerometer_simple_calibrat
 	for (i = 0; i < ACCEL_SIMP_CAL_SAMPLES_COUNT; i += 2) {
 		factors[i] = sqrt(roots[i]);
 		factors[i + 1] = roots[i + 1] / factors[i];
-		LOGI("%f\t%f", factors[i], factors[i + 1]);
+		ALOGI("%f\t%f", factors[i], factors[i + 1]);
 	}
 
 	scale = GRAVITY_EARTH * GRAVITY_EARTH / ((factors[0] * samples->samples[0][ACCEL_AXIS_X] + factors[1]) * (factors[0] * samples->samples[0][ACCEL_AXIS_X] + factors[1]) +
@@ -331,7 +331,7 @@ static int accel_simp_cal_calculate_factors(struct accelerometer_simple_calibrat
 
 	for (i = 0; i < 6; i++) {
 		samples->factors[i] = factors[i] * scale;
-		LOGI("factors[%d]: %f", i, samples->factors[i]);
+		ALOGI("factors[%d]: %f", i, samples->factors[i]);
 	}
 
         return 0;
@@ -360,17 +360,17 @@ int accel_simp_cal_calibration(struct accelerometer_simple_calibration_event_t* 
         if (!asc.initialized) {
                 ret = accel_simp_cal_read_samples(&asc.samples, configFile);
                 if (ret < 0) {
-                        LOGW("%s line:%d, read samples error!", __FUNCTION__, __LINE__);
+                        ALOGW("%s line:%d, read samples error!", __FUNCTION__, __LINE__);
                         memset(&asc.samples, 0, sizeof(asc.samples));
                 } else {
                         for (i = 0; i < ACCEL_SIMP_CAL_SAMPLES_COUNT; i++)
-                                LOGI("%lf\t%lf\t%lf", asc.samples.samples[i][ACCEL_AXIS_X], asc.samples.samples[i][ACCEL_AXIS_Y], asc.samples.samples[i][ACCEL_AXIS_Z]);
+                                ALOGI("%lf\t%lf\t%lf", asc.samples.samples[i][ACCEL_AXIS_X], asc.samples.samples[i][ACCEL_AXIS_Y], asc.samples.samples[i][ACCEL_AXIS_Z]);
                 }
                 asc.initialized = 1;
         }
 
         if (need_recalibrate == 1) {
-                LOGW("%s line:%d, need recalibrate!", __FUNCTION__, __LINE__);
+                ALOGW("%s line:%d, need recalibrate!", __FUNCTION__, __LINE__);
                 memset(&asc.samples, 0, sizeof(asc.samples));
                 need_recalibrate = 0;
         }
@@ -381,12 +381,12 @@ int accel_simp_cal_calibration(struct accelerometer_simple_calibration_event_t* 
                         return 0;
                 }
         } else if (asc.samples.samples_collected >= ACCEL_SIMP_CAL_SAMPLES_COUNT) {
-                LOGI("All data collected. %d", asc.samples.samples_collected);
+                ALOGI("All data collected. %d", asc.samples.samples_collected);
                 for (i = 0; i < ACCEL_SIMP_CAL_SAMPLES_COUNT; i++)
-                        LOGI("%f\t%f\t%f", asc.samples.samples[i][ACCEL_AXIS_X], asc.samples.samples[i][ACCEL_AXIS_Y], asc.samples.samples[i][ACCEL_AXIS_Z]);
+                        ALOGI("%f\t%f\t%f", asc.samples.samples[i][ACCEL_AXIS_X], asc.samples.samples[i][ACCEL_AXIS_Y], asc.samples.samples[i][ACCEL_AXIS_Z]);
                 ret = accel_simp_cal_calculate_factors(&asc.samples);
                 if (ret < 0) {
-                        LOGE("%s line:%d, calculate factors error!", __FUNCTION__, __LINE__);
+                        ALOGE("%s line:%d, calculate factors error!", __FUNCTION__, __LINE__);
                         memset(&asc.samples, 0, sizeof(asc.samples));
                         accel_simp_cal_clear_data(&asc);
                         return -EAGAIN;

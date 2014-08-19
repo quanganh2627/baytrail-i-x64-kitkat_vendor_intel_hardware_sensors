@@ -76,14 +76,14 @@ static int accel_simp_zcal_sample_out_range(struct accelerometer_simple_zcalibra
                 return 1;
         } else {
                 if (asc->model < GRAVITY_EARTH - ACCEL_SIMP_ZCAL_MODEL_OFFSET || asc->model > GRAVITY_EARTH + ACCEL_SIMP_ZCAL_MODEL_OFFSET) {
-                        LOGW("Incorrect asc->model: %f", asc->model);
+                        ALOGW("Incorrect asc->model: %f", asc->model);
                         return 1;
                 }
                 for (j = 0; j < ACCEL_SIMP_ZCAL_BUF_LENGTH; j++) {
                         for (i = 0; i < ACCEL_AXIS_MAX; i++) {
                                 noise[i] = asc->buf[i][j] - asc->average[i];
                                 if (noise[i] < -ACCEL_SIMP_ZCAL_NOISE_DENSITY || noise[i] > ACCEL_SIMP_ZCAL_NOISE_DENSITY) {
-                                        LOGW("Noise too large: asc->index: %d coordinate: %d value: %lf asc->average: %lf noise: %lf",
+                                        ALOGW("Noise too large: asc->index: %d coordinate: %d value: %lf asc->average: %lf noise: %lf",
                                              j, i, asc->buf[i][j], asc->average[i], noise[i]);
                                         return 1;
                                 }
@@ -103,9 +103,9 @@ static void accel_simp_zcal_sampling(struct accelerometer_simple_calibration_eve
         }
 
         if (asc->average[ACCEL_AXIS_Z] > asc->model * ACCEL_SIMP_ZCAL_DIRECTION_SCALE) {
-                LOGD("data z positive");
+                ALOGD("data z positive");
                 if (asc->samples.sampled[0]) {
-                        LOGD("data z positive had collected");
+                        ALOGD("data z positive had collected");
                         accel_simp_zcal_clear_data(asc);
                         return;
                 }
@@ -113,11 +113,11 @@ static void accel_simp_zcal_sampling(struct accelerometer_simple_calibration_eve
                 asc->samples.sampled[0] = 1;
                 asc->samples.samples_collected++;
                 accel_simp_zcal_clear_data(asc);
-                LOGD("data z positive has collected");
+                ALOGD("data z positive has collected");
         } else if (asc->average[ACCEL_AXIS_Z] < -asc->model * ACCEL_SIMP_ZCAL_DIRECTION_SCALE) {
-                LOGD("data z negative");
+                ALOGD("data z negative");
                 if (asc->samples.sampled[1]) {
-                        LOGD("data z negative had collected");
+                        ALOGD("data z negative had collected");
                         accel_simp_zcal_clear_data(asc);
                         return;
                 }
@@ -125,10 +125,10 @@ static void accel_simp_zcal_sampling(struct accelerometer_simple_calibration_eve
                 asc->samples.sampled[1] = 1;
                 asc->samples.samples_collected++;
                 accel_simp_zcal_clear_data(asc);
-                LOGD("data z negative has collected");
+                ALOGD("data z negative has collected");
 
         } else {
-                LOGD("Other data %lf %lf %lf", asc->average[ACCEL_AXIS_X], asc->average[ACCEL_AXIS_Y], asc->average[ACCEL_AXIS_Z]);
+                ALOGD("Other data %lf %lf %lf", asc->average[ACCEL_AXIS_X], asc->average[ACCEL_AXIS_Y], asc->average[ACCEL_AXIS_Z]);
                 accel_simp_zcal_collect_data(event, asc);
         }
 
@@ -138,7 +138,7 @@ static int accel_simp_zcal_zcalculate_factors(struct accelerometer_simple_zcalib
 {
         samples->factors[0] = GRAVITY_EARTH * 2.0 / (samples->models[1] + samples->models[0]);
         samples->factors[1] = (samples->models[1] - samples->models[0]) / 2.0;
-        LOGD("factors[0]: %f\tfactors[1]: %f", samples->factors[0], samples->factors[1]);
+        ALOGD("factors[0]: %f\tfactors[1]: %f", samples->factors[0], samples->factors[1]);
 
         return 0;
 }
@@ -160,18 +160,18 @@ int accel_simp_zcal_calibration(struct accelerometer_simple_calibration_event_t*
         static struct accelerometer_simple_zcalibration_t asc;
 
         if (need_rezcalibrate == 1) {
-                LOGW("%s line:%d, need rezcalibrate!", __FUNCTION__, __LINE__);
+                ALOGW("%s line:%d, need rezcalibrate!", __FUNCTION__, __LINE__);
                 memset(&asc.samples, 0, sizeof(asc.samples));
                 need_rezcalibrate = 0;
         }
 
         if (asc.samples.samples_collected >= ACCEL_SIMP_ZCAL_SAMPLES_COUNT) {
-                LOGD("All data collected. %d", asc.samples.samples_collected);
+                ALOGD("All data collected. %d", asc.samples.samples_collected);
                 for (i = 0; i < ACCEL_SIMP_ZCAL_SAMPLES_COUNT; i++)
-                        LOGD("models[%d]: %f", i, asc.samples.models[i]);
+                        ALOGD("models[%d]: %f", i, asc.samples.models[i]);
                 ret = accel_simp_zcal_zcalculate_factors(&asc.samples);
                 if (ret < 0) {
-                        LOGE("%s line:%d, zcalculate factors error!", __FUNCTION__, __LINE__);
+                        ALOGE("%s line:%d, zcalculate factors error!", __FUNCTION__, __LINE__);
                         memset(&asc.samples, 0, sizeof(asc.samples));
                         accel_simp_zcal_clear_data(&asc);
                         if (!asc.samples.factors_ready)
