@@ -604,7 +604,7 @@ static void* vector_status_monitor(void* vector_status)
 
         fd_inotify = inotify_init();
         if (fd_inotify < 0) {
-                ALOGE("Cannot initialize inotify!");
+                ALOGE("Cannot initialize inotify!, %s", strerror(errno));
         }
 
         fd_accl = monitor_calibration_flies(ACCELERATION_CALIBATION_FILE, fd_inotify, (int*)vector_status, ACCELERATION_CALIBATION_STATUS, &wd_accl);
@@ -665,16 +665,18 @@ exit_monitor:
 int8_t SensorHubHelper::getVectorStatus(int sensorType)
 {
         static int vector_status = 0;
-        static pthread_t tid = -1;
+        static pthread_t tid;
+        static bool thread_created_success = false;
         int err;
 
-        if (tid < 0) {
+        if (!thread_created_success) {
                 err = pthread_create(&tid, NULL, vector_status_monitor, &vector_status);
                 if (err) {
                         ALOGE("vector_status_monitor thread create error: %d", err);
-                        tid = -1;
+                        thread_created_success = false;
                         return SENSOR_STATUS_UNRELIABLE;
                 }
+                thread_created_success = true;
         }
 
         switch (sensorType) {
