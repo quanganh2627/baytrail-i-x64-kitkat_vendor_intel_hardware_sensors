@@ -37,6 +37,7 @@ class SensorDevice {
         sensors_subname subname;
         int mapper[4];
         float scale[4];
+        void copyDevice(const SensorDevice &device);
 public:
         SensorDevice()
         {
@@ -56,6 +57,12 @@ public:
                 }
                 if (dev.vendor != NULL) {
                         delete[] dev.vendor;
+                }
+                if (dev.stringType != NULL) {
+                        delete[] dev.stringType;
+                }
+                if (dev.requiredPermission != NULL) {
+                        delete[] dev.requiredPermission;
                 }
         }
         SensorDevice& operator=(const SensorDevice &device);
@@ -91,6 +98,27 @@ public:
         void setPower(float power) { dev.power = power; }
         int32_t getMinDelay() { return dev.minDelay; }
         void setMinDelay(int32_t minDelay) { dev.minDelay = minDelay; }
+
+        uint32_t getFifoReservedEventCount() { return dev.fifoReservedEventCount; }
+        void setFifoReservedEventCount(uint32_t fifoReservedEventCount) { dev.fifoReservedEventCount = fifoReservedEventCount; }
+        uint32_t getFifoMaxEventCount() { return dev.fifoMaxEventCount; }
+        void setFifoMaxEventCount(uint32_t fifoMaxEventCount) { dev.fifoMaxEventCount = fifoMaxEventCount; }
+        const char* getStringType() { return dev.stringType; }
+        void setStringType(const char* stringType);
+        const char* getRequiredPermission() { return dev.requiredPermission; }
+        void setRequiredPermission(const char* requiredPermission);
+#ifdef __LP64__
+        int64_t getMaxDelay() { return dev.maxDelay; }
+        void setMaxDelay(int64_t maxDelay) { dev.maxDelay = maxDelay; }
+        int64_t getFlags() { return dev.flags; }
+        void setFlags(int64_t flags) { dev.flags = flags; }
+#else
+        int32_t getMaxDelay() { return dev.maxDelay; }
+        void setMaxDelay(int32_t maxDelay) { dev.maxDelay = maxDelay; }
+        int32_t getFlags() { return dev.flags; }
+        void setFlags(int32_t flags) { dev.flags = flags; }
+#endif
+
         void copyItem(struct sensor_t* item) { memcpy(item, &dev, sizeof(struct sensor_t)); }
 };
 

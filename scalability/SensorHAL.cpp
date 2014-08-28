@@ -273,7 +273,7 @@ static int open(const struct hw_module_t* module, const char* id,
         static struct sensors_poll_device_1 dev;
 
         dev.common.tag = HARDWARE_DEVICE_TAG;
-        dev.common.version = SENSORS_DEVICE_API_VERSION_1_1;
+        dev.common.version = SENSORS_DEVICE_API_VERSION_1_3;
         dev.common.module  = const_cast<hw_module_t*>(module);
         dev.common.close   = close;
         dev.activate       = sensorActivate;

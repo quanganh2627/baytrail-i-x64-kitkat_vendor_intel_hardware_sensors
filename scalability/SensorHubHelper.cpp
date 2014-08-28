@@ -140,8 +140,6 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
 void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate, int &bufferDelay, streaming_flag &flag)
 {
         switch (sensorType) {
-        case SENSOR_TYPE_PROXIMITY:
-                flag = NO_STOP_WHEN_SCREEN_OFF;
         case SENSOR_TYPE_GESTURE_FLICK:
                 dataRate = GF_SAMPLE_RATE;
                 bufferDelay = GF_BUF_DELAY;
@@ -158,9 +156,6 @@ void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate,
                 dataRate = STAP_SAMPLE_RATE;
                 bufferDelay = STAP_BUF_DELAY;
                 break;
-        case SENSOR_TYPE_SIGNIFICANT_MOTION:
-                flag = NO_STOP_WHEN_SCREEN_OFF;
-                break;
         case SENSOR_TYPE_STEP_COUNTER:
                 flag = NO_STOP_NO_REPORT_WHEN_SCREEN_OFF;
                 break;
@@ -169,7 +164,7 @@ void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate,
         }
 }
 
-bool SensorHubHelper::setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler) {
+error_t SensorHubHelper::setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler) {
         switch (sensorType) {
         case SENSOR_TYPE_SHAKE: {
                 int sensitivity = SHAKE_SEN_MEDIUM;
@@ -178,7 +173,7 @@ bool SensorHubHelper::setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_m
         default:
                 break;
         }
-        return true;
+        return ERROR_NONE;
 }
 
 int SensorHubHelper::getGestureFlickEvent(struct gesture_flick_data data)

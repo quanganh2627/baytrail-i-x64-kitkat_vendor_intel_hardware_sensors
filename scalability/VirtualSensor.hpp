@@ -20,6 +20,24 @@
 #define SENSOR_TYPE_PAN_ZOOM                SENSOR_TYPE_DEVICE_PRIVATE_BASE + 14
 #define SENSOR_TYPE_CALIBRATION             110
 
+// SENSOR_STRING_TYPE_XXX
+#define SENSOR_STRING_TYPE_GESTURE_FLICK        "intel.sensor.gesture_flick"
+#define SENSOR_STRING_TYPE_GESTURE              "intel.sensor.gesture"
+#define SENSOR_STRING_TYPE_PHYSICAL_ACTIVITY    "intel.sensor.physical_activity"
+#define SENSOR_STRING_TYPE_TERMINAL             "intel.sensor.terminal"
+#define SENSOR_STRING_TYPE_AUDIO_CLASSIFICATION "intel.sensor.audio_classificataion"
+#define SENSOR_STRING_TYPE_PEDOMETER            "intel.sensor.pedometer"
+#define SENSOR_STRING_TYPE_SHAKE                "intel.sensor.shake"
+#define SENSOR_STRING_TYPE_SIMPLE_TAPPING       "intel.sensor.simple_tapping"
+#define SENSOR_STRING_TYPE_MOVE_DETECT          "intel.sensor.move_detect"
+#define SENSOR_STRING_TYPE_GESTURE_EARTOUCH     "intel.sensor.gseture_eartouch"
+#define SENSOR_STRING_TYPE_GESTURE_HMM          "intel.sensor.gesture_hmm"
+#define SENSOR_STRING_TYPE_DEVICE_POSITION      "intel.sensor.device_position"
+#define SENSOR_STRING_TYPE_LIFT                 "intel.sensor.lift"
+#define SENSOR_STRING_TYPE_PAN_ZOOM             "intel.sensor.pan_zoom"
+#define SENSOR_STRING_TYPE_CALIBRATION          "intel.sensor.calibration"
+
+
 // Sensor event types
 
 #define SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK        (1)

@@ -18,6 +18,8 @@ class PlatformConfig {
         bool addPlatformData(xmlNodePtr node, std::string type);
         bool addSensorDevice(xmlNodePtr node, std::string type, std::string category);
         int getType(std::string type);
+        const char* getStringType(int sensorType);
+        uint32_t getFlags(int sensorType);
         sensor_category_t getCategory(std::string category);
         sensors_event_property_t getEventProperty(int type);
         sensor_driver_node_type getDriverNodeType(std::string nodeType);

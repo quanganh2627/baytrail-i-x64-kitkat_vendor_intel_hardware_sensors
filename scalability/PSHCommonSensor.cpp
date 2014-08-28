@@ -25,6 +25,7 @@ int PSHCommonSensor::getPollfd()
 int PSHCommonSensor::hardwareSet(bool activated)
 {
         int dataRate = state.getDataRate();
+        int ret = 0;
 
         if (!activated) {
                 state.setActivated(activated);
@@ -34,6 +35,8 @@ int PSHCommonSensor::hardwareSet(bool activated)
                         return -1;
                 }
         } else {
+                if (device.getFlags() & SENSOR_FLAG_WAKE_UP)
+                        flag = NO_STOP_WHEN_SCREEN_OFF;
                 /* Some PSH session need to set different rate and delay */
                 SensorHubHelper::getStartStreamingParameters(device.getType(), dataRate, bufferDelay, flag);
 
@@ -43,8 +46,8 @@ int PSHCommonSensor::hardwareSet(bool activated)
                 }
                 if (!state.getActivated()) {
                         /* Some PSH session need to set property */
-                        if (!SensorHubHelper::setPSHPropertyIfNeeded(device.getType(), methods, sensorHandle)) {
-                                ALOGE("Set property failed for sensor type %d", device.getType());
+                        if ((ret = SensorHubHelper::setPSHPropertyIfNeeded(device.getType(), methods, sensorHandle)) != ERROR_NONE) {
+                                ALOGE("Set property failed for sensor type %d ret: %d", device.getType(), ret);
                                 return -1;
                         }
                 }
@@ -70,32 +73,21 @@ int PSHCommonSensor::batch(int handle, int flags, int64_t period_ns, int64_t tim
         static int oldDataRate = -1;
         static int oldBufferDelay = -1;
         static streaming_flag oldFlag;
-        if (timeout == 0) {
-                if (!(flags & SENSORS_BATCH_DRY_RUN)) {
-                        setDelay(handle, period_ns);
-                        bufferDelay = 0;
-                        oldBufferDelay = 0;
-                }
-                return 0;
-        }
 
-        if (device.getMinDelay() == 0) {
+        if (handle != device.getHandle()) {
+                ALOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+                     __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
                 return -EINVAL;
         }
 
-        if (flags & SENSORS_BATCH_DRY_RUN) {
-                if (flags & SENSORS_BATCH_WAKE_UPON_FIFO_FULL && delay < 66)
-                        return -EINVAL;
-                return 0;
-        }
+        if (period_ns < 0 || timeout < 0)
+                return -EINVAL;
 
-        if (flags & SENSORS_BATCH_WAKE_UPON_FIFO_FULL) {
-                /* current is hard coding for 2K fifo */
-                if (delay < 66)
-                        return -EINVAL;
-                flag = NO_STOP_WHEN_SCREEN_OFF;
-        } else {
-                flag = STOP_WHEN_SCREEN_OFF;
+        if (timeout == 0) {
+                ret = setDelay(handle, period_ns);
+                bufferDelay = 0;
+                oldBufferDelay = 0;
+                return ret;
         }
 
         bufferDelay = timeout / NS_TO_MS;
@@ -141,6 +133,7 @@ int PSHCommonSensor::setDelay(int handle, int64_t period_ns) {
         int dataRate = 5;
         int delay = 200;
         int minDelay = device.getMinDelay() / US_TO_MS;
+        int maxDelay = device.getMaxDelay() / US_TO_MS;
 
         if (period_ns / 1000 != SENSOR_NOPOLL)
                 delay = period_ns / NS_TO_MS;
@@ -149,6 +142,9 @@ int PSHCommonSensor::setDelay(int handle, int64_t period_ns) {
 
         if (delay < minDelay)
                 delay = minDelay;
+
+        if (delay > maxDelay)
+                delay = maxDelay;
 
         if (delay != 0)
                 dataRate = 1000 / delay;

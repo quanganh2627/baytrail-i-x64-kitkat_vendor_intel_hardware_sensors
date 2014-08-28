@@ -37,13 +37,10 @@ int Sensor::batch(int handle, int flags, int64_t period_ns, int64_t timeout)
                 return -EINVAL;
         }
 
-        if (timeout == 0) {
-                if (flags != SENSORS_BATCH_DRY_RUN)
-                        setDelay(handle, period_ns);
-                return 0;
-        }
+        if (period_ns < 0 || timeout < 0)
+                return -EINVAL;
 
-        return -EINVAL;
+        return setDelay(handle, period_ns);
 }
 
 int Sensor::flush(int handle)
