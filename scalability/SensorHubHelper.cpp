@@ -96,6 +96,10 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 return SENSOR_LINEAR_ACCEL;
         case SENSOR_TYPE_ROTATION_VECTOR:
                 return SENSOR_ROTATION_VECTOR;
+        case SENSOR_TYPE_WAKE_GESTURE:
+                return SENSOR_STAP;
+        case SENSOR_TYPE_GLANCE_GESTURE:
+                return SENSOR_SHAKING;
         case SENSOR_TYPE_GESTURE_FLICK:
                 return SENSOR_GESTURE_FLICK;
         case SENSOR_TYPE_TERMINAL:
@@ -140,6 +144,16 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
 void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate, int &bufferDelay, streaming_flag &flag)
 {
         switch (sensorType) {
+        case SENSOR_TYPE_WAKE_GESTURE:
+                dataRate = STAP_SAMPLE_RATE;
+                bufferDelay = STAP_BUF_DELAY;
+                flag = NO_STOP_WHEN_SCREEN_OFF;
+                break;
+        case SENSOR_TYPE_GLANCE_GESTURE:
+                dataRate = SHAKING_SAMPLE_RATE;
+                bufferDelay = SHAKING_BUF_DELAY;
+                flag = NO_STOP_WHEN_SCREEN_OFF;
+                break;
         case SENSOR_TYPE_GESTURE_FLICK:
                 dataRate = GF_SAMPLE_RATE;
                 bufferDelay = GF_BUF_DELAY;
@@ -166,10 +180,14 @@ void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate,
 
 error_t SensorHubHelper::setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler) {
         switch (sensorType) {
-        case SENSOR_TYPE_SHAKE: {
-                int sensitivity = SHAKE_SEN_MEDIUM;
-                return methods.psh_set_property(handler, PROP_SHAKING_SENSITIVITY, &sensitivity);
-        }
+        case SENSOR_TYPE_SHAKE:
+                return methods.psh_set_property_with_size(handler, PROP_GENERIC_START, strlen(SHAKE_SEN_MEDIUM) + 1, const_cast<char*>(SHAKE_SEN_MEDIUM));
+        case SENSOR_TYPE_SIMPLE_TAPPING:
+                return methods.psh_set_property_with_size(handler, PROP_GENERIC_START, strlen(STAP_CLSMASK_BOTH) + 1, const_cast<char*>(STAP_CLSMASK_BOTH));
+        case SENSOR_TYPE_WAKE_GESTURE:
+                return methods.psh_set_property_with_size(handler, PROP_GENERIC_START, strlen(STAP_CLSMASK_FOR_WAKE) + 1, const_cast<char*>(STAP_CLSMASK_FOR_WAKE));
+        case SENSOR_TYPE_GLANCE_GESTURE:
+                return methods.psh_set_property_with_size(handler, PROP_GENERIC_START, strlen(SHAKE_SEN_LOW) + 1, const_cast<char*>(SHAKE_SEN_LOW));
         default:
                 break;
         }
@@ -295,6 +313,10 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct linear_accel_data);
         case SENSOR_TYPE_ROTATION_VECTOR:
                 return sizeof(struct rotation_vector_data);
+        case SENSOR_TYPE_WAKE_GESTURE:
+                return sizeof(struct stap_data);
+        case SENSOR_TYPE_GLANCE_GESTURE:
+                return sizeof(struct shaking_data);
         case SENSOR_TYPE_GESTURE_FLICK:
                 return sizeof(struct gesture_flick_data);
         case SENSOR_TYPE_GESTURE:
@@ -443,6 +465,18 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[2] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].z;
                         events[i].data[3] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].w;
                         events[i].timestamp = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_WAKE_GESTURE:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = 1.0;
+                        events[i].timestamp = (reinterpret_cast<struct stap_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_GLANCE_GESTURE:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = 1.0;
+                        events[i].timestamp = (reinterpret_cast<struct shaking_data*>(stream))[i].ts;
                 }
                 break;
         case SENSOR_TYPE_GESTURE_FLICK:

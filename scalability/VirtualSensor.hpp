@@ -169,13 +169,19 @@ typedef enum { /* definition flick gestures value */
 #define SHAKING_BUF_SIZE            512
 #define SHAKING_SAMPLE_RATE         20
 #define SHAKING_BUF_DELAY           0
-#define SHAKE_SEN_MEDIUM            1
+#define SHAKE_SEN_LOW               "{\"sensitivity\":0}"
+#define SHAKE_SEN_MEDIUM            "{\"sensitivity\":1}"
+#define SHAKE_SEN_HIGH              "{\"sensitivity\":2}"
 #define SHAKING 1
 
 // simple tapping sensor
 #define STAP_BUF_SIZE            512
 #define STAP_SAMPLE_RATE         20
 #define STAP_BUF_DELAY           0
+#define STAP_CLSMASK_SINGLE      "{\"classMask\":1,\"level\":0}"
+#define STAP_CLSMASK_DOUBLE      "{\"classMask\":2,\"level\":0}"
+#define STAP_CLSMASK_BOTH        "{\"classMask\":3,\"level\":0}"
+#define STAP_CLSMASK_FOR_WAKE    "{\"classMask\":2,\"level\":-5}"
 #define STAP_DEFAULT_LEVEL       0
 #define DOUBLE_TAPPING 2
 #define SINGLE_TAPPING 1

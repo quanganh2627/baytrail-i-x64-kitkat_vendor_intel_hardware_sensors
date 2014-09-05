@@ -192,6 +192,9 @@ int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                         event.acceleration.status = sensorhubEvent[i].accuracy;
                         }
                         event.timestamp = sensorhubEvent[i].timestamp;
+                        /* auto disable one-shot sensor */
+                        if (device.getFlags() & SENSOR_FLAG_ONE_SHOT_MODE)
+                                activate(device.getHandle(), 0);
                         eventQue.push(event);
                 }
         }

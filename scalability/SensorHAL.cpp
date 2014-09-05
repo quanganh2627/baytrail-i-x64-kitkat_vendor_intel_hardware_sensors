@@ -73,20 +73,25 @@ static bool initSensors()
                         case SENSOR_TYPE_TEMPERATURE:
                         case SENSOR_TYPE_RELATIVE_HUMIDITY:
                         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
+                        case SENSOR_TYPE_HEART_RATE:
                         case SENSOR_TYPE_ORIENTATION:
                         case SENSOR_TYPE_GRAVITY:
                         case SENSOR_TYPE_LINEAR_ACCELERATION:
                         case SENSOR_TYPE_ROTATION_VECTOR:
-                        case SENSOR_TYPE_GESTURE_FLICK:
-                        case SENSOR_TYPE_TERMINAL:
-                        case SENSOR_TYPE_SHAKE:
-                        case SENSOR_TYPE_SIMPLE_TAPPING:
-                        case SENSOR_TYPE_MOVE_DETECT:
                         case SENSOR_TYPE_STEP_DETECTOR:
                         case SENSOR_TYPE_STEP_COUNTER:
                         case SENSOR_TYPE_SIGNIFICANT_MOTION:
                         case SENSOR_TYPE_GAME_ROTATION_VECTOR:
                         case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
+                        case SENSOR_TYPE_TILT_DETECTOR:
+                        case SENSOR_TYPE_WAKE_GESTURE:
+                        case SENSOR_TYPE_GLANCE_GESTURE:
+                        case SENSOR_TYPE_PICK_UP_GESTURE:
+                        case SENSOR_TYPE_GESTURE_FLICK:
+                        case SENSOR_TYPE_TERMINAL:
+                        case SENSOR_TYPE_SHAKE:
+                        case SENSOR_TYPE_SIMPLE_TAPPING:
+                        case SENSOR_TYPE_MOVE_DETECT:
                         case SENSOR_TYPE_DEVICE_POSITION:
                         case SENSOR_TYPE_LIFT:
                         case SENSOR_TYPE_PAN_ZOOM:
@@ -127,6 +132,7 @@ static bool initSensors()
                         case SENSOR_TYPE_TEMPERATURE:
                         case SENSOR_TYPE_RELATIVE_HUMIDITY:
                         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
+                        case SENSOR_TYPE_HEART_RATE:
                                 if (mData.driverNodeType == MISC)
                                         mSensor = new MiscSensor(mDevice, mData);
                                 else
