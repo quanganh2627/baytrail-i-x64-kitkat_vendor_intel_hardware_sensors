@@ -31,7 +31,7 @@ CompassSensor::CompassSensor(const sensor_platform_config_t *config)
         E("CompassSensor: Incorrect sensor config");
 
     data_fd = SensorBase::openInputDev(mConfig->name);
-    LOGE_IF(data_fd < 0, "can't open compass input dev");
+    ALOGE_IF(data_fd < 0, "can't open compass input dev");
 
     if (!config->priv_data)
         mFilterEn = 0;

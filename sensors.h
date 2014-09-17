@@ -42,13 +42,13 @@ __BEGIN_DECLS
 //#define SENSOR_DBG
 
 #ifdef SENSOR_DBG
-#define  D(...)  LOGD(__VA_ARGS__)
+#define  D(...)  ALOGD(__VA_ARGS__)
 #else
 #define  D(...)  ((void)0)
 #endif
 
-#define  E(...)  LOGE(__VA_ARGS__)
-#define  I(...)  LOGI(__VA_ARGS__)
+#define  E(...)  ALOGE(__VA_ARGS__)
+#define  I(...)  ALOGI(__VA_ARGS__)
 
 /* * SENSORS_HANDLE_xxx should greater than SENSORS_HANDLE_BASE
  * and must be unique.  */

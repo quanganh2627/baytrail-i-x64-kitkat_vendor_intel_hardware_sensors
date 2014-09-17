@@ -27,7 +27,7 @@ PressureSensor::PressureSensor(const sensor_platform_config_t *config)
         E("PressureSensor: Incorrect sensor config");
 
     data_fd = SensorBase::openInputDev(mConfig->name);
-    LOGE_IF(data_fd < 0, "can't open pressure input dev");
+    ALOGE_IF(data_fd < 0, "can't open pressure input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
     mPendingEvent.sensor = SENSORS_HANDLE_PRESSURE;

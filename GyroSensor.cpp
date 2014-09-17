@@ -30,7 +30,7 @@ GyroSensor::GyroSensor(const sensor_platform_config_t *config)
         E("GyroSensor: Incorrect sensor config");
 
     data_fd = SensorBase::openInputDev(mConfig->name);
-    LOGE_IF(data_fd < 0, "can't open gyro input dev");
+    ALOGE_IF(data_fd < 0, "can't open gyro input dev");
 
     mPendingEvent.version = sizeof(sensors_event_t);
     mPendingEvent.sensor = SENSORS_HANDLE_GYROSCOPE;

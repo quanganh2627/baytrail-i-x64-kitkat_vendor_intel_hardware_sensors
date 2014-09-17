@@ -25,7 +25,7 @@ ProximitySensor::ProximitySensor(const sensor_platform_config_t *config)
         E("ProximitySensor: Incorrect sensor config");
 
     data_fd = open(mConfig->activate_path, O_RDONLY);
-    LOGE_IF(data_fd < 0, "can't open %s", mConfig->activate_path);
+    ALOGE_IF(data_fd < 0, "can't open %s", mConfig->activate_path);
 
     mPendingEvent.version = sizeof(sensors_event_t);
     mPendingEvent.sensor = SENSORS_HANDLE_PROXIMITY;

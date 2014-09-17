@@ -65,7 +65,7 @@ int SensorBase::openInputDev(const char* inputName)
     dir = opendir(sys_dirname);
 
     if (dir == NULL) {
-        LOGE("%s: opendir failed", __func__);
+        ALOGE("%s: opendir failed", __func__);
         return -1;
     }
 
@@ -146,7 +146,7 @@ int SensorBase::openFile(const char *all_path, int flags)
             if ((fd = open(str, flags)) < 0) {
                 return -1;
             } else {
-                LOGI("Sensor HAL: Open file %s", str);
+                ALOGI("Sensor HAL: Open file %s", str);
                 return fd;
             }
         }

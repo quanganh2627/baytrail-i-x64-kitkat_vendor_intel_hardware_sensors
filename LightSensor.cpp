@@ -25,7 +25,7 @@ LightSensor::LightSensor(const sensor_platform_config_t *config)
         E("LightSensor: Incorrect sensor config");
 
     data_fd = open(mConfig->data_path, O_RDONLY);
-    LOGE_IF(data_fd < 0, "can't open %s", mConfig->data_path);
+    ALOGE_IF(data_fd < 0, "can't open %s", mConfig->data_path);
 
     mPendingEvent.version = sizeof(sensors_event_t);
     mPendingEvent.sensor = SENSORS_HANDLE_LIGHT;

@@ -56,7 +56,7 @@ const struct sensor_t* get_platform_sensor_list(int *sensor_num)
     if (!sensor_list) {
         ret = sensor_config_init_xml();
         if (ret) {
-            LOGE("Init config xml error\n");
+            ALOGE("Init config xml error\n");
             return NULL;
         }
     }
@@ -116,7 +116,7 @@ static int sensor_config_init_xml() {
 
     ret = property_get("ro.sensors.mapper", buf, NULL);
     if (ret <= 0) {
-        LOGE("Get sensors mapper property error! Use default config.\n");
+        ALOGE("Get sensors mapper property error! Use default config.\n");
 	strcpy(buf, "default");
     }
     strcpy(file, file_prefix);
@@ -127,26 +127,26 @@ static int sensor_config_init_xml() {
     doc = xmlReadFile(file, NULL, XML_PARSE_NOBLANKS);
 
     if (doc == NULL ) {
-        LOGE("XML Document not parsed successfully.\n");
+        ALOGE("XML Document not parsed successfully.\n");
         return -1;
     }
 
     root = xmlDocGetRootElement(doc);
     if (root == NULL) {
-        LOGE("Empty XML document\n");
+        ALOGE("Empty XML document\n");
         xmlFreeDoc(doc);
         return -1;
     }
 
     if (xmlStrcmp(root->name, (const xmlChar *) "sensor_hal_config")) {
-        LOGE("Wrong XML document, cannot find \"sensor_hal_config\" element!\n");
+        ALOGE("Wrong XML document, cannot find \"sensor_hal_config\" element!\n");
         xmlFreeDoc(doc);
         return -1;
     }
 
     ret = sensor_config_init_sensors(root->xmlChildrenNode);
     if (ret) {
-        LOGE("Init Sensors Error!\n");
+        ALOGE("Init Sensors Error!\n");
         return ret;
     }
 
@@ -171,19 +171,19 @@ static int sensor_config_init_sensors(xmlNodePtr node) {
 
     sensor_configs = (sensor_platform_config_t *)malloc(sizeof(sensor_platform_config_t)*count);
     if (!sensor_configs) {
-        LOGE("malloc error!\n");
+        ALOGE("malloc error!\n");
         return -1;
     }
 
     sensor_list = (sensor_t *)malloc(sizeof(struct sensor_t)*count);
     if (!sensor_list) {
-        LOGE("malloc error!\n");
+        ALOGE("malloc error!\n");
         return -1;
     }
 
     platform_sensors = (SensorBase **)malloc(sizeof(SensorBase *)*count);
     if (!platform_sensors) {
-        LOGE("malloc error!\n");
+        ALOGE("malloc error!\n");
         return -1;
     }
 
@@ -273,7 +273,7 @@ static int sensor_config_get_platform_data(xmlNodePtr node, sensor_platform_conf
                 if (attr) {
                     temp = (sensor_data_t *)malloc(sizeof(union sensor_data_t));
                     if(!temp)
-                        LOGE("malloc priv_data error!\n");
+                        ALOGE("malloc priv_data error!\n");
                     else
                         temp->compass_filter_en = atoi((char *)attr);
                     config->priv_data = temp;
@@ -282,7 +282,7 @@ static int sensor_config_get_platform_data(xmlNodePtr node, sensor_platform_conf
                 else if ((attr = xmlGetProp(p, (const xmlChar*)"light_glass_factor"))) {
                     temp = (sensor_data_t *)malloc(sizeof(union sensor_data_t));
                     if(!temp)
-                        LOGE("malloc priv_data error!\n");
+                        ALOGE("malloc priv_data error!\n");
                     else
                         temp->light_glass_factor = atof((char *)attr);
                     config->priv_data = temp;
