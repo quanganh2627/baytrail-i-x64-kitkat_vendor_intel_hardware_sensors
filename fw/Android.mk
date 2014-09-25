@@ -40,6 +40,8 @@ include $(BUILD_SYSTEM)/base_rules.mk
 $(LOCAL_BUILT_MODULE): sensor_helper $(ACP)
 	@echo "Generating Sensor Driver Firmware image..."
 	$(hide)mkdir -p $(dir $@)
+	$(hide)mkdir -p $(TARGET_OUT_ETC)
+	$(hide)mkdir -p $(PRODUCT_OUT)/root
 	$(hide)sensor_helper -b -x $(dir $@)/$(SENSOR_DRIVER_CONFIG_XML) \
 				-h $(dir $@)/$(SENSOR_HAL_CONFIG_XML) \
 				-i $(dir $@)/$(SENSOR_INITRC) \
