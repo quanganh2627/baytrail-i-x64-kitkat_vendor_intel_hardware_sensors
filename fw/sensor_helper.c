@@ -3554,6 +3554,9 @@ hal:
 					/*any of name ,activate_node, poll_node*/
 					if (!xmlStrcmp(q->name, (const xmlChar *)"activate_node")) {
 						val = (char *)xmlNodeGetContent(q);
+						if (val == NULL) {
+							continue;
+						}
 						if (*val) {
 							DBG(LEVEL2," %s", val);
 							strcpy(info->activate_node, (const char *)val);
@@ -3562,6 +3565,9 @@ hal:
 						}
 					} else if (!xmlStrcmp(q->name, (const xmlChar *)"poll_node")) {
 						val = (char *)xmlNodeGetContent(q);
+                                               if (val == NULL) {
+                                                       continue;
+                                               }
 						if (*val) {
 							DBG(LEVEL2, "%s", val);
 							strcpy(info->poll_node, (const char *)val);
@@ -3757,7 +3763,7 @@ static int read_file(char *name, char **buf, int *size)
 	}
 	*size = ret;
 
-	*buf = malloc(*size);
+	*buf = malloc(*size+1);
 	if (*buf == NULL) {
 		printf("lseek error\n");
 		ret = -1;
@@ -3772,6 +3778,7 @@ static int read_file(char *name, char **buf, int *size)
 		ret = -1;
 		goto out;
 	}
+	(*buf)[*size] = '\0';//the buf size equals file size + 1
 	ret = 0;
 out:
 	close(fd);
