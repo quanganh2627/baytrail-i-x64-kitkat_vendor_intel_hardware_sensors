@@ -25,7 +25,7 @@ ifneq ($(TARGET_SIMULATOR),true)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := sensors.$(TARGET_DEVICE)
-LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\" -DENABLE_ACCEL_ZCAL
@@ -55,7 +55,6 @@ include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libaccelerometersimplecalibration
-LOCAL_MODULE_PATH := $(TARGET_OUT_STATIC_LIBRARIES)
 LOCAL_MODULE_TAGS := optional
 LOCAL_CFLAGS := -DLOG_TAG=\"AccelerometerSimpleCalibration\"
 LOCAL_SHARED_LIBRARIES := liblog libcutils
@@ -67,7 +66,6 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libaccelerometersimplecalibration
-LOCAL_MODULE_PATH := $(TARGET_OUT_STATIC_LIBRARIES)
 LOCAL_MODULE_TAGS := optional
 LOCAL_CFLAGS := -DLOG_TAG=\"AccelerometerSimpleCalibration\"
 LOCAL_SHARED_LIBRARIES := liblog libcutils
@@ -89,7 +87,7 @@ ifneq ($(TARGET_SIMULATOR),true)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := sensors.$(TARGET_DEVICE)
-LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
