@@ -160,7 +160,7 @@ bool PlatformConfig::addSensorDevice(xmlNodePtr node, std::string type, std::str
         xmlChar *attr = NULL;
         float value = 0;
         SensorDevice mSensor;
-        int sensorType;
+        int sensorType = 0;
         const char* sensorStringType;
         uint32_t flags;
         sensors_event_property_t eventProperty;

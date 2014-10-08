@@ -136,7 +136,14 @@ int SensorBase::openFile(const char *all_path, int flags)
     char *str, *str_left;
     char path[PATH_MAX_LEN] = { 0 };
 
-    strncpy(path, all_path, MIN(strlen(all_path), sizeof(path)-1));
+    int size_cp;
+    int size_all_path = strlen(all_path);
+    if (size_all_path < PATH_MAX_LEN) {
+        size_cp = size_all_path;
+    } else {
+        size_cp = PATH_MAX_LEN - 1;
+    }
+    strncpy(path, all_path, size_cp);
     str_left = path;
     while ((str = strsep(&str_left, ";")) != NULL) {
         str = trim_space(str);
