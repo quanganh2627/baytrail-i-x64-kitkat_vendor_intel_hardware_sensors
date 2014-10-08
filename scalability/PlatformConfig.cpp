@@ -166,25 +166,30 @@ bool PlatformConfig::addSensorDevice(xmlNodePtr node, std::string type, std::str
         sensors_event_property_t eventProperty;
         xmlNodePtr p = node->xmlChildrenNode;
 
-        if (p != NULL) {
-                mSensor.setId(devices.size());
-
-                mSensor.setHandle(mSensor.idToHandle(mSensor.getId()));
-                sensorType = getType(type);
-                if (sensorType == 0) {
-                        ALOGE("%s line: %d Unsupported sensor type: %d",
-                             __FUNCTION__, __LINE__, sensorType);
-                        return false;
-                }
-                mSensor.setType(sensorType);
-                sensorStringType = getStringType(sensorType);
-                mSensor.setStringType(sensorStringType);
-                flags = getFlags(sensorType);
-                mSensor.setFlags(flags);
-                eventProperty = getEventProperty(sensorType);
-                mSensor.setEventProperty(eventProperty);
-                mSensor.setCategory(getCategory(category));
+        if (p == NULL) {
+                ALOGE("%s line: %d invalid xml node!",
+                      __FUNCTION__, __LINE__);
+                return false;
         }
+
+        mSensor.setId(devices.size());
+
+        mSensor.setHandle(mSensor.idToHandle(mSensor.getId()));
+        sensorType = getType(type);
+        if (sensorType == 0) {
+                ALOGE("%s line: %d Unsupported sensor type: %d",
+                      __FUNCTION__, __LINE__, sensorType);
+                return false;
+        }
+        mSensor.setType(sensorType);
+        sensorStringType = getStringType(sensorType);
+        mSensor.setStringType(sensorStringType);
+        flags = getFlags(sensorType);
+        mSensor.setFlags(flags);
+        eventProperty = getEventProperty(sensorType);
+        mSensor.setEventProperty(eventProperty);
+        mSensor.setCategory(getCategory(category));
+
         while (p != NULL) {
                 if ((!xmlStrcmp(p->name, (const xmlChar *)"mapper"))) {
                         attr = xmlGetProp(p, (const xmlChar*)"axis_x");
