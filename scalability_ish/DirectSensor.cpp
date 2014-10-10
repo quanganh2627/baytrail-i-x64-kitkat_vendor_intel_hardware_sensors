@@ -9,9 +9,9 @@ DirectSensor::DirectSensor(SensorDevice &mDevice, struct PlatformData &mData)
         DriverCalibration = NULL;
         calibrationMethodsHandle = NULL;
         if (data.calibrationFunc.length() > 0 || (data.driverCalibrationFunc.length() > 0 && data.driverCalibrationInterface.length() > 0)) {
-                calibrationMethodsHandle = dlopen("/system/lib/libsensorcalibration.so", RTLD_LAZY);
+                calibrationMethodsHandle = dlopen("libsensorcalibration.so", RTLD_LAZY);
                 if (calibrationMethodsHandle == NULL) {
-                        LOGE("dlopen: /system/lib/libsensorcalibration.so error!");
+                        LOGE("dlopen: libsensorcalibration.so error!");
                         return;
                 }
 

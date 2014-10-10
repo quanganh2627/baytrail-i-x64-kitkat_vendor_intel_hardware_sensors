@@ -43,10 +43,10 @@ AwareSensor::~AwareSensor() {
 }
 
 bool AwareSensor::VirtualSensorMethodsInitialize() {
-        virtualsensorHandle = dlopen("/system/lib/libvirtualsensors.so",
+        virtualsensorHandle = dlopen("libvirtualsensors.so",
                         RTLD_LAZY);
         if (virtualsensorHandle == NULL) {
-                ALOGE("dlopen: /system/lib/libvirtualsensors.so error!");
+                ALOGE("dlopen: libvirtualsensors.so error!");
                 return false;
         }
 

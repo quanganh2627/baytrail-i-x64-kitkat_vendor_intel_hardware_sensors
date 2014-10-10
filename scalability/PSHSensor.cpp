@@ -22,9 +22,9 @@ PSHSensor::~PSHSensor()
 
 bool PSHSensor::SensorHubMethodsInitialize()
 {
-        methodsHandle = dlopen("/system/lib/libsensorhub.so", RTLD_LAZY);
+        methodsHandle = dlopen("libsensorhub.so", RTLD_LAZY);
         if (methodsHandle == NULL) {
-                ALOGE("dlopen: /system/lib/libsensorhub.so error!");
+                ALOGE("dlopen: libsensorhub.so error!");
                 return false;
         }
 
