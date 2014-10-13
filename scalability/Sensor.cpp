@@ -57,6 +57,11 @@ int Sensor::flush(int handle)
                 return -EINVAL;
         }
 
+        if (device.getFlags() & SENSOR_FLAG_ONE_SHOT_MODE) {
+                ALOGE("%s line: %d error: one-shot sensor: %s", __FUNCTION__, __LINE__, device.getName());
+                return -EINVAL;
+        }
+
         if (!state.getBatchModeEnabled()) {
                 ALOGW("%s line: %d %s batch not enabled", __FUNCTION__, __LINE__, device.getName());
                 state.setFlushSuccess(true);

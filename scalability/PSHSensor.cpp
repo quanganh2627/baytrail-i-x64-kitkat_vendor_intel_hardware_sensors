@@ -162,6 +162,11 @@ int PSHSensor::flush(int handle)
                 return -EINVAL;
         }
 
+        if (device.getFlags() & SENSOR_FLAG_ONE_SHOT_MODE) {
+                ALOGE("%s line: %d error: one-shot sensor: %s", __FUNCTION__, __LINE__, device.getName());
+                return -EINVAL;
+        }
+
         err = methods.psh_flush_streaming(sensorHandle, SensorHubHelper::getUnitSize(device.getType()));
 
         return err == ERROR_NONE ? 0 : -EINVAL;
