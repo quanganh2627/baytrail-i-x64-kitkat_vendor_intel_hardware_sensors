@@ -1,0 +1,304 @@
+#include <dirent.h>
+#include <fstream>
+#include <poll.h>
+#include <signal.h>
+#include <hardware/hardware.h>
+#include "PSHCommonSensor.hpp"
+#include "PlatformConfig.hpp"
+#include "PedometerSensor.hpp"
+#include "utils.hpp"
+#if 0
+#include "GestureSensor.hpp"
+#include "PhysicalActivitySensor.hpp"
+#include "AudioClassifierSensor.hpp"
+#endif
+
+static int open(const struct hw_module_t* module, const char* id,
+                struct hw_device_t** device);
+
+static struct hw_module_methods_t sensors_module_methods = {
+open: open,
+};
+
+struct SensorModule {
+        struct sensor_t* list;
+        std::vector<Sensor*> sensors;
+        struct pollfd *pollfds;
+        int count;
+};
+
+static struct SensorModule mModule;
+
+static int get_sensors_list(struct sensors_module_t* module, struct sensor_t const** list)
+{
+        *list = mModule.list;
+        return mModule.count;
+}
+
+struct sensors_module_t HAL_MODULE_INFO_SYM = {
+common: {
+        tag: HARDWARE_MODULE_TAG,
+        version_major: 1,
+        version_minor: 0,
+        id: SENSORS_HARDWARE_MODULE_ID,
+        name: "Intel Sensor module",
+        author: "Han, He <he.han@intel.com>, Intel Inc.",
+        methods: &sensors_module_methods,
+        dso: 0,
+        reserved: { 0 },
+},
+get_sensors_list: get_sensors_list,
+};
+
+static int GetDirFiles(const std::string& dir, std::vector < std::string >& files){
+        DIR *dp;
+        struct dirent *dirp;
+
+        if ((dp = opendir(dir.c_str())) == NULL) {
+                log_message(CRITICAL, "%s: error opening directory %s\n", __func__, (char*)dir.c_str());
+                return errno;
+        }
+
+        while ((dirp = readdir(dp)) != NULL)
+                files.push_back(std::string(dirp->d_name));
+
+        closedir(dp);
+        return 0;
+}
+
+static bool initSensors()
+{
+	const std::string SENSORS_DIR = "/sys/bus/platform/devices/sensor_collection";
+	std::vector < std::string > sensorsFiles;
+	int sleepCounter = 0;
+	bool sensorExist = false;
+
+	while(sleepCounter < 60) {
+		if (FILE *file = fopen("/data/sensorsUp", "r")) {
+			log_message(DEBUG, "%s sleepCount = %d, sensorsUp file found\n", __func__, sleepCounter);
+			fclose(file);
+			sensorsFiles.clear();
+			GetDirFiles(SENSORS_DIR, sensorsFiles);
+			for (unsigned int i = 0; i < sensorsFiles.size(); i++) {
+                                if (sensorsFiles[i].find("sensor_") != std::string::npos) {
+					sensorExist = true;
+					break;
+				}
+                        }
+
+			if(sensorExist) {
+				remove("/data/sensorsUp");
+				break;
+			}
+		}
+
+		sleepCounter++;
+		sleep(1);
+	}
+
+	if(sleepCounter == 60) {
+		log_message(CRITICAL, "%s sleep counter is 60 sec. error occurred in sensors load: no sensors were found\n", __func__);
+		return false;
+	}
+
+	log_message(DEBUG, "%s sleep counter is %d sec.\n", __func__, sleepCounter);
+
+        PlatformConfig mConfig;
+        SensorDevice mDevice;
+        Sensor* mSensor = NULL;
+        unsigned int size;
+
+        size = mConfig.size();
+        mModule.sensors.reserve(size);
+        int newId = 0;
+
+        for (unsigned int i = 0; i < size; i++) {
+                if (!mConfig.getSensorDevice(i, mDevice)) {
+                        log_message(CRITICAL,"Sensor Device config error\n");
+                        return false;
+                }
+
+                switch (mDevice.getType()) {
+                        case SENSOR_TYPE_ACCELEROMETER:
+                        case SENSOR_TYPE_MAGNETIC_FIELD:
+                        case SENSOR_TYPE_GYROSCOPE:
+                        case SENSOR_TYPE_PRESSURE:
+                        case SENSOR_TYPE_LIGHT:
+                        case SENSOR_TYPE_PROXIMITY:
+                        case SENSOR_TYPE_TEMPERATURE:
+                        case SENSOR_TYPE_RELATIVE_HUMIDITY:
+                        case SENSOR_TYPE_AMBIENT_TEMPERATURE:
+                        case SENSOR_TYPE_ORIENTATION:
+                        case SENSOR_TYPE_GRAVITY:
+                        case SENSOR_TYPE_LINEAR_ACCELERATION:
+                        case SENSOR_TYPE_ROTATION_VECTOR:
+                        case SENSOR_TYPE_GESTURE_FLICK:
+                        case SENSOR_TYPE_TERMINAL:
+                        case SENSOR_TYPE_SHAKE:
+                        case SENSOR_TYPE_SIMPLE_TAPPING:
+                        case SENSOR_TYPE_MOVE_DETECT:
+                        case SENSOR_TYPE_STEP_DETECTOR:
+                        case SENSOR_TYPE_STEP_COUNTER:
+                        case SENSOR_TYPE_SIGNIFICANT_MOTION:
+                        case SENSOR_TYPE_GAME_ROTATION_VECTOR:
+                        case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
+			case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+			case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
+			case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
+			case SENSOR_TYPE_MOTION_DETECT:
+                                mSensor = new PSHCommonSensor(mDevice);
+                                break;
+                        case SENSOR_TYPE_PEDOMETER:
+                                mSensor = new PedometerSensor(mDevice);
+                                break;
+#if 0
+                        case SENSOR_TYPE_PHYSICAL_ACTIVITY:
+                                mSensor = new PhysicalActivitySensor(mDevice);
+                                break;
+                        case SENSOR_TYPE_AUDIO_CLASSIFICATION:
+                                mSensor = new AudioClassifierSensor(mDevice);
+                                break;
+                        case SENSOR_TYPE_GESTURE:
+                                mSensor = new GestureSensor(mDevice);
+                                break;
+#endif
+                        default:
+                                log_message(CRITICAL,"%s Unsupported sensor type: %d\n", __FUNCTION__, mDevice.getType());
+                                return false;
+                }
+
+                if (mSensor) {
+                        if (mSensor->selftest()) {
+
+                                // Need to reset ids and handles, since some unfunctional sensors are removed
+                                mSensor->getDevice().setId(newId);
+                                mSensor->getDevice().setHandle(SensorDevice::idToHandle(newId));
+                                mSensor->resetEventHandle();
+                                mModule.sensors.push_back(mSensor);
+                                newId++;
+                        } else {
+
+                                delete mSensor;
+                        }
+                        mSensor = NULL;
+                }
+        }
+
+        mModule.count = mModule.sensors.size();
+        mModule.list = new sensor_t[mModule.count];
+
+        for (int i = 0; i < mModule.count; i++) {
+                mModule.sensors[i]->getDevice().copyItem(mModule.list + i);
+        }
+
+        mModule.pollfds = new struct pollfd[mModule.count];
+        for (int i = 0; i < mModule.count; i++) {
+                mModule.pollfds[i].fd = mModule.sensors[i]->getPollfd();
+                mModule.pollfds[i].events = POLLIN;
+                mModule.pollfds[i].revents = 0;
+        }
+		log_message(DEBUG,"initSensors finished well\n");
+
+        return true;
+}
+
+int sensorActivate(struct sensors_poll_device_t *dev, int handle, int enabled)
+{
+        int id = SensorDevice::handleToId(handle);
+        if (id < 0) {
+                log_message(CRITICAL,"%s: line:%d Invalid handle: handle: %d; id: %d",
+                     __FUNCTION__, __LINE__, handle, id);
+                return -1;
+        }
+
+        return mModule.sensors[id]->activate(handle, enabled);
+}
+
+int sensorSetDelay(struct sensors_poll_device_t *dev, int handle, int64_t ns)
+{
+        int id = SensorDevice::handleToId(handle);
+        if (id < 0) {
+                log_message(CRITICAL,"%s: line:%d Invalid handle: handle: %d; id: %d",
+                     __FUNCTION__, __LINE__, handle, id);
+                return -1;
+        }
+
+        return mModule.sensors[id]->setDelay(handle, ns);
+}
+
+int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int count)
+{
+        static std::queue<sensors_event_t> eventQue;
+        int eventNum = 0;
+        int num, err;
+	FILE * file;
+
+        while (true) {
+                while (eventQue.size() > 0 && eventNum <= count) {
+                        data[eventNum] = eventQue.front();
+                        eventQue.pop();
+                        eventNum++;
+                }
+
+                if (eventNum > 0)
+                        return eventNum;
+
+                num = poll(mModule.pollfds, mModule.count, -1);
+                if (num <= 0) {
+                        err = errno;
+                        log_message(CRITICAL,"%s: line: %d poll error: %d %s\n", __FUNCTION__, __LINE__, err, strerror(err));
+
+                        return -err;
+                }
+
+                for (int i = 0; i < mModule.count; i++) {
+                        if (mModule.pollfds[i].revents & POLLIN)
+                                mModule.sensors[i]->getData(eventQue);
+                        else if (mModule.pollfds[i].revents != 0)
+                                log_message(CRITICAL,"%s: line: %d poll error: %d fd: %d type: %d\n", __FUNCTION__, __LINE__,
+						mModule.pollfds[i].revents, mModule.pollfds[i].fd, mModule.sensors[i]->getDevice().getType());
+
+                        mModule.pollfds[i].revents = 0;
+                }
+        }
+
+	return -1;
+}
+
+int close(struct hw_device_t* device)
+{
+        if (mModule.list != NULL)
+                delete mModule.list;
+
+        for (unsigned int i = 0; i < mModule.sensors.size(); i++)
+                if (mModule.sensors[i])
+                        delete mModule.sensors[i];
+
+        if (mModule.pollfds)
+                delete [] mModule.pollfds;
+
+        return 0;
+}
+
+
+static int open(const struct hw_module_t* module, const char* id,
+                struct hw_device_t** device)
+{
+        static struct sensors_poll_device_t dev;
+
+        dev.common.tag = HARDWARE_DEVICE_TAG;
+        dev.common.version = 0;
+        dev.common.module  = const_cast<hw_module_t*>(module);
+        dev.common.close   = close;
+        dev.activate       = sensorActivate;
+        dev.setDelay       = sensorSetDelay;
+        dev.poll           = sensorPoll;
+
+        *device = &dev.common;
+
+        if(initSensors())
+                return 0;
+
+        return -1;
+}
+
