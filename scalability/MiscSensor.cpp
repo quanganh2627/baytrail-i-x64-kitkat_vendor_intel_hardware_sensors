@@ -134,6 +134,9 @@ int MiscSensor::getData(std::queue<sensors_event_t> &eventQue) {
                 event.timestamp = getTimestamp();
                 if (Calibration != NULL)
                         Calibration(&event, CALIBRATION_DATA, NULL);
+                /* auto disable one-shot sensor */
+                if ((device.getFlags() & ~SENSOR_FLAG_WAKE_UP) == SENSOR_FLAG_ONE_SHOT_MODE)
+                        activate(device.getHandle(), 0);
                 eventQue.push(event);
                 if (state.getFlushSuccess() == true) {
                         eventQue.push(metaEvent);
@@ -169,6 +172,9 @@ int MiscSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                         Calibration(&event, CALIBRATION_DATA, NULL);
                                 else if (device.getEventProperty() == VECTOR)
                                         event.acceleration.status = SENSOR_STATUS_ACCURACY_MEDIUM;
+                                /* auto disable one-shot sensor */
+                                if ((device.getFlags() & ~SENSOR_FLAG_WAKE_UP) == SENSOR_FLAG_ONE_SHOT_MODE)
+                                        activate(device.getHandle(), 0);
                                 eventQue.push(event);
                         }
                 default:

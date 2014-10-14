@@ -178,6 +178,11 @@ int InputEventSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                         Calibration(&event, CALIBRATION_DATA, data.calibrationFile.c_str());
                                 else if (device.getEventProperty() == VECTOR)
                                         event.acceleration.status = SENSOR_STATUS_ACCURACY_MEDIUM;
+
+                                /* auto disable one-shot sensor */
+                                if ((device.getFlags() & ~SENSOR_FLAG_WAKE_UP) == SENSOR_FLAG_ONE_SHOT_MODE)
+                                        activate(device.getHandle(), 0);
+
                                 eventQue.push(event);
                         } else {
                                 ALOGE("%s line:%d Unknow event sync code %u", __FUNCTION__, __LINE__, inputEvent[i].code);

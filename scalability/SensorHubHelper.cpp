@@ -100,6 +100,10 @@ psh_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 return SENSOR_STAP;
         case SENSOR_TYPE_GLANCE_GESTURE:
                 return SENSOR_SHAKING;
+        case SENSOR_TYPE_PICK_UP_GESTURE:
+                return SENSOR_PICKUP;
+        case SENSOR_TYPE_TILT_DETECTOR:
+                return SENSOR_TILT_DETECTOR;
         case SENSOR_TYPE_GESTURE_FLICK:
                 return SENSOR_GESTURE_FLICK;
         case SENSOR_TYPE_TERMINAL:
@@ -152,6 +156,12 @@ void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate,
         case SENSOR_TYPE_GLANCE_GESTURE:
                 dataRate = SHAKING_SAMPLE_RATE;
                 bufferDelay = SHAKING_BUF_DELAY;
+                flag = NO_STOP_WHEN_SCREEN_OFF;
+                break;
+        case SENSOR_TYPE_PICK_UP_GESTURE:
+                flag = NO_STOP_WHEN_SCREEN_OFF;
+                break;
+        case SENSOR_TYPE_TILT_DETECTOR:
                 flag = NO_STOP_WHEN_SCREEN_OFF;
                 break;
         case SENSOR_TYPE_GESTURE_FLICK:
@@ -317,6 +327,10 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct stap_data);
         case SENSOR_TYPE_GLANCE_GESTURE:
                 return sizeof(struct shaking_data);
+        case SENSOR_TYPE_PICK_UP_GESTURE:
+                return sizeof(struct pickup_data);
+        case SENSOR_TYPE_TILT_DETECTOR:
+                return sizeof(struct tilt_detector_data);
         case SENSOR_TYPE_GESTURE_FLICK:
                 return sizeof(struct gesture_flick_data);
         case SENSOR_TYPE_GESTURE:
@@ -477,6 +491,18 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = 1.0;
                         events[i].timestamp = (reinterpret_cast<struct shaking_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_PICK_UP_GESTURE:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = 1.0;
+                        events[i].timestamp = (reinterpret_cast<struct pickup_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_TILT_DETECTOR:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = 1.0;
+                        events[i].timestamp = (reinterpret_cast<struct tilt_detector_data*>(stream))[i].ts;
                 }
                 break;
         case SENSOR_TYPE_GESTURE_FLICK:
