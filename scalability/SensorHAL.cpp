@@ -231,7 +231,7 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
         int num, err;
 
         while (true) {
-                while (eventQue.size() > 0 && eventNum <= count) {
+                while (eventQue.size() > 0 && eventNum < count) {
                         data[eventNum] = eventQue.front();
                         eventQue.pop();
                         eventNum++;
