@@ -8,6 +8,12 @@
 #include <linux/input.h>
 #define EVENT_NAME_MAX  256
 
+/*filter of compass data*/
+#define COMPASS_SMOOTH_DATA_LEN		20
+static float smoothData[COMPASS_SMOOTH_DATA_LEN][3];
+static int smoothLen = 0;
+static int smoothNext = 0;
+
 InputEventSensor::InputEventSensor(SensorDevice &mDevice, struct PlatformData &mData)
         :DirectSensor(mDevice, mData)
 {
@@ -104,13 +110,21 @@ int InputEventSensor::hardwareSet(bool activated)
 }
 
 int InputEventSensor::activate(int handle, int enabled) {
-        if (handle != device.getHandle()) {
-                ALOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
-                     __FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
-                return -1;
-        }
+	if (handle != device.getHandle()) {
+		ALOGE("%s: line: %d: %s handle not match! handle: %d required handle: %d",
+				__FUNCTION__, __LINE__, data.name.c_str(), device.getHandle(), handle);
+		return -1;
+	}
 
-        return hardwareSet(enabled == 0 ? false : true);
+	enabled = (enabled == 0 ? false : true);
+	if ((Calibration != NULL) && enabled && (!state.getActivated())) {
+		if (device.getType() == SENSOR_TYPE_MAGNETIC_FIELD) {
+			smoothLen = 0;
+			smoothNext = 0;
+		}
+	}
+
+	return hardwareSet(enabled);
 }
 
 int InputEventSensor::setDelay(int handle, int64_t period_ns) {
@@ -178,6 +192,28 @@ int InputEventSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                         Calibration(&event, CALIBRATION_DATA, data.calibrationFile.c_str());
                                 else if (device.getEventProperty() == VECTOR)
                                         event.acceleration.status = SENSOR_STATUS_ACCURACY_MEDIUM;
+
+				if (device.getType() == SENSOR_TYPE_MAGNETIC_FIELD) {
+					float x = 0, y = 0, z = 0;
+					if (smoothLen < COMPASS_SMOOTH_DATA_LEN)
+						smoothLen++;
+
+					smoothNext++;
+					if (smoothNext >= COMPASS_SMOOTH_DATA_LEN)
+						smoothNext = 0;
+					smoothData[smoothNext][AXIS_X] = event.data[AXIS_X];
+					smoothData[smoothNext][AXIS_Y] = event.data[AXIS_Y];
+					smoothData[smoothNext][AXIS_Z] = event.data[AXIS_Z];
+
+					for (int i = 0; i < smoothLen; i++) {
+						x += smoothData[i][AXIS_X];
+						y += smoothData[i][AXIS_Y];
+						z += smoothData[i][AXIS_Z];
+					}
+					event.data[AXIS_X] = x/smoothLen;
+					event.data[AXIS_Y] = y/smoothLen;
+					event.data[AXIS_Z] = z/smoothLen;
+				}
 
                                 /* auto disable one-shot sensor */
                                 if ((device.getFlags() & ~SENSOR_FLAG_WAKE_UP) == SENSOR_FLAG_ONE_SHOT_MODE)
