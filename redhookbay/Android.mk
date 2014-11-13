@@ -43,7 +43,7 @@ LOCAL_SRC_FILES +=  ../AccelSensor.cpp          \
                     ../PressureSensor.cpp
 
 LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
-                    external/icu4c/common \
+                    external/icu/icu4c/source/common \
                     external/libxml2/include
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc
 LOCAL_STATIC_LIBRARIES := libxml2 libaccelerometersimplecalibration
@@ -105,7 +105,7 @@ LOCAL_SRC_FILES +=  ../AccelSensor.cpp          \
                     ../PressureSensor.cpp
 
 LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
-                    external/icu4c/common \
+                    external/icu/icu4c/source/common \
                     external/libxml2/include
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc
 LOCAL_STATIC_LIBRARIES := libxml2
