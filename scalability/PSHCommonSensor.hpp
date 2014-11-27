@@ -26,6 +26,7 @@ public:
         virtual int getData(std::queue<sensors_event_t> &eventQue);
         int batch(int handle, int flags, int64_t period_ns, int64_t timeout);
         virtual bool selftest();
+        int calcDataRate(int64_t period_ns);
         int hardwareSet(bool activated);
 };
 

@@ -22,6 +22,33 @@ int PSHCommonSensor::getPollfd()
         return pollfd;
 }
 
+int PSHCommonSensor::calcDataRate(int64_t period_ns)
+{
+        int dataRate = 5;
+        int delay = 200;
+        int minDelay = device.getMinDelay() / US_TO_MS;
+        int maxDelay = device.getMaxDelay() / US_TO_MS;
+
+        if (period_ns / 1000 != SENSOR_NOPOLL)
+                delay = period_ns / NS_TO_MS;
+        else
+                delay = 200;
+
+        if (delay < minDelay)
+                delay = minDelay;
+
+        if (delay > maxDelay)
+                delay = maxDelay;
+
+        if (delay != 0)
+                dataRate = 1000 / delay;
+
+        if (dataRate <= 0)
+                dataRate = 1;
+
+        return dataRate;
+}
+
 int PSHCommonSensor::hardwareSet(bool activated)
 {
         int dataRate = state.getDataRate();
@@ -69,7 +96,7 @@ int PSHCommonSensor::hardwareSet(bool activated)
 
 int PSHCommonSensor::batch(int handle, int flags, int64_t period_ns, int64_t timeout) {
         int delay = period_ns / NS_TO_MS;
-        int ret = -EINVAL;
+        int ret = 0;
         static int oldDataRate = -1;
         static int oldBufferDelay = -1;
         static streaming_flag oldFlag;
@@ -82,17 +109,9 @@ int PSHCommonSensor::batch(int handle, int flags, int64_t period_ns, int64_t tim
 
         if (period_ns < 0 || timeout < 0)
                 return -EINVAL;
-
-        if (timeout == 0) {
-                ret = setDelay(handle, period_ns);
-                bufferDelay = 0;
-                oldBufferDelay = 0;
-                return ret;
-        }
-
         bufferDelay = timeout / NS_TO_MS;
 
-        ret = setDelay(handle, period_ns);
+        state.setDataRate(calcDataRate(period_ns));
 
         if (oldDataRate == -1) {
                 oldDataRate = state.getDataRate();
@@ -130,28 +149,7 @@ int PSHCommonSensor::activate(int handle, int enabled) {
 }
 
 int PSHCommonSensor::setDelay(int handle, int64_t period_ns) {
-        int dataRate = 5;
-        int delay = 200;
-        int minDelay = device.getMinDelay() / US_TO_MS;
-        int maxDelay = device.getMaxDelay() / US_TO_MS;
-
-        if (period_ns / 1000 != SENSOR_NOPOLL)
-                delay = period_ns / NS_TO_MS;
-        else
-                delay = 200;
-
-        if (delay < minDelay)
-                delay = minDelay;
-
-        if (delay > maxDelay)
-                delay = maxDelay;
-
-        if (delay != 0)
-                dataRate = 1000 / delay;
-
-        if (dataRate <= 0)
-                dataRate = 1;
-
+        int dataRate = calcDataRate(period_ns);
         if (state.getActivated() && dataRate != state.getDataRate()) {
                 state.setDataRate(dataRate);
                 return hardwareSet(true);
