@@ -161,6 +161,7 @@ int PSHCommonSensor::setDelay(int handle, int64_t period_ns) {
 
 int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
         int count = 32;
+        static int64_t last_timestamp = -1;
 
         if (state.getFlushSuccess() == true) {
                 eventQue.push(metaEvent);
@@ -190,6 +191,11 @@ int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                         event.acceleration.status = sensorhubEvent[i].accuracy;
                         }
                         event.timestamp = sensorhubEvent[i].timestamp;
+                        /* Workround: Not let timestamp disorder when PSH sync with IA */
+                        if (event.timestamp <= last_timestamp) {
+                                event.timestamp = last_timestamp + 100000;
+                        }
+                        last_timestamp = event.timestamp;
                         /* auto disable one-shot sensor */
                         if ((device.getFlags() & ~SENSOR_FLAG_WAKE_UP) == SENSOR_FLAG_ONE_SHOT_MODE)
                                 activate(device.getHandle(), 0);
