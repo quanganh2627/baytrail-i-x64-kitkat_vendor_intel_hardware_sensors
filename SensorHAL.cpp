@@ -5,7 +5,6 @@
 #include <hardware/hardware.h>
 #include "PSHCommonSensor.hpp"
 #include "PlatformConfig.hpp"
-#include "PedometerSensor.hpp"
 #include "utils.hpp"
 #if 0
 #include "GestureSensor.hpp"
@@ -146,10 +145,10 @@ static bool initSensors()
 			case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
 			case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
 			case SENSOR_TYPE_MOTION_DETECT:
+                        case SENSOR_TYPE_PAN_ZOOM:
+                        case SENSOR_TYPE_LIFT:
+                        case SENSOR_TYPE_INSTANT_ACTIVITY:
                                 mSensor = new PSHCommonSensor(mDevice);
-                                break;
-                        case SENSOR_TYPE_PEDOMETER:
-                                mSensor = new PedometerSensor(mDevice);
                                 break;
 #if 0
                         case SENSOR_TYPE_PHYSICAL_ACTIVITY:
@@ -234,7 +233,7 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
 	FILE * file;
 
         while (true) {
-                while (eventQue.size() > 0 && eventNum <= count) {
+                while (eventQue.size() > 0 && eventNum < count) {
                         data[eventNum] = eventQue.front();
                         eventQue.pop();
                         eventNum++;

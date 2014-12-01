@@ -66,9 +66,14 @@ ish_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 return SENSOR_UNCAL_ACC;
 	case SENSOR_TYPE_MOTION_DETECT:
 		return SENSOR_MOTION_DETECT;
+        case SENSOR_TYPE_INSTANT_ACTIVITY:
+                return SENSOR_INSTANT_ACTIVITY;
+        case SENSOR_TYPE_LIFT:
+                return SENSOR_LIFT;
+        case SENSOR_TYPE_PAN_ZOOM:
+                return SENSOR_PAN_TILT_ZOOM;
 
         case SENSOR_TYPE_GESTURE:
-        case SENSOR_TYPE_PHYSICAL_ACTIVITY:
         case SENSOR_TYPE_PEDOMETER:
         case SENSOR_TYPE_TEMPERATURE:
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
@@ -107,108 +112,34 @@ void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate,
         }
 }
 
-bool SensorHubHelper::setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler) {
-        switch (sensorType) {
-        case SENSOR_TYPE_SHAKE: {
-                int sensitivity = SHAKE_SEN_MEDIUM;
-                return methods.psh_set_property(handler, PROP_SHAKING_SENSITIVITY, &sensitivity);
-        }
-        default:
-                break;
-        }
+bool SensorHubHelper::setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler)
+{
         return true;
 }
 
 int SensorHubHelper::getGestureFlickEvent(struct gesture_flick_data data)
 {
-        switch ((FlickGestures)data.flick) {
-        case LEFT_FLICK:
-                return SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK;
-        case RIGHT_FLICK:
-                return SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK;
-        case LEFT_TWICE:
-                return SENSOR_EVENT_TYPE_GESTURE_LEFT_FLICK_TWICE;
-        case RIGHT_TWICE:
-                return SENSOR_EVENT_TYPE_GESTURE_RIGHT_FLICK_TWICE;
-        case UP_FLICK:
-                return SENSOR_EVENT_TYPE_GESTURE_UP_FLICK;
-        case DOWN_FLICK:
-                return SENSOR_EVENT_TYPE_GESTURE_DOWN_FLICK;
-        case NO_FLICK:
-        default:
-                return SENSOR_EVENT_TYPE_GESTURE_NO_FLICK;
-        }
-        return SENSOR_EVENT_TYPE_GESTURE_NO_FLICK;
+        return data.flick;
 }
 
 int SensorHubHelper::getTerminalEvent(struct tc_data data)
 {
-        if (data.orien_z != FACE_UNKNOWN
-            && data.orien_xy != ORIENTATION_UNKNOWN) {
-                // This shouldn't happen
-                return SENSOR_EVENT_TYPE_TERMINAL_UNKNOWN;
-        }
-
-        if (data.orien_xy == ORIENTATION_UNKNOWN) {
-                // Face up/down
-                switch (data.orien_z) {
-                case FACE_UP:
-                        return SENSOR_EVENT_TYPE_TERMINAL_FACE_UP;
-                case FACE_DOWN:
-                        return SENSOR_EVENT_TYPE_TERMINAL_FACE_DOWN;
-                default:
-                        return SENSOR_EVENT_TYPE_TERMINAL_UNKNOWN;
-                }
-        }
-
-        if (data.orien_z == FACE_UNKNOWN) {
-                // Orientation up/down
-                switch (data.orien_xy) {
-                case PORTRAIT_UP:
-                        return SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_UP;
-                case PORTRAIT_DOWN:
-                        return SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_DOWN;
-                case HORIZONTAL_UP:
-                        return SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_UP;
-                case HORIZONTAL_DOWN:
-                        return SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_DOWN;
-                default:
-                        return SENSOR_EVENT_TYPE_TERMINAL_UNKNOWN;
-                }
-        }
-
-        // Shouldn't reach here
-        return SENSOR_EVENT_TYPE_TERMINAL_UNKNOWN;
+        return data.state;
 }
 
-int SensorHubHelper::getShakeEvent(struct shaking_data data)
+int SensorHubHelper::getShakeEvent(struct accel_data data)
 {
-        if (data.shaking == SHAKING) {
-                return SENSOR_EVENT_TYPE_SHAKE;
-        }
-        return INVALID_EVENT;
+        return data.motion;
 }
 
 int SensorHubHelper::getSimpleTappingEvent(struct stap_data data)
 {
-        if (data.stap == DOUBLE_TAPPING) {
-                return SENSOR_EVENT_TYPE_SIMPLE_TAPPING_DOUBLE_TAPPING;
-        }
-        return INVALID_EVENT;
+        return data.stap;
 }
 
 int SensorHubHelper::getMoveDetectEvent(struct md_data data)
 {
-        switch (data.state) {
-        case MD_MOVE:
-                return SENSOR_EVENT_TYPE_MOVE_DETECT_MOVE;
-        case MD_SLIGHT:
-                return SENSOR_EVENT_TYPE_MOVE_DETECT_SLIGHT;
-        case MD_STILL:
-                return SENSOR_EVENT_TYPE_MOVE_DETECT_STILL;
-        default:
-                return INVALID_EVENT;
-        }
+	return data.state;
 }
 
 size_t SensorHubHelper::getUnitSize(int sensorType)
@@ -238,14 +169,12 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct gesture_flick_data);
         case SENSOR_TYPE_GESTURE:
                 return sizeof(struct gs_data);
-        case SENSOR_TYPE_PHYSICAL_ACTIVITY:
-                return sizeof(struct phy_activity_data);
         case SENSOR_TYPE_TERMINAL:
                 return sizeof(struct tc_data);
         case SENSOR_TYPE_PEDOMETER:
                 return sizeof(struct pedometer_data);
         case SENSOR_TYPE_SHAKE:
-                return sizeof(struct shaking_data);
+                return sizeof(struct accel_data);
         case SENSOR_TYPE_SIMPLE_TAPPING:
                 return sizeof(struct stap_data);
         case SENSOR_TYPE_MOVE_DETECT:
@@ -268,7 +197,12 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct uncalib_acc_data);
 	case SENSOR_TYPE_MOTION_DETECT:
 		return sizeof(struct motion_detect_data);
-
+        case SENSOR_TYPE_PAN_ZOOM:
+                return sizeof(struct pz_data);
+        case SENSOR_TYPE_LIFT:
+                return sizeof(struct lift_data);
+        case SENSOR_TYPE_INSTANT_ACTIVITY:
+                return sizeof(struct instant_activity_data);
         case SENSOR_TYPE_TEMPERATURE:
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
@@ -315,14 +249,20 @@ float SensorHubHelper::ConvertToFloat(int value, int sensorType)
 			return ((float) value) / 10000;
 
 		case SENSOR_TYPE_GRAVITY:
-			return ((float)value) / 1000000;
+			return ((float)value * 9.8) / 1000000;
 
 		case SENSOR_TYPE_STEP_DETECTOR:
 			return 1.0;
+
+                case SENSOR_TYPE_PAN_ZOOM:
+                case SENSOR_TYPE_LIFT:
+                case SENSOR_TYPE_INSTANT_ACTIVITY:
+                case SENSOR_TYPE_SIMPLE_TAPPING:
+                        return (float) value;
 		}
 
 		log_message(CRITICAL, "%s: unsupported convert. sensorType: %d, value: %d\n", __func__, sensorType, value);
-		return 0.0;
+		return (float)value;
 }
 
 ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* events, size_t count, int sensorType)
@@ -336,9 +276,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         size_t unitSize = getUnitSize(sensorType);
         size_t streamSize = unitSize * count;
         byte* stream = new byte[streamSize];
-
         streamSize = read(fd, reinterpret_cast<void *>(stream), streamSize);
-
         if (streamSize % unitSize != 0) {
                 log_message(CRITICAL,"%s line: %d: invalid stream size: type: %d size: %d unit_size: %d\n",
                      __FUNCTION__, __LINE__, sensorType, streamSize, unitSize);
@@ -368,9 +306,9 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 break;
         case SENSOR_TYPE_ORIENTATION:
                 for (unsigned int i = 0; i < count; i++) {
-                        events[i].data[0] = (reinterpret_cast<struct orientation_data*>(stream))[i].azimuth;
-                        events[i].data[1] = (reinterpret_cast<struct orientation_data*>(stream))[i].pitch;
-                        events[i].data[2] = (reinterpret_cast<struct orientation_data*>(stream))[i].roll;
+                        events[i].data[0] = (reinterpret_cast<struct orientation_data*>(stream))[i].tiltx;
+                        events[i].data[1] = (reinterpret_cast<struct orientation_data*>(stream))[i].tilty;
+                        events[i].data[2] = (reinterpret_cast<struct orientation_data*>(stream))[i].tiltz;
                         events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
                         events[i].timestamp = (reinterpret_cast<struct orientation_data*>(stream))[i].ts;
                 }
@@ -442,8 +380,12 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 break;
         case SENSOR_TYPE_SHAKE:
                 for (unsigned int i = 0; i < count; i++) {
+                        /* workaround: shaking data is combined to accelerometer data.
                         events[i].data[0] = getShakeEvent((reinterpret_cast<struct shaking_data*>(stream))[i]);
                         events[i].timestamp = (reinterpret_cast<struct shaking_data*>(stream))[i].ts;
+                        */
+                        events[i].data[0] = getShakeEvent((reinterpret_cast<struct accel_data*>(stream))[i]);
+                        events[i].timestamp = (reinterpret_cast<struct accel_data*>(stream))[i].ts;
                 }
                 break;
         case SENSOR_TYPE_SIMPLE_TAPPING:
@@ -460,7 +402,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 break;
         case SENSOR_TYPE_STEP_DETECTOR:
                 for (unsigned int i = 0; i < count; i++) {
-                        events[i].data[0] = ((reinterpret_cast<struct stepdetector_data*>(stream))[i]).step_event;
+                        events[i].data[0] = ((reinterpret_cast<struct stepdetector_data*>(stream))[i]).step_event_counter;
                         events[i].timestamp = (reinterpret_cast<struct stepdetector_data*>(stream))[i].ts;
                 }
                 break;
@@ -468,14 +410,34 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 for (unsigned int i = 0; i < count; i++) {
 			int run_counter = ((reinterpret_cast<struct stepcounter_data*>(stream))[i]).run_step_count;
 			int walk_counter = ((reinterpret_cast<struct stepcounter_data*>(stream))[i]).walk_step_count;
-                        events[i].step_counter = run_counter + walk_counter;
+                        events[i].data[0] = run_counter + walk_counter;
                         events[i].timestamp = (reinterpret_cast<struct stepcounter_data*>(stream))[i].ts;
                 }
                 break;
         case SENSOR_TYPE_SIGNIFICANT_MOTION:
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = ((reinterpret_cast<struct sm_data*>(stream))[i]).state;
-                         events[i].timestamp = (reinterpret_cast<struct sm_data*>(stream))[i].ts;
+                        events[i].timestamp = (reinterpret_cast<struct sm_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_LIFT:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = ((reinterpret_cast<struct lift_data*>(stream))[i]).look;
+                        events[i].data[1] = ((reinterpret_cast<struct lift_data*>(stream))[i]).vertical;
+                        events[i].timestamp = (reinterpret_cast<struct lift_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_PAN_ZOOM:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = ((reinterpret_cast<struct pz_data*>(stream))[i]).deltX;
+                        events[i].data[1] = ((reinterpret_cast<struct pz_data*>(stream))[i]).deltY;
+                        events[i].timestamp = (reinterpret_cast<struct pz_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_INSTANT_ACTIVITY:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = ((reinterpret_cast<struct instant_activity_data*>(stream))[i]).typeclass;
+                        events[i].timestamp = (reinterpret_cast<struct instant_activity_data*>(stream))[i].ts;
                 }
                 break;
         case SENSOR_TYPE_GAME_ROTATION_VECTOR:
@@ -542,7 +504,6 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
         case SENSOR_TYPE_AUDIO_CLASSIFICATION:
         case SENSOR_TYPE_GESTURE:
-        case SENSOR_TYPE_PHYSICAL_ACTIVITY:
         case SENSOR_TYPE_PEDOMETER:
         default:
                 log_message(CRITICAL,"%s: Unsupported Sensor Type: %d", __FUNCTION__, sensorType);

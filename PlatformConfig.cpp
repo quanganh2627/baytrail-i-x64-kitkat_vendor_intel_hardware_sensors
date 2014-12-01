@@ -8,10 +8,18 @@ PlatformConfig::PlatformConfig()
 {
         int ret = get_sensors_list(USE_CASE_HAL, &info, &count);
         if (ret)
-            return;
+                return;
 
-        for (int i = 0; i < count; i++)
-            addSensorDevice(info[i]);
+        for (int i = 0; i < count; i++) {
+                addSensorDevice(info[i]);
+                if (info[i].sensor_type == SENSOR_ACCELEROMETER) {
+                        sensor_info_t shaking_info = {"SHAKI", "Intel Inc.",
+                                              SENSOR_SHAKING, USE_CASE_HAL,
+                                              1, 0, 1, {1}, 1, 1.0, 0.006,
+                                              NULL};
+                        addSensorDevice(shaking_info);
+                }
+	}
 }
 
 bool PlatformConfig::addSensorDevice(sensor_info_t info)
@@ -96,8 +104,6 @@ int PlatformConfig::getType(ish_sensor_t sensor_type)
                 return SENSOR_TYPE_MOVE_DETECT;
         else if (sensor_type == SENSOR_PEDOMETER)
                 return SENSOR_TYPE_PEDOMETER;
-        else if (sensor_type == SENSOR_ACTIVITY)
-                return SENSOR_TYPE_PHYSICAL_ACTIVITY;
 	else if (sensor_type == SENSOR_MOTION_DETECT)
                 return SENSOR_TYPE_MOTION_DETECT;
 	else if (sensor_type == SENSOR_UNCAL_GYRO)
@@ -110,6 +116,14 @@ int PlatformConfig::getType(ish_sensor_t sensor_type)
 		return SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
         else if (sensor_type == SENSOR_GEOMAGNETIC_ROTATION_VECTOR)
                 return SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR;
+        else if (sensor_type == SENSOR_STAP)
+                return SENSOR_TYPE_SIMPLE_TAPPING;
+        else if (sensor_type == SENSOR_PAN_TILT_ZOOM)
+                return SENSOR_TYPE_PAN_ZOOM;
+        else if (sensor_type == SENSOR_LIFT)
+                return SENSOR_TYPE_LIFT;
+        else if (sensor_type == SENSOR_INSTANT_ACTIVITY)
+                return SENSOR_TYPE_INSTANT_ACTIVITY;
 
         ALOGW("%s: unsupported sensor: %d", __FUNCTION__, sensor_type);
         return 0;
@@ -167,6 +181,14 @@ std::string PlatformConfig::getName(ish_sensor_t sensor_type)
 		return "ISH Uncalibrated Compass sensor";
         else if (sensor_type == SENSOR_GEOMAGNETIC_ROTATION_VECTOR)
                 return "ISH Geomagnetic rotation vector sensor";
+        else if (sensor_type == SENSOR_STAP)
+                return "ISH Tap sensor";
+        else if (sensor_type == SENSOR_PAN_TILT_ZOOM)
+                return "ISH Pan Zoom sensor";
+        else if (sensor_type == SENSOR_LIFT)
+                return "ISH Lift sensor";
+        else if (sensor_type == SENSOR_INSTANT_ACTIVITY)
+                return "ISH Instant Activity sensor";
 
         ALOGW("%s: unsupported sensor: %d", __FUNCTION__, sensor_type);
         return "ISH Unknow sensor";

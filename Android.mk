@@ -31,7 +31,6 @@ LOCAL_SRC_FILES := SensorHAL.cpp    \
                    SensorDevice.cpp \
                    PSHCommonSensor.cpp \
                    SensorHubHelper.cpp \
-                   PedometerSensor.cpp \
                    utils.cpp
 
 LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
@@ -42,7 +41,7 @@ LOCAL_C_INCLUDES := $(COMMON_INCLUDES) \
                     $(call include-path-for, libsensorhub) \
                     $(TARGET_OUT_HEADERS)/awarelibs
 
-LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc libstlport libhardware libutils libsensorhub
+LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libicuuc libstlport libutils libsensorhub
 
 include external/stlport/libstlport.mk
 
