@@ -11,6 +11,9 @@ int PSHCommonSensor::getPollfd()
         }
 
         ish_sensor_t PSHType = SensorHubHelper::getType(device.getType(), device.getSubname());
+        /* workaroud: ISHFW combine shaking sensor to accelerometer */
+	if (PSHType == SENSOR_SHAKING)
+            PSHType = SENSOR_ACCELEROMETER;
 	sensorHandle = methods.psh_open_session(PSHType);
         if (sensorHandle == NULL) {
                 log_message(CRITICAL,"psh_open_session error!\n");
@@ -108,9 +111,7 @@ int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
         count = SensorHubHelper::readSensorhubEvents(pollfd, sensorhubEvent, count, device.getType());
 
         for (int i = 0; i < count; i++) {
-                if (device.getType() == SENSOR_TYPE_STEP_COUNTER)
-                        event.u64.step_counter = sensorhubEvent[i].step_counter;
-		else if (device.getType() == SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED ||
+		if (device.getType() == SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED ||
 				device.getType() == SENSOR_TYPE_GYROSCOPE_UNCALIBRATED) {
 			for (int j=0; j<6; j++)
 				event.data[j] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[j], device.getType());
@@ -118,10 +119,10 @@ int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
 			for (int j=0; j<5; j++)
 				event.data[j] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[j], device.getType());
                 } else {
-                event.data[device.getMapper(AXIS_X)] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[0], device.getType());//sensorhubEvent[i].data[0] * device.getScale(AXIS_X);
-                event.data[device.getMapper(AXIS_Y)] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[1], device.getType());//sensorhubEvent[i].data[1] * device.getScale(AXIS_Y);
-                event.data[device.getMapper(AXIS_Z)] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[2], device.getType());//sensorhubEvent[i].data[2] * device.getScale(AXIS_Z);
-                event.data[device.getMapper(AXIS_W)] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[3], device.getType());//sensorhubEvent[i].data[3] * device.getScale(AXIS_W);
+                event.data[device.getMapper(AXIS_X)] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[0], device.getType());
+                event.data[device.getMapper(AXIS_Y)] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[1], device.getType());
+                event.data[device.getMapper(AXIS_Z)] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[2], device.getType());
+                event.data[device.getMapper(AXIS_W)] = SensorHubHelper::ConvertToFloat(sensorhubEvent[i].data[3], device.getType());
                 if (sensorhubEvent[i].accuracy != 0)
                         event.acceleration.status = sensorhubEvent[i].accuracy;
                 }
