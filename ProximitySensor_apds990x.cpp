@@ -73,21 +73,22 @@ int ProximitySensor::calibCrosstalk(int raw_data)
     lock.l_whence = SEEK_SET;
     lock.l_len = 0;
     if (fcntl(fd, F_SETLK, &lock) < 0) {
-        I("ProximitySensor: File lock failed failed, %s", strerror(errno));
+        E("ProximitySensor: File lock failed failed, %s", strerror(errno));
         close(fd);
         return -1;
     }
 
     memset(&calib, 0, sizeof(calib));
     if ((ret = pread(fd, &calib, sizeof(calib), 0)) > 0) {
-        I("ProximitySensor: crosstalk sample num=%d, average=%d, raw_data=%d",
+        E("ProximitySensor: crosstalk sample num=%d, average=%d, raw_data=%d",
                 calib.num, calib.average, raw_data);
     } else {
-        I("ProximitySensor: No calibration file found, raw_data=%d", raw_data);
+        E("ProximitySensor: No calibration file found, raw_data=%d", raw_data);
     }
 
     if (calib.num == 0 && raw_data == APDS990X_PS_INIT_DATA) {
-            I("ProximitySensor: No data for calibration, abort...");
+            E("ProximitySensor: No data for calibration, abort...");
+            close(fd);
             return -1;
     }
     if (raw_data < APDS990X_MIN_CROSSTALK)
@@ -95,18 +96,24 @@ int ProximitySensor::calibCrosstalk(int raw_data)
 
     if (calib.num > SAMPLE_MAX_NUM) {
         E("ProximitySensor: crosstalk sample count error: %d", calib.num);
+        close(fd);
         return -1;
     }
     if (calib.num == 0) {
-        if (raw_data > APDS990X_MAX_CROSSTALK)
+        if (raw_data > APDS990X_MAX_CROSSTALK) {
+            E("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
+                    raw_data, calib.average, calib.num);
+            close(fd);
             return -1;
+        }
         calib.average = raw_data;
         calib.crosstalk[0] = raw_data;
         calib.num = 1;
     } else if (calib.num < SAMPLE_MAX_NUM) {
         if (raw_data > APDS990X_MAX_CROSSTALK) {
-            I("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
+            E("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
                     raw_data, calib.average, calib.num);
+            close(fd);
             return getThresh(&calib);
         }
         calib.crosstalk[calib.num++] = raw_data;
@@ -115,8 +122,9 @@ int ProximitySensor::calibCrosstalk(int raw_data)
         calib.average = sum / calib.num;
     } else {
         if (raw_data > calib.average * 2) {
-            I("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
+            E("ProximitySensor: Ignore raw data %d, average: %d, num: %d",
                     raw_data, calib.average, calib.num);
+            close(fd);
             return getThresh(&calib);
         }
         for (i = 1; i < calib.num; i++) {
