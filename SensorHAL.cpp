@@ -67,41 +67,6 @@ static int GetDirFiles(const std::string& dir, std::vector < std::string >& file
 
 static bool initSensors()
 {
-	const std::string SENSORS_DIR = "/sys/bus/platform/devices/sensor_collection";
-	std::vector < std::string > sensorsFiles;
-	int sleepCounter = 0;
-	bool sensorExist = false;
-
-	while(sleepCounter < 60) {
-		if (FILE *file = fopen("/data/sensorsUp", "r")) {
-			log_message(DEBUG, "%s sleepCount = %d, sensorsUp file found\n", __func__, sleepCounter);
-			fclose(file);
-			sensorsFiles.clear();
-			GetDirFiles(SENSORS_DIR, sensorsFiles);
-			for (unsigned int i = 0; i < sensorsFiles.size(); i++) {
-                                if (sensorsFiles[i].find("sensor_") != std::string::npos) {
-					sensorExist = true;
-					break;
-				}
-                        }
-
-			if(sensorExist) {
-				remove("/data/sensorsUp");
-				break;
-			}
-		}
-
-		sleepCounter++;
-		sleep(1);
-	}
-
-	if(sleepCounter == 60) {
-		log_message(CRITICAL, "%s sleep counter is 60 sec. error occurred in sensors load: no sensors were found\n", __func__);
-		return false;
-	}
-
-	log_message(DEBUG, "%s sleep counter is %d sec.\n", __func__, sleepCounter);
-
         PlatformConfig mConfig;
         SensorDevice mDevice;
         Sensor* mSensor = NULL;
