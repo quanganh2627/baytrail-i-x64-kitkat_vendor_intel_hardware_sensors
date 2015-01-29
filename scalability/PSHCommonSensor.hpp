@@ -8,12 +8,14 @@ protected:
         struct sensorhub_event_t sensorhubEvent[32];
         int bufferDelay;
         streaming_flag flag;
+        int64_t last_timestamp;
 public:
         PSHCommonSensor(SensorDevice &mDevice) :PSHSensor(mDevice)
         {
                 memset(sensorhubEvent, 0, 32 * sizeof(struct sensorhub_event_t));
                 bufferDelay = 0;
                 flag = STOP_WHEN_SCREEN_OFF;
+                last_timestamp = -1;
         }
         virtual ~PSHCommonSensor()
         {

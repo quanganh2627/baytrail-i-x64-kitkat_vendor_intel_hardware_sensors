@@ -161,7 +161,6 @@ int PSHCommonSensor::setDelay(int handle, int64_t period_ns) {
 
 int PSHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
         int count = 32;
-        static int64_t last_timestamp = -1;
 
         if (state.getFlushSuccess() == true) {
                 eventQue.push(metaEvent);
