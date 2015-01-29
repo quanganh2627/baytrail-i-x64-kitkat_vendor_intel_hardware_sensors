@@ -127,9 +127,9 @@ int SensorHubHelper::getTerminalEvent(struct tc_data data)
         return data.state;
 }
 
-int SensorHubHelper::getShakeEvent(struct accel_data data)
+int SensorHubHelper::getShakeEvent(struct shaking_data data)
 {
-        return data.motion;
+        return data.shaking;
 }
 
 int SensorHubHelper::getSimpleTappingEvent(struct stap_data data)
@@ -174,7 +174,7 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
         case SENSOR_TYPE_PEDOMETER:
                 return sizeof(struct pedometer_data);
         case SENSOR_TYPE_SHAKE:
-                return sizeof(struct accel_data);
+                return sizeof(struct shaking_data);
         case SENSOR_TYPE_SIMPLE_TAPPING:
                 return sizeof(struct stap_data);
         case SENSOR_TYPE_MOVE_DETECT:
@@ -243,6 +243,7 @@ float SensorHubHelper::ConvertToFloat(int value, int sensorType)
 		case SENSOR_TYPE_MOTION_DETECT:
 			return value;
 
+                case SENSOR_TYPE_ORIENTATION:
 		case SENSOR_TYPE_ROTATION_VECTOR:
 		case SENSOR_TYPE_GAME_ROTATION_VECTOR:
 		case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
@@ -380,12 +381,8 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 break;
         case SENSOR_TYPE_SHAKE:
                 for (unsigned int i = 0; i < count; i++) {
-                        /* workaround: shaking data is combined to accelerometer data.
                         events[i].data[0] = getShakeEvent((reinterpret_cast<struct shaking_data*>(stream))[i]);
                         events[i].timestamp = (reinterpret_cast<struct shaking_data*>(stream))[i].ts;
-                        */
-                        events[i].data[0] = getShakeEvent((reinterpret_cast<struct accel_data*>(stream))[i]);
-                        events[i].timestamp = (reinterpret_cast<struct accel_data*>(stream))[i].ts;
                 }
                 break;
         case SENSOR_TYPE_SIMPLE_TAPPING:

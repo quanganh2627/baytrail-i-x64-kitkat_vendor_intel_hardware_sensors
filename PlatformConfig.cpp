@@ -10,16 +10,8 @@ PlatformConfig::PlatformConfig()
         if (ret)
                 return;
 
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++)
                 addSensorDevice(info[i]);
-                if (info[i].sensor_type == SENSOR_ACCELEROMETER) {
-                        sensor_info_t shaking_info = {"SHAKI", "Intel Inc.",
-                                              SENSOR_SHAKING, USE_CASE_HAL,
-                                              1, 0, 1, {1}, 1, 1.0, 0.006,
-                                              NULL};
-                        addSensorDevice(shaking_info);
-                }
-	}
 }
 
 bool PlatformConfig::addSensorDevice(sensor_info_t info)
@@ -132,66 +124,66 @@ int PlatformConfig::getType(ish_sensor_t sensor_type)
 std::string PlatformConfig::getName(ish_sensor_t sensor_type)
 {
         if (sensor_type == SENSOR_ALS)
-                return "ISH Light sensor";
+                return "Light sensor";
         else if (sensor_type == SENSOR_PROXIMITY)
-                return "ISH Proximity sensor";
+                return "Proximity sensor";
         else if (sensor_type == SENSOR_ACCELEROMETER)
-                return "ISH Accelerometer sensor";
+                return "Accelerometer sensor";
         else if (sensor_type == SENSOR_COMP)
-                return "ISH Magnetometer sensor";
+                return "Magnetometer sensor";
         else if (sensor_type == SENSOR_GYRO)
-                return "ISH Gyroscoper sensor";
+                return "Gyroscoper sensor";
         else if (sensor_type == SENSOR_BARO)
-                return "ISH Barometer sensor";
+                return "Barometer sensor";
         else if (sensor_type == SENSOR_GRAVITY)
-                return "ISH Gravity sensor";
+                return "Gravity sensor";
         else if (sensor_type == SENSOR_LINEAR_ACCEL)
-                return "ISH Linear Accelerometer sensor";
+                return "Linear Accelerometer sensor";
         else if (sensor_type == SENSOR_ROTATION_VECTOR)
-                return "ISH Rotation vector sensor";
+                return "Rotation vector sensor";
         else if (sensor_type == SENSOR_ORIENTATION)
-                return "ISH Orientation sensor";
+                return "Orientation sensor";
         else if (sensor_type == SENSOR_STEPDETECTOR)
-                return "ISH Step detecotr sensor";
+                return "Step detecotr sensor";
         else if (sensor_type == SENSOR_STEPCOUNTER)
-                return "ISH Step counter sensor";
+                return "Step counter sensor";
         else if (sensor_type == SENSOR_SIGNIFICANT_MOTION)
-                return "ISH Significant motion sensor";
+                return "Significant motion sensor";
         else if (sensor_type == SENSOR_GESTURE_FLICK)
-                return "ISH Gesture flick sensor";
+                return "Gesture flick sensor";
         else if (sensor_type == SENSOR_TC)
-                return "ISH Termial sensor";
+                return "Termial sensor";
         else if (sensor_type == SENSOR_SHAKING)
-                return "ISH Shake sensor";
+                return "Shake sensor";
         else if (sensor_type == SENSOR_MOVE_DETECT)
-                return "ISH Move detector sensor";
+                return "Move detector sensor";
         else if (sensor_type == SENSOR_PEDOMETER)
-                return "ISH Pedometer sensor";
+                return "Pedometer sensor";
         else if (sensor_type == SENSOR_ACTIVITY)
-                return "ISH Physical activity sensor";
+                return "Physical activity sensor";
 	else if (sensor_type == SENSOR_MOTION_DETECT)
-                return "ISH Motion detector sensor";
+                return "Motion detector sensor";
 	else if (sensor_type == SENSOR_UNCAL_GYRO)
-		return "ISH Uncalibrated Gyro sensor";
+		return "Uncalibrated Gyro sensor";
 	else if (sensor_type == SENSOR_UNCAL_ACC)
-		return "ISH Uncalibrated Accelerometer sensor";
+		return "Uncalibrated Accelerometer sensor";
         else if (sensor_type == SENSOR_GAME_ROTATION_VECTOR)
-                return "ISH Game rotation vector sensor";
+                return "Game rotation vector sensor";
 	else if (sensor_type == SENSOR_UNCAL_COMP)
-		return "ISH Uncalibrated Compass sensor";
+		return "Uncalibrated Compass sensor";
         else if (sensor_type == SENSOR_GEOMAGNETIC_ROTATION_VECTOR)
-                return "ISH Geomagnetic rotation vector sensor";
+                return "Geomagnetic rotation vector sensor";
         else if (sensor_type == SENSOR_STAP)
-                return "ISH Tap sensor";
+                return "Tap sensor";
         else if (sensor_type == SENSOR_PAN_TILT_ZOOM)
-                return "ISH Pan Zoom sensor";
+                return "Pan Zoom sensor";
         else if (sensor_type == SENSOR_LIFT)
-                return "ISH Lift sensor";
+                return "Lift sensor";
         else if (sensor_type == SENSOR_INSTANT_ACTIVITY)
-                return "ISH Instant Activity sensor";
+                return "Instant Activity sensor";
 
         ALOGW("%s: unsupported sensor: %d", __FUNCTION__, sensor_type);
-        return "ISH Unknow sensor";
+        return "Unknow sensor";
 }
 
 sensors_event_property_t PlatformConfig::getEventProperty(int type)

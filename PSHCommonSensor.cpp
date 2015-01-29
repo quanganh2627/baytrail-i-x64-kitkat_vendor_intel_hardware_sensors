@@ -11,9 +11,7 @@ int PSHCommonSensor::getPollfd()
         }
 
         ish_sensor_t PSHType = SensorHubHelper::getType(device.getType(), device.getSubname());
-        /* workaroud: ISHFW combine shaking sensor to accelerometer */
-	if (PSHType == SENSOR_SHAKING)
-            PSHType = SENSOR_ACCELEROMETER;
+
 	sensorHandle = methods.psh_open_session(PSHType);
         if (sensorHandle == NULL) {
                 log_message(CRITICAL,"psh_open_session error!\n");

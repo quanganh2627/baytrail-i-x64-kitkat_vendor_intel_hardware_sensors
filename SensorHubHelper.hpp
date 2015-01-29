@@ -24,7 +24,7 @@ public:
         static bool setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler);
         static int getGestureFlickEvent(struct gesture_flick_data data);
         static int getTerminalEvent(struct tc_data data);
-        static int getShakeEvent(struct accel_data data);
+        static int getShakeEvent(struct shaking_data data);
         static int getSimpleTappingEvent(struct stap_data data);
         static int getMoveDetectEvent(struct md_data data);
 };
