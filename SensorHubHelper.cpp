@@ -246,21 +246,24 @@ float SensorHubHelper::ConvertToFloat(int value, int sensorType)
 		case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
 		case SENSOR_TYPE_LINEAR_ACCELERATION:
 	        case SENSOR_TYPE_ACCELEROMETER:
-			return	CONVERT_A_G_VTF16E14_X(4, -6, value);
+			return	-1 * (((float) value) * 9.8 / 1000000);
+
+		case SENSOR_TYPE_GRAVITY:
+			return	((float) value) * 9.8 / 1000000;
 
 		case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
 		case SENSOR_TYPE_MAGNETIC_FIELD:
-			return	CONVERT_M_MG_VTF16E14_X(4, -3, value);
+			return	((float) value) / 10000;
 
 		case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
 		case SENSOR_TYPE_GYROSCOPE:
-			return CONVERT_G_D_VTF16E14_X(4, -5, value);
+			return ((float) value) * (float)M_PI/ (180 * 100000);
 
 		case SENSOR_TYPE_LIGHT:
 			return ((float) value) / 1000;
 
 		case SENSOR_TYPE_PRESSURE:
-			return ((float) value) / 100;	//exponent is 5 to convert to Bars, and 1 Bar = 1000 hectopascals. Android expect hectopascals.
+			return ((float) value) / 100;
 
 		case SENSOR_TYPE_PROXIMITY:
 			return value;
@@ -268,14 +271,13 @@ float SensorHubHelper::ConvertToFloat(int value, int sensorType)
 		case SENSOR_TYPE_MOTION_DETECT:
 			return value;
 
-                case SENSOR_TYPE_ORIENTATION:
 		case SENSOR_TYPE_ROTATION_VECTOR:
 		case SENSOR_TYPE_GAME_ROTATION_VECTOR:
 		case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
 			return ((float) value) / 10000;
 
-		case SENSOR_TYPE_GRAVITY:
-			return ((float)value * 9.8) / 1000000;
+                case SENSOR_TYPE_ORIENTATION:
+			return ((float) value) / 100000;
 
 		case SENSOR_TYPE_STEP_DETECTOR:
 			return 1.0;
@@ -287,7 +289,6 @@ float SensorHubHelper::ConvertToFloat(int value, int sensorType)
                         return (float) value;
 		}
 
-		log_message(CRITICAL, "%s: unsupported convert. sensorType: %d, value: %d\n", __func__, sensorType, value);
 		return (float)value;
 }
 
