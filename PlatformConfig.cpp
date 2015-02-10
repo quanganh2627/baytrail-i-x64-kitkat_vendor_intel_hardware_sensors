@@ -132,13 +132,13 @@ std::string PlatformConfig::getName(ish_sensor_t sensor_type)
         else if (sensor_type == SENSOR_COMP)
                 return "Magnetometer sensor";
         else if (sensor_type == SENSOR_GYRO)
-                return "Gyroscoper sensor";
+                return "Gyroscope sensor";
         else if (sensor_type == SENSOR_BARO)
                 return "Barometer sensor";
         else if (sensor_type == SENSOR_GRAVITY)
                 return "Gravity sensor";
         else if (sensor_type == SENSOR_LINEAR_ACCEL)
-                return "Linear Accelerometer sensor";
+                return "Linear Acceleration sensor";
         else if (sensor_type == SENSOR_ROTATION_VECTOR)
                 return "Rotation vector sensor";
         else if (sensor_type == SENSOR_ORIENTATION)

@@ -114,7 +114,32 @@ void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate,
 
 bool SensorHubHelper::setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler)
 {
-        return true;
+        int sensitivity = 0;
+
+        switch (sensorType) {
+        case SENSOR_TYPE_ACCELEROMETER:
+        case SENSOR_TYPE_MAGNETIC_FIELD:
+        case SENSOR_TYPE_ORIENTATION:
+        case SENSOR_TYPE_GYROSCOPE:
+        case SENSOR_TYPE_PRESSURE:
+        case SENSOR_TYPE_GRAVITY:
+        case SENSOR_TYPE_LINEAR_ACCELERATION:
+        case SENSOR_TYPE_ROTATION_VECTOR:
+        case SENSOR_TYPE_GAME_ROTATION_VECTOR:
+        case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
+        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
+        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
+        case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
+        case SENSOR_TYPE_PAN_ZOOM:
+        case SENSOR_TYPE_LIFT:
+                if (methods.psh_set_property(handler, PROP_SENSITIVITY, (void *)&sensitivity) == ERROR_NONE)
+                        return true;
+                else
+                        return false;
+
+        default:
+                return true;
+        }
 }
 
 int SensorHubHelper::getGestureFlickEvent(struct gesture_flick_data data)
