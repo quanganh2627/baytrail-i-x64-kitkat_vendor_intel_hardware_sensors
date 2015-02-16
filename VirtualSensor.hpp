@@ -27,6 +27,7 @@
 #define SENSOR_STRING_TYPE_GESTURE_FLICK        "intel.sensor.gesture_flick"
 #define SENSOR_STRING_TYPE_GESTURE              "intel.sensor.gesture"
 #define SENSOR_STRING_TYPE_PHYSICAL_ACTIVITY    "intel.sensor.physical_activity"
+#define SENSOR_STRING_TYPE_INSTANT_ACTIVITY     "intel.sensor.instant_activity"
 #define SENSOR_STRING_TYPE_TERMINAL             "intel.sensor.terminal"
 #define SENSOR_STRING_TYPE_AUDIO_CLASSIFICATION "intel.sensor.audio_classificataion"
 #define SENSOR_STRING_TYPE_PEDOMETER            "intel.sensor.pedometer"
@@ -38,7 +39,7 @@
 #define SENSOR_STRING_TYPE_DEVICE_POSITION      "intel.sensor.device_position"
 #define SENSOR_STRING_TYPE_LIFT                 "intel.sensor.lift"
 #define SENSOR_STRING_TYPE_PAN_ZOOM             "intel.sensor.pan_zoom"
-#define SENSOR_STRING_TYPE_CALIBRATION          "intel.sensor.calibration"
+#define SENSOR_STRING_TYPE_ACCELEROMETER_UNCALIBRATED          "intel.sensor.accelerometer_uncalibrated"
 
 
 // Sensor event types
@@ -115,7 +116,7 @@
 
 /*****************************************************************************/
 
-// PSH session related
+// ISH session related
 // gesture sensor
 #define GS_BUF_SIZE     512     /* accel & gyro buffer size */
 #define PX_BUF_SIZE     512     /* proximity buffer size */
@@ -129,7 +130,7 @@
 // gesture flick sensor
 #define GF_SAMPLE_RATE  20      /* gesture flick sampling rate, Hz */
 #define GF_BUF_DELAY    0       /* gesture flick buffer delay, ms */
-#define PSH_SESSION_NOT_OPENED NULL
+#define ISH_SESSION_NOT_OPENED NULL
 
 typedef enum { /* definition flick gestures value */
         NO_FLICK = 0,
@@ -211,6 +212,6 @@ typedef enum { /* definition flick gestures value */
 // some common definitions
 #define THREAD_NOT_STARTED 0
 #define PIPE_NOT_OPENED -1
-#define PSH_SESSION_NOT_OPENED NULL
+#define ISH_SESSION_NOT_OPENED NULL
 
 #endif
