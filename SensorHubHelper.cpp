@@ -149,7 +149,20 @@ int SensorHubHelper::getGestureFlickEvent(struct gesture_flick_data data)
 
 int SensorHubHelper::getTerminalEvent(struct tc_data data)
 {
-        return data.state;
+	if (data.state == 0)
+		return SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_UP;
+	else if (data.state == 1)
+		return SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_DOWN;
+	else if (data.state == 2)
+		return SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_DOWN;
+	else if (data.state == 3)
+		return SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_UP;
+	else if (data.state == 4)
+		return SENSOR_EVENT_TYPE_TERMINAL_FACE_UP;
+	else if (data.state == 5)
+		return SENSOR_EVENT_TYPE_TERMINAL_FACE_DOWN;
+	else
+		return SENSOR_EVENT_TYPE_TERMINAL_UNKNOWN;
 }
 
 int SensorHubHelper::getShakeEvent(struct shaking_data data)
