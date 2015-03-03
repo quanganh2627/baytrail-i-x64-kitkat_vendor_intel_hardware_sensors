@@ -26,10 +26,10 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\"
 LOCAL_SRC_FILES := SensorHAL.cpp    \
                    PlatformConfig.cpp \
-                   ISHSensor.cpp \
+                   PSHSensor.cpp \
                    Sensor.cpp \
                    SensorDevice.cpp \
-                   ISHCommonSensor.cpp \
+                   PSHCommonSensor.cpp \
                    SensorHubHelper.cpp \
                    utils.cpp
 

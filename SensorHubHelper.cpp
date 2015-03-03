@@ -1,4 +1,4 @@
-#include "ISHSensor.hpp"
+#include "PSHSensor.hpp"
 #include "SensorConfig.h"
 
 ish_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
@@ -112,7 +112,7 @@ void SensorHubHelper::getStartStreamingParameters(int sensorType, int &dataRate,
         }
 }
 
-bool SensorHubHelper::setISHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler)
+bool SensorHubHelper::setPSHPropertyIfNeeded(int sensorType, struct sensor_hub_methods methods, handle_t handler)
 {
         int sensitivity = 0;
 
@@ -132,7 +132,7 @@ bool SensorHubHelper::setISHPropertyIfNeeded(int sensorType, struct sensor_hub_m
         case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
         case SENSOR_TYPE_PAN_ZOOM:
         case SENSOR_TYPE_LIFT:
-                if (methods.ish_set_property(handler, PROP_SENSITIVITY, (void *)&sensitivity) == ERROR_NONE)
+                if (methods.psh_set_property(handler, PROP_SENSITIVITY, (void *)&sensitivity) == ERROR_NONE)
                         return true;
                 else
                         return false;
@@ -341,7 +341,6 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[0] = (reinterpret_cast<struct compass_raw_data *>(stream))[i].x;
                         events[i].data[1] = (reinterpret_cast<struct compass_raw_data *>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct compass_raw_data *>(stream))[i].z;
-                        events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
                         events[i].timestamp = (reinterpret_cast<struct compass_raw_data*>(stream))[i].ts;
                 }
                 break;
@@ -359,7 +358,6 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[0] = (reinterpret_cast<struct gyro_raw_data*>(stream))[i].x;
                         events[i].data[1] = (reinterpret_cast<struct gyro_raw_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct gyro_raw_data*>(stream))[i].z;
-                        events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
                         events[i].timestamp = (reinterpret_cast<struct gyro_raw_data*>(stream))[i].ts;
                 }
                 break;
@@ -405,7 +403,6 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[1] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].y;
                         events[i].data[2] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].z;
                         events[i].data[3] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].w;
-                        events[i].data[4] = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].mag_accuracy;
                         events[i].timestamp = (reinterpret_cast<struct rotation_vector_data*>(stream))[i].ts;
                 }
                 break;
@@ -449,7 +446,7 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 for (unsigned int i = 0; i < count; i++) {
 			int run_counter = ((reinterpret_cast<struct stepcounter_data*>(stream))[i]).run_step_count;
 			int walk_counter = ((reinterpret_cast<struct stepcounter_data*>(stream))[i]).walk_step_count;
-                        events[i].step_counter = run_counter + walk_counter;
+                        events[i].data[0] = run_counter + walk_counter;
                         events[i].timestamp = (reinterpret_cast<struct stepcounter_data*>(stream))[i].ts;
                 }
                 break;

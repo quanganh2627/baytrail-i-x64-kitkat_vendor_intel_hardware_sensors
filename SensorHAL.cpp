@@ -3,9 +3,14 @@
 #include <poll.h>
 #include <signal.h>
 #include <hardware/hardware.h>
-#include "ISHCommonSensor.hpp"
+#include "PSHCommonSensor.hpp"
 #include "PlatformConfig.hpp"
 #include "utils.hpp"
+#if 0
+#include "GestureSensor.hpp"
+#include "PhysicalActivitySensor.hpp"
+#include "AudioClassifierSensor.hpp"
+#endif
 
 static int open(const struct hw_module_t* module, const char* id,
                 struct hw_device_t** device);
@@ -25,8 +30,6 @@ static struct SensorModule mModule;
 
 static int get_sensors_list(struct sensors_module_t* module, struct sensor_t const** list)
 {
-        UNUSED(module);
-
         *list = mModule.list;
         return mModule.count;
 }
@@ -34,17 +37,33 @@ static int get_sensors_list(struct sensors_module_t* module, struct sensor_t con
 struct sensors_module_t HAL_MODULE_INFO_SYM = {
 common: {
         tag: HARDWARE_MODULE_TAG,
-        module_api_version: SENSORS_MODULE_API_VERSION_0_1,
-        hal_api_version: 0,
+        version_major: 1,
+        version_minor: 0,
         id: SENSORS_HARDWARE_MODULE_ID,
         name: "Intel Sensor module",
-        author: "Han, He <he.han@intel.com>, Even, Xu <even.xu@intel.com>, Intel Inc.",
+        author: "Han, He <he.han@intel.com>, Intel Inc.",
         methods: &sensors_module_methods,
         dso: 0,
         reserved: { 0 },
 },
 get_sensors_list: get_sensors_list,
 };
+
+static int GetDirFiles(const std::string& dir, std::vector < std::string >& files){
+        DIR *dp;
+        struct dirent *dirp;
+
+        if ((dp = opendir(dir.c_str())) == NULL) {
+                log_message(CRITICAL, "%s: error opening directory %s\n", __func__, (char*)dir.c_str());
+                return errno;
+        }
+
+        while ((dirp = readdir(dp)) != NULL)
+                files.push_back(std::string(dirp->d_name));
+
+        closedir(dp);
+        return 0;
+}
 
 static bool initSensors()
 {
@@ -94,9 +113,19 @@ static bool initSensors()
                         case SENSOR_TYPE_PAN_ZOOM:
                         case SENSOR_TYPE_LIFT:
                         case SENSOR_TYPE_INSTANT_ACTIVITY:
-                                mSensor = new ISHCommonSensor(mDevice);
+                                mSensor = new PSHCommonSensor(mDevice);
                                 break;
-
+#if 0
+                        case SENSOR_TYPE_PHYSICAL_ACTIVITY:
+                                mSensor = new PhysicalActivitySensor(mDevice);
+                                break;
+                        case SENSOR_TYPE_AUDIO_CLASSIFICATION:
+                                mSensor = new AudioClassifierSensor(mDevice);
+                                break;
+                        case SENSOR_TYPE_GESTURE:
+                                mSensor = new GestureSensor(mDevice);
+                                break;
+#endif
                         default:
                                 log_message(CRITICAL,"%s Unsupported sensor type: %d\n", __FUNCTION__, mDevice.getType());
                                 return false;
@@ -104,6 +133,7 @@ static bool initSensors()
 
                 if (mSensor) {
                         if (mSensor->selftest()) {
+
                                 // Need to reset ids and handles, since some unfunctional sensors are removed
                                 mSensor->getDevice().setId(newId);
                                 mSensor->getDevice().setHandle(SensorDevice::idToHandle(newId));
@@ -140,12 +170,10 @@ int sensorActivate(struct sensors_poll_device_t *dev, int handle, int enabled)
 {
         int id = SensorDevice::handleToId(handle);
         if (id < 0) {
-                log_message(CRITICAL,"%s: line:%d Invalid handle: handle: %d; id: %d\n",
+                log_message(CRITICAL,"%s: line:%d Invalid handle: handle: %d; id: %d",
                      __FUNCTION__, __LINE__, handle, id);
                 return -1;
         }
-
-        UNUSED(dev);
 
         return mModule.sensors[id]->activate(handle, enabled);
 }
@@ -154,43 +182,12 @@ int sensorSetDelay(struct sensors_poll_device_t *dev, int handle, int64_t ns)
 {
         int id = SensorDevice::handleToId(handle);
         if (id < 0) {
-                log_message(CRITICAL,"%s: line:%d Invalid handle: handle: %d; id: %d\n",
+                log_message(CRITICAL,"%s: line:%d Invalid handle: handle: %d; id: %d",
                      __FUNCTION__, __LINE__, handle, id);
                 return -1;
         }
-
-        UNUSED(dev);
 
         return mModule.sensors[id]->setDelay(handle, ns);
-}
-
-int sensorBatch(struct sensors_poll_device_1* dev,
-                int handle, int flags, int64_t period_ns, int64_t timeout)
-{
-        int id = SensorDevice::handleToId(handle);
-        if (id < 0) {
-                log_message(CRITICAL, "%s: line:%d Invalid handle: handle: %d; id: %d\n",
-                     __FUNCTION__, __LINE__, handle, id);
-                return -1;
-        }
-
-        UNUSED(dev);
-
-        return mModule.sensors[id]->batch(handle, flags, period_ns, timeout);
-}
-
-int sensorFlush(struct sensors_poll_device_1* dev, int handle)
-{
-        int id = SensorDevice::handleToId(handle);
-        if (id < 0) {
-                log_message(CRITICAL, "%s: line:%d Invalid handle: handle: %d; id: %d\n",
-                     __FUNCTION__, __LINE__, handle, id);
-                return -1;
-        }
-
-        UNUSED(dev);
-
-        return mModule.sensors[id]->flush(handle);
 }
 
 int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int count)
@@ -199,8 +196,6 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
         int eventNum = 0;
         int num, err;
 	FILE * file;
-
-        UNUSED(dev);
 
         while (true) {
                 while (eventQue.size() > 0 && eventNum < count) {
@@ -236,8 +231,6 @@ int sensorPoll(struct sensors_poll_device_t *dev, sensors_event_t* data, int cou
 
 int close(struct hw_device_t* device)
 {
-        UNUSED(device);
-
         if (mModule.list != NULL)
                 delete mModule.list;
 
@@ -251,22 +244,19 @@ int close(struct hw_device_t* device)
         return 0;
 }
 
+
 static int open(const struct hw_module_t* module, const char* id,
                 struct hw_device_t** device)
 {
-        static struct sensors_poll_device_1 dev;
-
-        UNUSED(id);
+        static struct sensors_poll_device_t dev;
 
         dev.common.tag = HARDWARE_DEVICE_TAG;
-        dev.common.version = SENSORS_DEVICE_API_VERSION_1_3;
+        dev.common.version = 0;
         dev.common.module  = const_cast<hw_module_t*>(module);
         dev.common.close   = close;
         dev.activate       = sensorActivate;
         dev.setDelay       = sensorSetDelay;
         dev.poll           = sensorPoll;
-        dev.batch          = sensorBatch;
-        dev.flush          = sensorFlush;
 
         *device = &dev.common;
 
@@ -275,3 +265,4 @@ static int open(const struct hw_module_t* module, const char* id,
 
         return -1;
 }
+

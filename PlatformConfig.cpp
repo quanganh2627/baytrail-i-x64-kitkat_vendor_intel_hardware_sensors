@@ -19,11 +19,8 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
         float value = 0;
         SensorDevice mSensor;
         int sensorType;
-        std::string name;
-        const char* sensorStringType;
-        uint32_t flags;
+	std::string name;
         sensors_event_property_t eventProperty;
-	unsigned int i;
 
         mSensor.setId(devices.size());
         mSensor.setHandle(mSensor.idToHandle(mSensor.getId()));
@@ -31,14 +28,20 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
         mSensor.setType(sensorType);
         eventProperty = getEventProperty(sensorType);
         mSensor.setEventProperty(eventProperty);
-        sensorStringType = getStringType(sensorType);
-        mSensor.setStringType(sensorStringType);
-        flags = getFlags(sensorType);
-        mSensor.setFlags(flags);
 
-	for (i = 0; i < info.axis_num; i++) {
-        	mSensor.setMapper(i, i);
-        	mSensor.setScale(i, info.axis_scale[i]);
+        mSensor.setMapper(0, AXIS_X);
+        mSensor.setScale(0, info.axis_scale[0]);
+	if (info.axis_num > 1) {
+                 mSensor.setMapper(1, AXIS_Y);
+                 mSensor.setScale(1, info.axis_scale[1]);
+	}
+	if (info.axis_num > 2) {
+                 mSensor.setMapper(2, AXIS_Z);
+                 mSensor.setScale(2, info.axis_scale[2]);
+	}
+	if (info.axis_num > 3) {
+                 mSensor.setMapper(3, AXIS_W);
+                 mSensor.setScale(3, info.axis_scale[3]);
 	}
 
 	name = getName(info.sensor_type);
@@ -49,28 +52,6 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
         mSensor.setResolution(info.resolution);
         mSensor.setPower(info.power);
         mSensor.setMinDelay(info.min_delay);
-        mSensor.setMaxDelay(info.max_delay);
-        mSensor.setFifoMaxEventCount(info.fifo_max_event_count);
-        mSensor.setFifoReservedEventCount(info.fifo_reserved_event_count);
-
-        if (sensorType == SENSOR_TYPE_HEART_RATE)
-                mSensor.setRequiredPermission(SENSOR_PERMISSION_BODY_SENSORS);
-        else if (mSensor.getRequiredPermission() == NULL)
-                mSensor.setRequiredPermission("");
-
-        switch (sensorType) {
-        case SENSOR_TYPE_SIGNIFICANT_MOTION:
-        case SENSOR_TYPE_WAKE_GESTURE:
-        case SENSOR_TYPE_GLANCE_GESTURE:
-        case SENSOR_TYPE_PICK_UP_GESTURE:
-        case SENSOR_TYPE_TILT_DETECTOR:
-                flags = mSensor.getFlags();
-                flags |= SENSOR_FLAG_WAKE_UP;
-                mSensor.setFlags(flags);
-                break;
-        default:
-                break;
-        }
 
         devices.push_back(mSensor);
 
@@ -136,7 +117,7 @@ int PlatformConfig::getType(ish_sensor_t sensor_type)
         else if (sensor_type == SENSOR_INSTANT_ACTIVITY)
                 return SENSOR_TYPE_INSTANT_ACTIVITY;
 
-        log_message(CRITICAL, "%s: unsupported sensor: %d\n", __FUNCTION__, sensor_type);
+        ALOGW("%s: unsupported sensor: %d", __FUNCTION__, sensor_type);
         return 0;
 }
 
@@ -201,155 +182,8 @@ std::string PlatformConfig::getName(ish_sensor_t sensor_type)
         else if (sensor_type == SENSOR_INSTANT_ACTIVITY)
                 return "Instant Activity sensor";
 
-        log_message(CRITICAL, "%s: unsupported sensor: %d\n", __FUNCTION__, sensor_type);
+        ALOGW("%s: unsupported sensor: %d", __FUNCTION__, sensor_type);
         return "Unknow sensor";
-}
-
-const char* PlatformConfig::getStringType(int sensorType)
-{
-        switch (sensorType) {
-        case SENSOR_TYPE_LIGHT:
-                return SENSOR_STRING_TYPE_LIGHT;
-        case SENSOR_TYPE_PROXIMITY:
-                return SENSOR_STRING_TYPE_PROXIMITY;
-        case SENSOR_TYPE_ACCELEROMETER:
-                return SENSOR_STRING_TYPE_ACCELEROMETER;
-        case SENSOR_TYPE_MAGNETIC_FIELD:
-                return SENSOR_STRING_TYPE_MAGNETIC_FIELD;
-        case SENSOR_TYPE_GYROSCOPE:
-                return SENSOR_STRING_TYPE_GYROSCOPE;
-        case SENSOR_TYPE_PRESSURE:
-                return SENSOR_STRING_TYPE_PRESSURE;
-        case SENSOR_TYPE_TEMPERATURE:
-                return SENSOR_STRING_TYPE_TEMPERATURE;
-        case SENSOR_TYPE_AMBIENT_TEMPERATURE:
-                return SENSOR_STRING_TYPE_AMBIENT_TEMPERATURE;
-        case SENSOR_TYPE_RELATIVE_HUMIDITY:
-                return SENSOR_STRING_TYPE_RELATIVE_HUMIDITY;
-        case SENSOR_TYPE_GRAVITY:
-                return SENSOR_STRING_TYPE_GRAVITY;
-        case SENSOR_TYPE_INSTANT_ACTIVITY:
-                return SENSOR_STRING_TYPE_INSTANT_ACTIVITY;
-        case SENSOR_TYPE_LINEAR_ACCELERATION:
-                return SENSOR_STRING_TYPE_LINEAR_ACCELERATION;
-        case SENSOR_TYPE_ROTATION_VECTOR:
-                return SENSOR_STRING_TYPE_ROTATION_VECTOR;
-        case SENSOR_TYPE_ORIENTATION:
-                return SENSOR_STRING_TYPE_ORIENTATION;
-        case SENSOR_TYPE_STEP_DETECTOR:
-                return SENSOR_STRING_TYPE_STEP_DETECTOR;
-        case SENSOR_TYPE_STEP_COUNTER:
-                return SENSOR_STRING_TYPE_STEP_COUNTER;
-        case SENSOR_TYPE_SIGNIFICANT_MOTION:
-                return SENSOR_STRING_TYPE_SIGNIFICANT_MOTION;
-        case SENSOR_TYPE_GESTURE_FLICK:
-                return SENSOR_STRING_TYPE_GESTURE_FLICK;
-        case SENSOR_TYPE_TERMINAL:
-                return SENSOR_STRING_TYPE_TERMINAL;
-        case SENSOR_TYPE_SHAKE:
-                return SENSOR_STRING_TYPE_SHAKE;
-        case SENSOR_TYPE_SIMPLE_TAPPING:
-                return SENSOR_STRING_TYPE_SIMPLE_TAPPING;
-        case SENSOR_TYPE_MOVE_DETECT:
-                return SENSOR_STRING_TYPE_MOVE_DETECT;
-        case SENSOR_TYPE_PEDOMETER:
-                return SENSOR_STRING_TYPE_PEDOMETER;
-        case SENSOR_TYPE_AUDIO_CLASSIFICATION:
-                return SENSOR_STRING_TYPE_AUDIO_CLASSIFICATION;
-        case SENSOR_TYPE_GAME_ROTATION_VECTOR:
-                return SENSOR_STRING_TYPE_GAME_ROTATION_VECTOR;
-        case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
-                return SENSOR_STRING_TYPE_GEOMAGNETIC_ROTATION_VECTOR;
-        case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
-                return SENSOR_STRING_TYPE_ACCELEROMETER_UNCALIBRATED;
-        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-                return SENSOR_STRING_TYPE_MAGNETIC_FIELD_UNCALIBRATED;
-        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
-                return SENSOR_STRING_TYPE_GYROSCOPE_UNCALIBRATED;
-        case SENSOR_TYPE_GESTURE_HMM:
-                return SENSOR_STRING_TYPE_GESTURE_HMM;
-        case SENSOR_TYPE_GESTURE_EARTOUCH:
-                return SENSOR_STRING_TYPE_GESTURE_EARTOUCH;
-        case SENSOR_TYPE_GESTURE:
-                return SENSOR_STRING_TYPE_GESTURE;
-        case SENSOR_TYPE_DEVICE_POSITION:
-                return SENSOR_STRING_TYPE_DEVICE_POSITION;
-        case SENSOR_TYPE_LIFT:
-                return SENSOR_STRING_TYPE_LIFT;
-        case SENSOR_TYPE_PAN_ZOOM:
-                return SENSOR_STRING_TYPE_PAN_ZOOM;
-        case SENSOR_TYPE_HEART_RATE:
-                return SENSOR_STRING_TYPE_HEART_RATE;
-        case SENSOR_TYPE_TILT_DETECTOR:
-                return SENSOR_STRING_TYPE_TILT_DETECTOR;
-        case SENSOR_TYPE_WAKE_GESTURE:
-                return SENSOR_STRING_TYPE_WAKE_GESTURE;
-        case SENSOR_TYPE_GLANCE_GESTURE:
-                return SENSOR_STRING_TYPE_GLANCE_GESTURE;
-        case SENSOR_TYPE_PICK_UP_GESTURE:
-                return SENSOR_STRING_TYPE_PICK_UP_GESTURE;
-        default:
-                log_message(CRITICAL, "%s: unsupported sensor: %d\n", __FUNCTION__, sensorType);
-                break;
-        }
-        return NULL;
-}
-
-uint32_t PlatformConfig::getFlags(int sensorType)
-{
-        switch (sensorType) {
-        case SENSOR_TYPE_LIGHT:
-        case SENSOR_TYPE_STEP_COUNTER:
-        case SENSOR_TYPE_HEART_RATE:
-        case SENSOR_TYPE_TERMINAL:
-        case SENSOR_TYPE_MOVE_DETECT:
-        case SENSOR_TYPE_DEVICE_POSITION:
-        case SENSOR_TYPE_PEDOMETER:
-                return SENSOR_FLAG_ON_CHANGE_MODE;
-        case SENSOR_TYPE_PROXIMITY:
-                return SENSOR_FLAG_ON_CHANGE_MODE | SENSOR_FLAG_WAKE_UP;
-        case SENSOR_TYPE_ACCELEROMETER:
-        case SENSOR_TYPE_MAGNETIC_FIELD:
-        case SENSOR_TYPE_GYROSCOPE:
-        case SENSOR_TYPE_PRESSURE:
-        case SENSOR_TYPE_TEMPERATURE:
-        case SENSOR_TYPE_AMBIENT_TEMPERATURE:
-        case SENSOR_TYPE_RELATIVE_HUMIDITY:
-        case SENSOR_TYPE_GRAVITY:
-        case SENSOR_TYPE_LINEAR_ACCELERATION:
-        case SENSOR_TYPE_ROTATION_VECTOR:
-        case SENSOR_TYPE_ORIENTATION:
-        case SENSOR_TYPE_GAME_ROTATION_VECTOR:
-        case SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR:
-        case SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-        case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
-        case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
-        case SENSOR_TYPE_CALIBRATION:
-        case SENSOR_TYPE_PAN_ZOOM:
-        case SENSOR_TYPE_AUDIO_CLASSIFICATION:
-                return SENSOR_FLAG_CONTINUOUS_MODE;
-        case SENSOR_TYPE_STEP_DETECTOR:
-        case SENSOR_TYPE_GESTURE_FLICK:
-        case SENSOR_TYPE_SHAKE:
-        case SENSOR_TYPE_SIMPLE_TAPPING:
-        case SENSOR_TYPE_GESTURE:
-        case SENSOR_TYPE_INSTANT_ACTIVITY:
-        case SENSOR_TYPE_LIFT:
-                return SENSOR_FLAG_SPECIAL_REPORTING_MODE;
-        case SENSOR_TYPE_SIGNIFICANT_MOTION:
-        case SENSOR_TYPE_WAKE_GESTURE:
-        case SENSOR_TYPE_GLANCE_GESTURE:
-        case SENSOR_TYPE_PICK_UP_GESTURE:
-                return SENSOR_FLAG_ONE_SHOT_MODE | SENSOR_FLAG_WAKE_UP;
-        case SENSOR_TYPE_TILT_DETECTOR:
-        case SENSOR_TYPE_GESTURE_HMM:
-        case SENSOR_TYPE_GESTURE_EARTOUCH:
-                return SENSOR_FLAG_SPECIAL_REPORTING_MODE | SENSOR_FLAG_WAKE_UP;
-        default:
-                log_message(CRITICAL, "%s: unsupported sensor: %d\n", __FUNCTION__, sensorType);
-                break;
-        }
-        return SENSOR_FLAG_CONTINUOUS_MODE;
 }
 
 sensors_event_property_t PlatformConfig::getEventProperty(int type)
@@ -375,10 +209,9 @@ sensors_event_property_t PlatformConfig::getEventProperty(int type)
 
 bool PlatformConfig::getSensorDevice(int id, SensorDevice &device)
 {
-        if (id < (int)devices.size()) {
+        if (id < devices.size()) {
                 device = devices[id];
                 return true;
         }
-
         return false;
 }

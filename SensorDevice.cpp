@@ -1,13 +1,23 @@
 #include "SensorDevice.hpp"
 
-void SensorDevice::copyDevice(const SensorDevice &device)
+SensorDevice::SensorDevice(const SensorDevice &device)
 {
         char* str;
         int size;
 
         memset(&dev, 0, sizeof(dev));
-        setName(device.dev.name);
-        setVendor(device.dev.vendor);
+        if (device.dev.name != NULL) {
+                size = strlen(device.dev.name);
+                str = new char[size + 1];
+                strcpy(str, device.dev.name);
+                dev.name = str;
+        }
+        if (device.dev.vendor != NULL) {
+                size = strlen(device.dev.vendor);
+                str = new char[size + 1];
+                strcpy(str, device.dev.vendor);
+                dev.vendor = str;
+        }
         dev.version = device.dev.version;
         dev.handle = device.dev.handle;
         dev.type = device.dev.type;
@@ -15,14 +25,6 @@ void SensorDevice::copyDevice(const SensorDevice &device)
         dev.resolution = device.dev.resolution;
         dev.power = device.dev.power;
         dev.minDelay = device.dev.minDelay;
-
-        dev.fifoReservedEventCount = device.dev.fifoReservedEventCount;
-        dev.fifoMaxEventCount = device.dev.fifoMaxEventCount;
-        setStringType(device.dev.stringType);
-        setRequiredPermission(device.dev.requiredPermission);
-        dev.maxDelay = device.dev.maxDelay;
-        dev.flags = device.dev.flags;
-
         id = device.id;
         category = device.category;
         subname = device.subname;
@@ -33,18 +35,46 @@ void SensorDevice::copyDevice(const SensorDevice &device)
         }
 }
 
-SensorDevice::SensorDevice(const SensorDevice &device)
-{
-        copyDevice(device);
-}
-
 SensorDevice& SensorDevice::operator=(const SensorDevice &device)
 {
+        char* str;
+        int size;
         if (this == &device)
                 return *this;
 
-        copyDevice(device);
+        if (dev.name != NULL)
+                delete[] dev.name;
+        if (dev.vendor != NULL)
+                delete[] dev.vendor;
 
+        memset(&dev, 0, sizeof(dev));
+        if (device.dev.name != NULL) {
+                size = strlen(device.dev.name);
+                str = new char[size + 1];
+                strcpy(str, device.dev.name);
+                dev.name = str;
+        }
+        if (device.dev.vendor != NULL) {
+                size = strlen(device.dev.vendor);
+                str = new char[size + 1];
+                strcpy(str, device.dev.vendor);
+                dev.vendor = str;
+        }
+        dev.version = device.dev.version;
+        dev.handle = device.dev.handle;
+        dev.type = device.dev.type;
+        dev.maxRange = device.dev.maxRange;
+        dev.resolution = device.dev.resolution;
+        dev.power = device.dev.power;
+        dev.minDelay = device.dev.minDelay;
+        id = device.id;
+        category = device.category;
+        subname = device.subname;
+        eventProperty = device.eventProperty;
+        for (int i = 0; i < AXIS_MAX; i++) {
+                mapper[i] = device.mapper[i];
+                scale[i] = device.scale[i];
+        }
         return *this;
 }
 
@@ -71,26 +101,4 @@ void SensorDevice::setVendor(const char* vendor)
         }
 }
 
-void SensorDevice::setStringType(const char* stringType)
-{
-        if (stringType != NULL) {
-                if (dev.stringType != NULL)
-                        delete[] dev.stringType;
-                int size = strlen(stringType);
-                char* str = new char[size + 1];
-                strcpy(str, stringType);
-                dev.stringType = str;
-        }
-}
 
-void SensorDevice::setRequiredPermission(const char* requiredPermission)
-{
-        if (requiredPermission != NULL) {
-                if (dev.requiredPermission != NULL)
-                        delete[] dev.requiredPermission;
-                int size = strlen(requiredPermission);
-                char* str = new char[size + 1];
-                strcpy(str, requiredPermission);
-                dev.requiredPermission = str;
-        }
-}
