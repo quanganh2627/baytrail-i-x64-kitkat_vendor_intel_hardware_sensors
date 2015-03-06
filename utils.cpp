@@ -15,7 +15,7 @@ int64_t getTimestamp()
         return static_cast<int64_t>(t.tv_sec)*1000000000LL + static_cast<int64_t>(t.tv_nsec);
 }
 
-static const char *log_file = "/data/sensorHalUmg.log";
+static const char *log_file = "/data/sensorHal.log";
 
 static message_level current_level = DEBUG;
 

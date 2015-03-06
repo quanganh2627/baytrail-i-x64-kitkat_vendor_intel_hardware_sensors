@@ -1,6 +1,10 @@
 #ifndef _UTILS_HPP_
 #define _UTILS_HPP_
 
+#ifndef UNUSED
+#define UNUSED(x) (void)x
+#endif
+
 int64_t timevalToNano(timeval const& t);
 int64_t getTimestamp();
 typedef enum {
