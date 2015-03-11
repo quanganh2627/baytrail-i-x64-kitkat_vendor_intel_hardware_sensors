@@ -152,11 +152,11 @@ int SensorHubHelper::getTerminalEvent(struct tc_data data)
 	if (data.state == 0)
 		return SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_UP;
 	else if (data.state == 1)
-		return SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_DOWN;
+		return SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_UP;
 	else if (data.state == 2)
 		return SENSOR_EVENT_TYPE_TERMINAL_PORTRAIT_DOWN;
 	else if (data.state == 3)
-		return SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_UP;
+		return SENSOR_EVENT_TYPE_TERMINAL_HORIZONTAL_DOWN;
 	else if (data.state == 4)
 		return SENSOR_EVENT_TYPE_TERMINAL_FACE_UP;
 	else if (data.state == 5)
