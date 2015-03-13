@@ -104,6 +104,11 @@ int ISHCommonSensor::batch(int handle, int flags, int64_t period_ns, int64_t tim
 
         UNUSED(flags);
 
+        /* timeout should be always 0 if batch not supported */
+        if (device.getFifoReservedEventCount() == 0 && device.getFifoMaxEventCount() == 0) {
+                timeout = 0;
+        }
+
         if (handle != device.getHandle()) {
                 log_message(CRITICAL, "%s: line: %d: %s handle not match! handle: %d required handle: %d",
                      __FUNCTION__, __LINE__, device.getName(), device.getHandle(), handle);
