@@ -48,7 +48,15 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
         mSensor.setMaxRange(info.max_range);
         mSensor.setResolution(info.resolution);
         mSensor.setPower(info.power);
-        mSensor.setMinDelay(info.min_delay);
+
+	if (info.min_delay < 10000) {
+                mSensor.setMinDelay(10000);
+                log_message(CRITICAL, "setmindelay %d\n", info.min_delay);
+	} else {
+        	mSensor.setMinDelay(info.min_delay);
+                log_message(CRITICAL, "setmindelay %d\n", info.min_delay);
+	}
+
         mSensor.setMaxDelay(info.max_delay);
         mSensor.setFifoMaxEventCount(info.fifo_max_event_count);
         mSensor.setFifoReservedEventCount(info.fifo_reserved_event_count);

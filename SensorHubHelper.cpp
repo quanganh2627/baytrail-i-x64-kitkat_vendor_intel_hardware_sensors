@@ -347,9 +347,9 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 break;
         case SENSOR_TYPE_ORIENTATION:
                 for (unsigned int i = 0; i < count; i++) {
-                        events[i].data[0] = (reinterpret_cast<struct orientation_data*>(stream))[i].tiltx;
-                        events[i].data[1] = (reinterpret_cast<struct orientation_data*>(stream))[i].tilty;
-                        events[i].data[2] = (reinterpret_cast<struct orientation_data*>(stream))[i].tiltz;
+                        events[i].data[0] = (reinterpret_cast<struct orientation_data*>(stream))[i].tiltz;
+                        events[i].data[1] = (reinterpret_cast<struct orientation_data*>(stream))[i].tiltx;
+                        events[i].data[2] = (reinterpret_cast<struct orientation_data*>(stream))[i].tilty;
                         events[i].accuracy = SENSOR_STATUS_ACCURACY_MEDIUM;
                         events[i].timestamp = (reinterpret_cast<struct orientation_data*>(stream))[i].ts;
                 }
