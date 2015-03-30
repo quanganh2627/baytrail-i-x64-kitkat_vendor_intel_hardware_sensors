@@ -502,9 +502,9 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[0] = (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].x_uncalib;
                         events[i].data[1] = (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].y_uncalib;
                         events[i].data[2] = (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].z_uncalib;
-                        events[i].data[3] = (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].x_calib - events[i].data[0];
-			events[i].data[4] = (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].y_calib - events[i].data[1];
-			events[i].data[5] = (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].z_calib - events[i].data[2];
+                        events[i].data[3] = events[i].data[0] - (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].x_calib;
+                        events[i].data[4] = events[i].data[1] - (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].y_calib;
+                        events[i].data[5] = events[i].data[2] - (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].z_calib;
                         events[i].timestamp = (reinterpret_cast<struct uncalib_compass_data*>(stream))[i].ts;
                 }
                 break;
@@ -513,10 +513,10 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                         events[i].data[0] = (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].x_uncalib;
                         events[i].data[1] = (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].y_uncalib;
                         events[i].data[2] = (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].z_uncalib;
-                        events[i].data[3] = (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].x_calib - events[i].data[0];
-                        events[i].data[4] = (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].y_calib - events[i].data[1];
-                        events[i].data[5] = (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].z_calib - events[i].data[2];
-			events[i].timestamp = (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].ts;
+                        events[i].data[3] = events[i].data[0] - (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].x_calib;
+                        events[i].data[4] = events[i].data[1] - (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].y_calib;
+                        events[i].data[5] = events[i].data[2] - (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].z_calib;
+                        events[i].timestamp = (reinterpret_cast<struct uncalib_gyro_data*>(stream))[i].ts;
                 }
                 break;
 	case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
