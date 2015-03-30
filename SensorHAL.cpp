@@ -147,6 +147,8 @@ int sensorActivate(struct sensors_poll_device_t *dev, int handle, int enabled)
 
         UNUSED(dev);
 
+	log_message(DEBUG, "%s: sensor %s enabled %d\n", __FUNCTION__, mModule.sensors[id]->getDevice().getName(), enabled);
+
         return mModule.sensors[id]->activate(handle, enabled);
 }
 
@@ -160,6 +162,8 @@ int sensorSetDelay(struct sensors_poll_device_t *dev, int handle, int64_t ns)
         }
 
         UNUSED(dev);
+
+	log_message(DEBUG, "%s: sensor %s ns %lld\n", __FUNCTION__, mModule.sensors[id]->getDevice().getName(), ns);
 
         return mModule.sensors[id]->setDelay(handle, ns);
 }
@@ -176,6 +180,8 @@ int sensorBatch(struct sensors_poll_device_1* dev,
 
         UNUSED(dev);
 
+	log_message(DEBUG, "%s: sensor %s ns %lld timeout %lld\n", __FUNCTION__, mModule.sensors[id]->getDevice().getName(), period_ns, timeout);
+
         return mModule.sensors[id]->batch(handle, flags, period_ns, timeout);
 }
 
@@ -189,6 +195,8 @@ int sensorFlush(struct sensors_poll_device_1* dev, int handle)
         }
 
         UNUSED(dev);
+
+	log_message(DEBUG, "%s: sensor %s\n", __FUNCTION__, mModule.sensors[id]->getDevice().getName());
 
         return mModule.sensors[id]->flush(handle);
 }
