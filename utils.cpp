@@ -15,7 +15,7 @@ int64_t getTimestamp()
         return static_cast<int64_t>(t.tv_sec)*1000000000LL + static_cast<int64_t>(t.tv_nsec);
 }
 
-static const char *log_file = "/data/sensorHal.log";
+static const char *log_file = "/data/sensorhal.log";
 
 static message_level current_level = DEBUG;
 
@@ -32,12 +32,19 @@ void log_message(const message_level level, const char *char_ptr, ...)
 	char buffer[MAX_LOG_SIZE];
 	va_list list_ptr;
 
-	if (level > current_level)
-		return;
-
 	va_start(list_ptr, char_ptr);
 	vsnprintf(buffer, MAX_LOG_SIZE, char_ptr, list_ptr);
 	va_end(list_ptr);
+
+	if (level == DEBUG)
+		ALOGD("sensorhal: %s", buffer);
+	else if (level == WARNING)
+		ALOGW("sensorhal: %s", buffer);
+	else
+		ALOGE("sensorhal: %s", buffer);
+
+	if (level > current_level)
+		return;
 
 	FILE *logf = fopen(log_file, "a");
 	if (logf) {
