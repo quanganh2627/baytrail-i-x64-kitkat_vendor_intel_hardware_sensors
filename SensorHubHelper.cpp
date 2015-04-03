@@ -131,7 +131,6 @@ bool SensorHubHelper::setISHPropertyIfNeeded(int sensorType, struct sensor_hub_m
         case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
         case SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED:
         case SENSOR_TYPE_PAN_ZOOM:
-        case SENSOR_TYPE_LIFT:
                 if (methods.ish_set_property(handler, PROP_SENSITIVITY, (void *)&sensitivity) == ERROR_NONE)
                         return true;
                 else
