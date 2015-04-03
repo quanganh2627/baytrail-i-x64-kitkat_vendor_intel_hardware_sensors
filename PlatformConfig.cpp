@@ -21,7 +21,7 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
         int sensorType;
         std::string name;
         const char* sensorStringType;
-        uint32_t flags;
+        uint32_t flags, mode;
         sensors_event_property_t eventProperty;
 	unsigned int i;
 
@@ -49,7 +49,13 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
         mSensor.setResolution(info.resolution);
         mSensor.setPower(info.power);
 
-	if (info.min_delay < 10000) {
+        mode = flags & REPORTING_MODE_MASK;
+        if (mode == SENSOR_FLAG_SPECIAL_REPORTING_MODE || mode == SENSOR_FLAG_ON_CHANGE_MODE) {
+                mSensor.setMinDelay(0);
+        } else if (mode == SENSOR_FLAG_ONE_SHOT_MODE) {
+                mSensor.setMinDelay(-1);
+        } else if (info.min_delay < 10000) {
+                /* FixMe: current mindelay repoorted by firmware is 2ms, but not real supported by firmware */
                 mSensor.setMinDelay(10000);
                 log_message(CRITICAL, "setmindelay %d\n", info.min_delay);
 	} else {
@@ -57,9 +63,19 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
                 log_message(CRITICAL, "setmindelay %d\n", info.min_delay);
 	}
 
-        mSensor.setMaxDelay(info.max_delay);
-        mSensor.setFifoMaxEventCount(info.fifo_max_event_count);
-        mSensor.setFifoReservedEventCount(info.fifo_reserved_event_count);
+        if (mode == SENSOR_FLAG_SPECIAL_REPORTING_MODE || mode == SENSOR_FLAG_ON_CHANGE_MODE || mode == SENSOR_FLAG_ONE_SHOT_MODE) {
+                mSensor.setMaxDelay(0);
+        } else {
+                mSensor.setMaxDelay(info.max_delay);
+        }
+
+        if (mode == SENSOR_FLAG_ONE_SHOT_MODE) {
+                mSensor.setFifoMaxEventCount(0);
+                mSensor.setFifoReservedEventCount(0);
+        } else {
+                mSensor.setFifoMaxEventCount(info.fifo_max_event_count);
+                mSensor.setFifoReservedEventCount(info.fifo_reserved_event_count);
+        }
 
         if (sensorType == SENSOR_TYPE_HEART_RATE)
                 mSensor.setRequiredPermission(SENSOR_PERMISSION_BODY_SENSORS);
@@ -72,8 +88,7 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
         case SENSOR_TYPE_GLANCE_GESTURE:
         case SENSOR_TYPE_PICK_UP_GESTURE:
         case SENSOR_TYPE_TILT_DETECTOR:
-                flags = mSensor.getFlags();
-                flags |= SENSOR_FLAG_WAKE_UP;
+                flags = mode | SENSOR_FLAG_WAKE_UP;
                 mSensor.setFlags(flags);
                 break;
         default:
