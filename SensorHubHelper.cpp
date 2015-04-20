@@ -72,6 +72,8 @@ ish_sensor_t SensorHubHelper::getType(int sensorType, sensors_subname subname)
                 return SENSOR_LIFT;
         case SENSOR_TYPE_PAN_ZOOM:
                 return SENSOR_PAN_TILT_ZOOM;
+        case SENSOR_TYPE_TILT_DETECTOR:
+                return SENSOR_TILT_DETECT;
 
         case SENSOR_TYPE_GESTURE:
         case SENSOR_TYPE_PEDOMETER:
@@ -240,6 +242,8 @@ size_t SensorHubHelper::getUnitSize(int sensorType)
                 return sizeof(struct lift_data);
         case SENSOR_TYPE_INSTANT_ACTIVITY:
                 return sizeof(struct instant_activity_data);
+        case SENSOR_TYPE_TILT_DETECTOR:
+                return sizeof(struct tilt_data);
         case SENSOR_TYPE_TEMPERATURE:
         case SENSOR_TYPE_RELATIVE_HUMIDITY:
         case SENSOR_TYPE_AMBIENT_TEMPERATURE:
@@ -296,6 +300,7 @@ float SensorHubHelper::ConvertToFloat(int value, int sensorType)
 
                 case SENSOR_TYPE_PAN_ZOOM:
                 case SENSOR_TYPE_LIFT:
+                case SENSOR_TYPE_TILT_DETECTOR:
                 case SENSOR_TYPE_INSTANT_ACTIVITY:
                 case SENSOR_TYPE_SIMPLE_TAPPING:
                         return (float) value;
@@ -476,6 +481,12 @@ ssize_t SensorHubHelper::readSensorhubEvents(int fd, struct sensorhub_event_t* e
                 for (unsigned int i = 0; i < count; i++) {
                         events[i].data[0] = ((reinterpret_cast<struct instant_activity_data*>(stream))[i]).typeclass;
                         events[i].timestamp = (reinterpret_cast<struct instant_activity_data*>(stream))[i].ts;
+                }
+                break;
+        case SENSOR_TYPE_TILT_DETECTOR:
+                for (unsigned int i = 0; i < count; i++) {
+                        events[i].data[0] = ((reinterpret_cast<struct tilt_data*>(stream))[i]).tilt_event;
+                        events[i].timestamp = (reinterpret_cast<struct tilt_data*>(stream))[i].ts;
                 }
                 break;
         case SENSOR_TYPE_GAME_ROTATION_VECTOR:

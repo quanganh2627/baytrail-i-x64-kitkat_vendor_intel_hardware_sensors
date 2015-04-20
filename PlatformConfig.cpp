@@ -27,12 +27,20 @@ bool PlatformConfig::addSensorDevice(sensor_info_t info)
 
         mSensor.setId(devices.size());
         mSensor.setHandle(mSensor.idToHandle(mSensor.getId()));
+
         sensorType = getType(info.sensor_type);
+        if (sensorType < 0)
+                return false;
         mSensor.setType(sensorType);
+
         eventProperty = getEventProperty(sensorType);
         mSensor.setEventProperty(eventProperty);
+
         sensorStringType = getStringType(sensorType);
+        if (sensorStringType == NULL)
+                return false;
         mSensor.setStringType(sensorStringType);
+
         flags = getFlags(sensorType);
         mSensor.setFlags(flags);
 
@@ -158,9 +166,11 @@ int PlatformConfig::getType(ish_sensor_t sensor_type)
                 return SENSOR_TYPE_LIFT;
         else if (sensor_type == SENSOR_INSTANT_ACTIVITY)
                 return SENSOR_TYPE_INSTANT_ACTIVITY;
+        else if (sensor_type == SENSOR_TILT_DETECT)
+                return SENSOR_TYPE_TILT_DETECTOR;
 
         log_message(CRITICAL, "%s: unsupported sensor: %d\n", __FUNCTION__, sensor_type);
-        return 0;
+        return -1;
 }
 
 std::string PlatformConfig::getName(ish_sensor_t sensor_type)
@@ -223,6 +233,8 @@ std::string PlatformConfig::getName(ish_sensor_t sensor_type)
                 return "Lift sensor";
         else if (sensor_type == SENSOR_INSTANT_ACTIVITY)
                 return "Instant Activity sensor";
+        else if (sensor_type == SENSOR_TILT_DETECT)
+                return "Tilt Detector sensor";
 
         log_message(CRITICAL, "%s: unsupported sensor: %d\n", __FUNCTION__, sensor_type);
         return "Unknow sensor";

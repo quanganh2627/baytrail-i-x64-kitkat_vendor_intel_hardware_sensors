@@ -94,6 +94,7 @@ static bool initSensors()
                         case SENSOR_TYPE_PAN_ZOOM:
                         case SENSOR_TYPE_LIFT:
                         case SENSOR_TYPE_INSTANT_ACTIVITY:
+                        case SENSOR_TYPE_TILT_DETECTOR:
                                 mSensor = new ISHCommonSensor(mDevice);
                                 break;
 
