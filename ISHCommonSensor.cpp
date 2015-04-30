@@ -208,7 +208,8 @@ int ISHCommonSensor::getData(std::queue<sensors_event_t> &eventQue) {
                                 if (sensorhubEvent[i].accuracy != 0)
                                         event.acceleration.status = sensorhubEvent[i].accuracy;
                         }
-                        event.timestamp = sensorhubEvent[i].timestamp * 1000;
+
+                        event.timestamp = sensorhubEvent[i].timestamp;
 
                         /* auto disable one-shot sensor */
                         if ((device.getFlags() & ~SENSOR_FLAG_WAKE_UP) == SENSOR_FLAG_ONE_SHOT_MODE)
